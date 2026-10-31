@@ -4651,6 +4651,51 @@ function bbSnapSig(snap) {
 }
 /* فتح فوري: إذا فتحنا هذي المحادثة قبل بنفس الجلسة، نرسم آخر لقطة محفوظة بالذاكرة فوراً بدل انتظار قراءة الكاش (300-600ms).
    اللقطة الحقيقية تجي بعدها؛ إذا ما تغيّر شي يظهر ما تنعاد الرسم (bbSnapSig). */
+/* تحديث سريع للمحادثة الخاصة: بدل إعادة رسم كل الرسائل (90-170ms) عند كل إرسال/تأكيد/قراءة:
+   - تغيّر علامات الصح فقط (انتظار ← وصلت ← مقروءة): نحدّث العلامة مكانها
+   - رسائل جديدة بالنهاية (مع خروج الأقدم من النافذة): نرسم الجديدة فقط
+   أي تغيير ثاني (تعديل، حذف، تفاعل...) يرجع للرسم الكامل كالسابق. */
+function __bbFastApply(snap, box, existingTyping) {
+  try {
+    const R = window.__bbRendered;
+    if (!R || R.chat !== activeChatId || R.limit !== msgLimit || window.__pendingJump || loadingOlder) return false;
+    if (isGroupChat(activeChatId)) return false;
+    const oldDocs = R.snap.docs.slice().reverse(), newDocs = snap.docs.slice().reverse();
+    if (!oldDocs.length || !newDocs.length) return false;
+    const base = d => { const y = Object.assign({}, d.data()); delete y.read; return d.id + ':' + JSON.stringify(y); };
+    const oldB = oldDocs.map(base), newB = newDocs.map(base);
+    const k = oldB.indexOf(newB[0]);
+    if (k < 0) return false;
+    const common = oldB.length - k;
+    if (common > newB.length) return false;
+    for (let i = 0; i < common; i++) if (oldB[k + i] !== newB[i]) return false;
+    if ((R.snap.size >= msgLimit) !== (snap.size >= msgLimit)) return false;
+    const me = currentUser.uid;
+    const patchTick = d => {
+      const m = d.data(); if (m.senderId !== me) return;
+      const node = document.getElementById('message_' + d.id); if (!node) return;
+      const meta = node.querySelector('.msg-meta'); if (!meta) return;
+      const pend = !!(d.metadata && d.metadata.hasPendingWrites);
+      const want = pend ? 'check-mark pending' : (m.read ? 'check-mark read' : 'check-mark');
+      const cur = meta.querySelector('.check-mark');
+      if (cur && cur.className === want) return;
+      const svg = pend ? TICK_SVG.wait : (m.read ? TICK_SVG.read : TICK_SVG.sent);
+      const html = '<span class="' + want + '">' + svg + '</span>';
+      if (cur) cur.outerHTML = html; else meta.insertAdjacentHTML('beforeend', html);
+      if (pend) node.dataset.pending = '1'; else delete node.dataset.pending;
+    };
+    oldDocs.slice(0, k).forEach(d => { const n = document.getElementById('message_' + d.id); if (n) (n.closest('.g-row') || n).remove(); });
+    newDocs.slice(0, common).forEach(patchTick);
+    const tail = newDocs.slice(common);
+    tail.forEach(d => renderMsgDoc(d, box, existingTyping));
+    const un = snap.docs.filter(d => { const dm = d.data(); return dm.senderId !== me && dm.read === false; });
+    if (un.length) { const b = db.batch(); un.forEach(d => b.update(d.ref, { read: true })); b.commit().catch(() => {}); }
+    if (messageSelectionMode) refreshMessageSelectionUI();
+    if (tail.length) box.scrollTop = box.scrollHeight;
+    window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
+    return true;
+  } catch (e) { return false; }
+}
 function __bbInstantOpen() {
   const mem = window.__bbSnapMem && window.__bbSnapMem[activeChatId];
   if (!mem || mem.limit !== msgLimit || typeof window.__bbMsgH !== 'function') return;
@@ -4662,7 +4707,7 @@ function __bbInstantOpen() {
   window.__bbMsgH(mem.snap);
 }
 function openChatRoom(otherUserId, keepLimit) {
-  window.__bbMsgSig = null; window.__bbMark && __bbMark('chat-open', 1);
+  window.__bbMsgSig = null; window.__bbRendered = null; window.__bbMark && __bbMark('chat-open', 1);
   reorderChatListItems();
   document.getElementById('chatGroupInfoAction')?.classList.add('hidden'); { const _av = document.getElementById('chatAvatar'); if (_av) _av.style.background = ''; } try { hideMentionPop(); resetGroupUI(); } catch (e) {}
   if (!keepLimit) msgLimit = 50;
@@ -4764,6 +4809,7 @@ function openChatRoom(otherUserId, keepLimit) {
       try { hasAdded = snap.docChanges().some(c => c.type === 'added'); } catch (e) { hasAdded = true; }
       
       const existingTyping = document.getElementById("typingIndicatorBubble");
+      if (__bbFastApply(snap, box, existingTyping)) return;
 
       Array.from(box.children).forEach(child => {
         if (child.id !== "typingIndicatorBubble" && !child.classList.contains("load-older-btn")) {
@@ -4791,6 +4837,7 @@ function openChatRoom(otherUserId, keepLimit) {
       if (loadingOlder) { box.scrollTop = Math.max(0, box.scrollHeight - prevH); loadingOlder = false; }
       else if (hasAdded || wasNearBottom) box.scrollTop = box.scrollHeight;   // رسالة جديدة أو كنت أسفل المحادثة
       else box.scrollTop = prevTop;                                            // تفاعل/تعديل: ابقَ في مكانك
+      window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
     });
   try { __bbInstantOpen(); } catch (e) {}
 }
