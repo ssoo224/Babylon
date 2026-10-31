@@ -8815,7 +8815,8 @@ document.addEventListener('click',function(e){const menu=document.getElementById
     });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', cleanVisitedBadge); else cleanVisitedBadge();
-  new MutationObserver(cleanVisitedBadge).observe(document.documentElement, {childList:true, subtree:true});
+  let __cvT = 0;
+  new MutationObserver(() => { if (__cvT) return; __cvT = setTimeout(() => { __cvT = 0; cleanVisitedBadge(); }, 600); }).observe(document.documentElement, {childList:true, subtree:true});
 })();
 </script>
 
@@ -8881,7 +8882,8 @@ document.addEventListener('click',function(e){const menu=document.getElementById
  sync();
  const observer=new MutationObserver(sync);
  document.querySelectorAll('.app-container').forEach(el=>observer.observe(el,{attributes:true,attributeFilter:['data-app-theme','class']}));
- new MutationObserver(sync).observe(document.body,{childList:true,subtree:true});
+ let __sp=0;
+  new MutationObserver(()=>{ if(__sp) return; __sp=requestAnimationFrame(()=>{ __sp=0; sync(); }); }).observe(document.body,{childList:true,subtree:true});
  document.addEventListener('visibilitychange',sync);
 })();
 </script>
@@ -13333,7 +13335,7 @@ body.light #viewersModal .viewer-item {
     return false;
   }
   var callWas=false;
-  setInterval(function(){ var c=callOn(); if(c!==callWas){ callWas=c; last=''; schedule(); } },500);
+  setInterval(function(){ if(document.hidden) return; var c=callOn(); if(c!==callWas){ callWas=c; last=''; schedule(); } },1000);
 
   function target(){
     if(callWas||callOn()) return 'black';   /* أثناء الاتصال: أيقونات الشريط بيضاء (نهاري وليلي) */
@@ -14510,7 +14512,8 @@ html{overflow:hidden!important;overscroll-behavior:none}
   });
   btn.addEventListener('pointerdown',function(e){e.preventDefault();});
   bind();
-  var mo=new MutationObserver(function(){bind();});
+  var __bp=0;
+  var mo=new MutationObserver(function(){ if(__bp) return; __bp=requestAnimationFrame(function(){ __bp=0; bind(); }); });
   mo.observe(cv,{childList:true,subtree:true});
   window.addEventListener('resize',update);
   if(window.visualViewport)window.visualViewport.addEventListener('resize',update);
@@ -14591,7 +14594,8 @@ html{overflow:hidden!important;overscroll-behavior:none}
   if(!view||!bar)return;
   function upd(){var h=bar.offsetHeight||0;if(h)view.style.setProperty('--cr-pin-h',h+'px');}
   if(window.ResizeObserver){try{new ResizeObserver(upd).observe(bar);}catch(e){}}
-  try{new MutationObserver(upd).observe(bar,{childList:true,attributes:true,attributeFilter:['class']});}catch(e){}
+  var __pp=0;
+  try{new MutationObserver(function(){ if(__pp) return; __pp=requestAnimationFrame(function(){ __pp=0; upd(); }); }).observe(bar,{childList:true,attributes:true,attributeFilter:['class']});}catch(e){}
   window.addEventListener('resize',upd);upd();
 })();
 </script>
