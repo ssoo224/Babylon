@@ -18,9 +18,49 @@
       var u = (typeof currentUser !== 'undefined') ? currentUser : null;
       if (!u || typeof db === 'undefined') { srv = null; setTimeout(pingServer, 1500); return; }
       var a = now();
-      db.collection('users').doc(u.uid).get({ source: 'server' }).then(function () { srv = now() - a; schedule(); }).catch(function () { srv = -1; schedule(); });
+      /* وثيقة عشوائية غير موجودة (ما عليها مستمع) = رحلة شبكة حقيقية للسيرفر */
+      db.collection('giftCatalog').doc('__ping' + Date.now()).get({ source: 'server' }).then(function () { srv = now() - a; schedule(); }).catch(function () { srv = -1; schedule(); });
     } catch (e) {}
   }
+
+  /* ===== قياس ما يعمل بالخلفية: مراقبات DOM، مؤقتات، ومهام طويلة تسبب التقطيع ===== */
+  var stats = {}, longN = 0, longMax = 0, longSum = 0;
+  function rec(key, ms) { var s = stats[key] || (stats[key] = { n: 0, ms: 0, max: 0 }); s.n++; s.ms += ms; if (ms > s.max) s.max = ms; }
+  function where() {
+    try {
+      var st = (new Error()).stack.split('\n');
+      for (var i = 3; i < st.length; i++) {
+        if (st[i].indexOf('perf.js') > -1) continue;
+        var m = st[i].match(/([^\/\s()]*):(\d+):\d+\)?\s*$/);
+        if (m) return (m[1] || 'index') + ':' + m[2];
+      }
+    } catch (e) {}
+    return '?';
+  }
+  try {
+    var OrigMO = window.MutationObserver;
+    if (OrigMO) {
+      var WrapMO = function (cb) {
+        var site = where();
+        return new OrigMO(function (muts, obs) { var t = performance.now(); try { return cb.call(this, muts, obs); } finally { rec('MO ' + site, performance.now() - t); } });
+      };
+      WrapMO.prototype = OrigMO.prototype; window.MutationObserver = WrapMO;
+    }
+    var origIv = window.setInterval;
+    window.setInterval = function (fn, ms) {
+      if (typeof fn !== 'function') return origIv.apply(this, arguments);
+      var site = where(), args = Array.prototype.slice.call(arguments, 2);
+      return origIv.call(this, function () { var t = performance.now(); try { return fn.apply(this, args); } finally { rec('IV ' + site + ' @' + ms, performance.now() - t); } }, ms);
+    };
+    if (window.PerformanceObserver) {
+      new PerformanceObserver(function (l) { l.getEntries().forEach(function (e) { longN++; longSum += e.duration; if (e.duration > longMax) longMax = e.duration; }); schedule(); }).observe({ entryTypes: ['longtask'] });
+    }
+  } catch (e) {}
+  function topStats() {
+    return Object.keys(stats).map(function (k) { return [k, stats[k]]; }).sort(function (a, b) { return b[1].ms - a[1].ms; }).slice(0, 7)
+      .map(function (x) { return '  ' + x[0] + ' · ' + x[1].n + '× · ' + Math.round(x[1].ms) + 'ms (أطول ' + Math.round(x[1].max) + ')'; });
+  }
+
   function lines() {
     var out = [], boot = marks.filter(function (m) { return !m.chat; }), ch = marks.filter(function (m) { return m.chat; });
     out.push('إقلاع (من بداية الصفحة):');
@@ -28,6 +68,9 @@
     out.push('تخزين Firestore المحلي: ' + (window.__bbPersist || '؟'));
     out.push('قراءة من السيرفر: ' + (srv === null ? '…' : srv < 0 ? 'فشلت' : fmt(srv)));
     if (ch.length) { out.push('آخر فتح محادثة:'); ch.forEach(function (m) { out.push('  ' + m.name + ' +' + fmt(m.rel)); }); }
+    out.push('مهام طويلة (>50ms): ' + longN + ' · المجموع ' + Math.round(longSum) + 'ms · الأطول ' + Math.round(longMax) + 'ms');
+    out.push('الأثقل بالخلفية (مراقب/مؤقت · عدد · وقت):');
+    topStats().forEach(function (l) { out.push(l); });
     return out.join('\n');
   }
   function paint() {
@@ -38,7 +81,7 @@
       chip.style.cssText = 'position:fixed;left:8px;bottom:84px;z-index:2147483000;width:30px;height:30px;border-radius:15px;background:rgba(0,0,0,.55);color:#ffd96a;font:15px/30px sans-serif;text-align:center;opacity:.75';
       var lp = 0;
       chip.addEventListener('click', function () { open = !open; paint(); });
-      chip.addEventListener('touchstart', function () { lp = setTimeout(function () { marks = []; srv = null; pinged = false; open = false; paint(); }, 900); }, { passive: true });
+      chip.addEventListener('touchstart', function () { lp = setTimeout(function () { marks = []; srv = null; pinged = false; stats = {}; longN = 0; longMax = 0; longSum = 0; open = false; paint(); }, 900); }, { passive: true });
       ['touchend', 'touchmove', 'touchcancel'].forEach(function (ev) { chip.addEventListener(ev, function () { clearTimeout(lp); }, { passive: true }); });
       document.body.appendChild(chip);
       box = document.createElement('div');

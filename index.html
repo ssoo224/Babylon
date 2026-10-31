@@ -3295,6 +3295,7 @@ window.__acOn = !!(APP_CHECK_SITE_KEY && firebase.appCheck);
 const auth = firebase.auth();
 try { auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => console.warn("Auth persistence preference:", err)); } catch (e) {}
 const db = firebase.firestore();
+try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) { console.warn('Firestore settings:', e && e.message); }
 window.__bbMark && __bbMark('db-created');
 /* العمل بدون إنترنت: تخزين محلي لبيانات Firestore كي تظهر المحادثات والملف عند انقطاع الاتصال */
 try { db.enablePersistence({ synchronizeTabs: true }).then(function () { window.__bbPersist = 'on'; }).catch(function (e) { window.__bbPersist = (e && e.code) || 'fail'; console.warn('Firestore persistence:', e && e.code); }); } catch (e) {}
@@ -3704,7 +3705,9 @@ function loadUserDataAndEnter(uid) {
 
   userDocUnsubscribe = userRef.onSnapshot(doc => {
     if (doc.exists) {
-      enterWithProfile(doc.data());
+      const __pd = doc.data();
+      try { const __pk = uid + JSON.stringify(Object.assign({}, __pd, { online: 0, lastSeen: 0 })); if (isAppInitialized && window.__bbProfSig === __pk) return; window.__bbProfSig = __pk; } catch (e) {}
+      enterWithProfile(__pd);
     } else if (doc.metadata && doc.metadata.fromCache) {
       /* بدون اتصال ولا نسخة محفوظة: ندخل بواجهة مؤقتة دون إنشاء/كتابة ملف المستخدم (كي لا نكتب فوق بياناتك الحقيقية) */
       enterWithProfile(null);
@@ -4751,6 +4754,7 @@ function openChatRoom(otherUserId, keepLimit) {
     .onSnapshot({ includeMetadataChanges: true }, window.__bbMsgH = snap => {
       try { const __sg = bbSnapSig(snap); if (__sg === window.__bbMsgSig && !window.__pendingJump && !loadingOlder) return; window.__bbMsgSig = __sg; } catch (e) {}
       try { if (window.__bbMark) { __bbMark('msgs-' + (snap.metadata.fromCache ? 'cache' : 'server'), 1); requestAnimationFrame(() => __bbMark('painted', 1)); } } catch (e) {}
+      try { const __f = snap.docs[0]; if (__f && __f.data().senderId === currentUser.uid) { const __S = (window.__bbSend = window.__bbSend || {}); if (__f.metadata.hasPendingWrites) { if (!__S[__f.id]) __S[__f.id] = performance.now(); } else if (__S[__f.id]) { window.__bbMark && __bbMark('send-ack ' + Math.round(performance.now() - __S[__f.id]) + 'ms', 1); delete __S[__f.id]; } } } catch (e) {}
       try { const __m = (window.__bbSnapMem = window.__bbSnapMem || {}); __m[activeChatId] = { snap: snap, limit: msgLimit }; const __k = Object.keys(__m); if (__k.length > 8) delete __m[__k[0]]; } catch (e) {}
       const box = document.getElementById("messagesArea");
       const prevH = box.scrollHeight;
