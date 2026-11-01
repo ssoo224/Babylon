@@ -1,6 +1,7 @@
 /* perf/perf.js — قياس أداء مؤقت: يعرض أوقات الإقلاع وفتح المحادثة على الشاشة (شارة ⏱ أسفل اليسار).
    اضغط الشارة لفتح/إغلاق التفاصيل، واضغط مطوّلاً لمسح القياسات. احذف سطر تحميله من index.html بعد التشخيص. */
 (function () {
+  try { if (localStorage.getItem('bbDebug') !== '1') return; } catch (e) { return; }
   var t0 = (window.performance && performance.timeOrigin) ? 0 : 0;
   var marks = [], chatOpenAt = 0, srv = null, pinged = false, box, chip, open = false, pend = 0;
   function now() { return Math.round(performance.now()); }

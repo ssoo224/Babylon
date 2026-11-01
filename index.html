@@ -3662,6 +3662,7 @@ function babylonStartSession(user) {
 
 auth.onAuthStateChanged(user => {
   window.__bbMark && __bbMark('auth');
+  try { localStorage.setItem('bbDebug', (user && isDevEmail(user.email)) ? '1' : '0'); } catch (e) {}
   if (user && !user.emailVerified) { showVerifyPage(user); return; }
   if (user) {
     babylonOtpGate(user).then(ok => { window.__bbMark && __bbMark('otp'); if (ok) babylonStartSession(user); });
@@ -4659,7 +4660,7 @@ function __bbFastApply(snap, box, existingTyping) {
   try {
     const R = window.__bbRendered;
     if (!R || R.chat !== activeChatId || R.limit !== msgLimit || window.__pendingJump || loadingOlder) return false;
-    if (isGroupChat(activeChatId)) return false;
+    const grp = isGroupChat(activeChatId);
     const oldDocs = R.snap.docs.slice().reverse(), newDocs = snap.docs.slice().reverse();
     if (!oldDocs.length || !newDocs.length) return false;
     const base = d => { const y = Object.assign({}, d.data()); delete y.read; return d.id + ':' + JSON.stringify(y); };
@@ -4674,6 +4675,7 @@ function __bbFastApply(snap, box, existingTyping) {
     const patchTick = d => {
       const m = d.data(); if (m.senderId !== me) return;
       const node = document.getElementById('message_' + d.id); if (!node) return;
+      if (grp) { if (!(d.metadata && d.metadata.hasPendingWrites) && node.dataset.pending === '1') delete node.dataset.pending; return; }
       const meta = node.querySelector('.msg-meta'); if (!meta) return;
       const pend = !!(d.metadata && d.metadata.hasPendingWrites);
       const want = pend ? 'check-mark pending' : (m.read ? 'check-mark read' : 'check-mark');
@@ -4688,8 +4690,13 @@ function __bbFastApply(snap, box, existingTyping) {
     newDocs.slice(0, common).forEach(patchTick);
     const tail = newDocs.slice(common);
     tail.forEach(d => renderMsgDoc(d, box, existingTyping));
-    const un = snap.docs.filter(d => { const dm = d.data(); return dm.senderId !== me && dm.read === false; });
-    if (un.length) { const b = db.batch(); un.forEach(d => b.update(d.ref, { read: true })); b.commit().catch(() => {}); }
+    if (grp) {
+      finalizeGroupRows(box); refreshGroupTicks();
+      if (snap.docs[0]) markGroupRead(activeChatId, snap.docs[0].data());
+    } else {
+      const un = snap.docs.filter(d => { const dm = d.data(); return dm.senderId !== me && dm.read === false; });
+      if (un.length) { const b = db.batch(); un.forEach(d => b.update(d.ref, { read: true })); b.commit().catch(() => {}); }
+    }
     if (messageSelectionMode) refreshMessageSelectionUI();
     if (tail.length) box.scrollTop = box.scrollHeight;
     window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
@@ -8074,7 +8081,7 @@ function markGroupRead(chatId,newest){
   db.collection('chats').doc(chatId).set({readAt:{[me]:Math.max(Date.now(),t)}},{merge:true}).catch(()=>{});
 }
 function openGroupRoom(chatId,keepLimit){
-  window.__bbMsgSig=null;
+  window.__bbMsgSig=null;window.__bbRendered=null;
   const meta=chatMetaCache[chatId];
   if(!meta){db.collection('chats').doc(chatId).get().then(d=>{if(d.exists){chatMetaCache[chatId]=d.data();openGroupRoom(chatId,keepLimit);}});return;}
   activeChatId=chatId;currentChatOtherUserId=null;
@@ -8107,6 +8114,7 @@ function openGroupRoom(chatId,keepLimit){
     messagesUnsubscribe=db.collection('chats').doc(chatId).collection('messages').orderBy('createdAt','desc').limit(msgLimit).onSnapshot({includeMetadataChanges:true},snap=>{
       if(activeChatId!==chatId)return;
       try{const __sg=bbSnapSig(snap);if(__sg===window.__bbMsgSig&&!window.__pendingJump&&!loadingOlder){markGroupRead(chatId,snap.docs[0]&&snap.docs[0].data());return;}window.__bbMsgSig=__sg;}catch(e){}
+      if(__bbFastApply(snap,box,null))return;
       const prevH=box.scrollHeight;
       Array.from(box.children).forEach(c=>c.remove());
       if(snap.size>=msgLimit){
@@ -8120,6 +8128,7 @@ function openGroupRoom(chatId,keepLimit){
       if(window.__pendingJump)setTimeout(runPendingJump,30);
       if(loadingOlder){box.scrollTop=Math.max(0,box.scrollHeight-prevH);loadingOlder=false;}else box.scrollTop=box.scrollHeight;
       if(snap.docs[0])markGroupRead(chatId,snap.docs[0].data());
+      window.__bbRendered={chat:activeChatId,limit:msgLimit,snap:snap};window.__bbMark&&__bbMark('full',1);
     });
   });
 }
@@ -13372,7 +13381,7 @@ body.light #viewersModal .viewer-item {
   /* شاشة الاتصال (واردة/صادرة/جارية): تُنشأ من calls/calls.js — نكتشفها بالاسم والحجم */
   function callOn(){
     try{
-      if(!document.getElementById('bbCallOv')) return false;
+      var __ov=document.getElementById('bbCallOv'); if(!__ov||!__ov.classList.contains('on')) return false;
       var els=document.querySelectorAll('[id*="call" i],[class*="call" i]'), W=innerWidth, H=innerHeight;
       for(var i=0;i<els.length;i++){
         var e=els[i]; if(e.closest('.hidden')) continue;

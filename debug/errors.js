@@ -1,6 +1,8 @@
-/* debug/errors.js — يعرض أخطاء JavaScript على الشاشة (للتشخيص فقط).
-   اضغط على الشريط الأحمر لإغلاقه. احذف سطر تحميله من index.html بعد ما تخلص. */
+/* debug/errors.js — يعرض أخطاء JavaScript على الشاشة (للمطوّر فقط: يشتغل إذا كان localStorage.bbDebug === '1').
+   اللي يحدد هذا العلم هو index.html عند تسجيل الدخول: '1' لحسابات المطورين و'0' لغيرهم.
+   اضغط على الشريط الأحمر لإغلاقه. */
 (function () {
+  try { if (localStorage.getItem('bbDebug') !== '1') return; } catch (e) { return; }
   var box, list = [];
   function paint() {
     if (!document.body) return;
@@ -12,7 +14,13 @@
     }
     box.textContent = list.slice(-6).join('\n—\n');
   }
-  function add(m) { list.push(String(m).slice(0, 400)); if (list.length > 20) list.shift(); paint(); }
+  function add(m) { list.push(String(m).slice(0, 700)); if (list.length > 20) list.shift(); paint(); }
+  function frames() {
+    try {
+      return (new Error()).stack.split('\n').slice(1).filter(function (l) { return l.indexOf('errors.js') < 0; }).slice(0, 4)
+        .map(function (l) { var m = l.match(/([^\/\s()]*):(\d+):\d+\)?\s*$/); return m ? (m[1] || 'index') + ':' + m[2] : ''; }).filter(Boolean).join(' ← ');
+    } catch (e) { return '?'; }
+  }
   window.addEventListener('error', function (e) {
     add('ERROR: ' + e.message + '\n' + String(e.filename || '').split('/').pop() + ':' + e.lineno + ':' + e.colno);
   });
@@ -24,4 +32,24 @@
     try { add('console.error: ' + Array.prototype.map.call(arguments, function (a) { return (a && a.message) || (typeof a === 'object' ? JSON.stringify(a) : a); }).join(' ')); } catch (x) {}
     return ce.apply(console, arguments);
   };
+  /* تحديد مكان استدعاء doc() بمسار فارغ: يسجّل السطور اللي استدعته */
+  function hook() {
+    try {
+      var F = window.firebase && firebase.firestore;
+      if (!F || !F.CollectionReference || !F.Firestore) return false;
+      var wrap = function (proto, label) {
+        if (!proto || proto.__bbDocHook || typeof proto.doc !== 'function') return;
+        proto.__bbDocHook = true;
+        var od = proto.doc;
+        proto.doc = function (p) {
+          if (arguments.length && (p === '' || p === null)) add('doc("") فارغ [' + label + ']: ' + frames());
+          return od.apply(this, arguments);
+        };
+      };
+      wrap(F.CollectionReference.prototype, 'collection.doc');
+      wrap(F.Firestore.prototype, 'db.doc');
+      return true;
+    } catch (e) { return false; }
+  }
+  var n = 0, iv = setInterval(function () { if (hook() || ++n > 200) clearInterval(iv); }, 50);
 })();
