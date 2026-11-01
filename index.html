@@ -4931,7 +4931,7 @@ function renderMsgDoc(doc, box, existingTyping) {
         
         const _rl = reactionList(m);
         const _isMediaMsg = !m.audioUrl && !!(m.videoUrl || (m.imageUrl && m.type !== 'stars'));
-        try { window.__bbMsgMedia = window.__bbMsgMedia || {}; if (_isMediaMsg && m.type !== 'sticker') window.__bbMsgMedia[doc.id] = m.videoUrl ? { t: 'video', u: m.posterUrl || '', v: m.videoUrl } : { t: 'image', u: m.imageUrl, v: '' }; } catch (e) {}
+        try { window.__bbMsgMedia = window.__bbMsgMedia || {}; if (_isMediaMsg && m.type !== 'sticker') window.__bbMsgMedia[doc.id] = m.videoUrl ? { t: 'video', u: m.posterUrl || '', v: m.videoUrl } : { t: 'image', u: m.imageUrl, v: '' }; if (m.audioUrl) window.__bbMsgMedia[doc.id] = { t: 'audio', u: '', v: '' }; } catch (e) {}
         const _mediaReact = (_rl.length && _isMediaMsg) ? '<div class="media-react">' + reactionBadgesHtml(_rl, 'rb') + '</div>' : '';
         let htmlContent = "";
         if (grp && !isMine) htmlContent += groupSenderHtml(m.senderId);
@@ -5339,6 +5339,7 @@ function bbReplyTextHtml(text, type) {
   else if (/^\u25B6\s*/.test(t)) { k = 'video'; t = t.replace(/^\u25B6\s*/, ''); }
   let icon = '';
   if (k === 'image' && t === 'صورة') icon = '<svg class="rq-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="m4.5 17.5 4.5-4.5 3.5 3.5 2.5-2.5 4.5 4"/></svg>';
+  else if (k === 'audio' && t === 'بصمة صوتية') icon = '<svg class="rq-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>';
   else if (k === 'video' && t === 'فيديو') icon = '<svg class="rq-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="13" height="13" rx="3"/><path d="m16 10.5 5-3v9l-5-3z"/></svg>';
   return icon + esc(t);
 }
@@ -5487,6 +5488,20 @@ function actionCopy() {
   document.getElementById("msgModal").classList.add("hidden");
 }
 
+function bbReplyFields() {
+  const f = {};
+  if (!replyingToText) return f;
+  f.replyTo = replyingToText;
+  if (replyingToId) f.replyToId = replyingToId;
+  if (replyingToSenderId) f.replyToSenderId = replyingToSenderId;
+  const rm = replyingToMedia;
+  if (rm && (rm.u || rm.v || rm.t === 'audio')) {
+    f.replyToType = rm.t;
+    if (rm.u && String(rm.u).length < 60000) f.replyToThumb = rm.u;
+    if (rm.v && !rm.u) f.replyToVideo = rm.v;
+  }
+  return f;
+}
 function cancelReply() {
   replyingToText = null;
   replyingToId = null;
@@ -5606,6 +5621,7 @@ function cancelRecording() {
 
 function stopAndSendRecording() {
   if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+  const _rf = bbReplyFields();
 
   const voiceSeconds = Math.max(1, recordSeconds);
   mediaRecorder.onstop = () => {
@@ -5620,7 +5636,8 @@ function stopAndSendRecording() {
         audioUrl: base64Audio,
         duration: voiceSeconds,
         read: false,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        ..._rf
       }).then(() => {
         db.collection("chats").doc(activeChatId).set({ 
           updatedAt: Date.now(),
@@ -5630,6 +5647,7 @@ function stopAndSendRecording() {
         notifyPeer(activeChatId, "♬ بصمة صوتية");
       });
 
+      try { cancelReply(); } catch (e) {}
       cancelRecording();
     };
     reader.readAsDataURL(audioBlob);
@@ -5672,7 +5690,7 @@ function sendMessage(e) {
       createdAt: Date.now()
     };
 
-    if (replyingToText) { msgData.replyTo = replyingToText; if (replyingToId) msgData.replyToId = replyingToId; if (replyingToSenderId) msgData.replyToSenderId = replyingToSenderId; if (replyingToMedia && (replyingToMedia.u || replyingToMedia.v)) { msgData.replyToType = replyingToMedia.t; if (replyingToMedia.u) msgData.replyToThumb = replyingToMedia.u; if (replyingToMedia.v && !replyingToMedia.u) msgData.replyToVideo = replyingToMedia.v; } }
+    if (replyingToText) Object.assign(msgData, bbReplyFields());
     if (isGroupChat(activeChatId)) { const _mn = extractMentionUids(text); if (_mn.length) msgData.mentions = _mn; }
 
     db.collection("chats").doc(activeChatId).collection("messages").add(msgData).then(() => {
@@ -6225,11 +6243,12 @@ function sendImage(e) {
   if (file.type.startsWith('video/')) return sendChatVideo(file);
   if (!file.type.startsWith('image/')) return showToast('اختر صورة أو فيديو فقط');
   if (file.size > 15 * 1024 * 1024) return showToast('الصورة كبيرة جداً');
+  const _rf = bbReplyFields(); try { cancelReply(); } catch (e) {}
   compressImage(file, dataUrl => {
     if (!dataUrl) return showToast('تعذر تجهيز الصورة، جرب صورة أخرى');
     const chatId = activeChatId;
     db.collection('chats').doc(chatId).collection('messages').add({
-      senderId: currentUser.uid, imageUrl: dataUrl, read: false, createdAt: Date.now()
+      senderId: currentUser.uid, imageUrl: dataUrl, read: false, createdAt: Date.now(), ..._rf
     }).then(() => {
       db.collection('chats').doc(chatId).set({ 
         updatedAt: Date.now(),
@@ -6374,6 +6393,7 @@ function sendChatVideo(file) {
   if (!chatId) return;
   if (file.size > MAX_STORY_VIDEO_MB * 1024 * 1024) return showToast('حجم المقطع كبير (الأقصى ' + MAX_STORY_VIDEO_MB + ' ميجا)');
   if (!CLD_CLOUD || !CLD_PRESET) return showToast('رفع الفيديو غير متاح');
+  const _rf = bbReplyFields(); try { cancelReply(); } catch (e) {}
   const area = document.getElementById('messagesArea');
   const ph = document.createElement('div');
   ph.id = 'chatVideoPending'; ph.className = 'msg-bubble mine video-msg video-pending';
@@ -6392,7 +6412,7 @@ function sendChatVideo(file) {
     if (!(xhr.status >= 200 && xhr.status < 300 && r.secure_url)) { fin(); return showToast('تعذر رفع الفيديو'); }
     const posterUrl = r.secure_url.replace('/video/upload/', '/video/upload/so_0,w_480,c_limit/').replace(/\.[^/.]+$/, '.jpg');
     db.collection('chats').doc(chatId).collection('messages').add({
-      senderId: currentUser.uid, videoUrl: r.secure_url, posterUrl: posterUrl, duration: Math.round(r.duration || 0), read: false, createdAt: Date.now()
+      senderId: currentUser.uid, videoUrl: r.secure_url, posterUrl: posterUrl, duration: Math.round(r.duration || 0), read: false, createdAt: Date.now(), ..._rf
     }).then(() => {
       fin();
       db.collection('chats').doc(chatId).set({
@@ -7628,6 +7648,23 @@ function toggleVoicePlayback(button){
   audio.onloadedmetadata=function(){var time=card.querySelector('.voice-time'); if(time) time.textContent=formatVoiceTime(audio.currentTime)+' / '+formatVoiceTime(audio.duration);};
 }
 function seekVoicePlayback(range){var card=range.closest('.custom-voice-card'), audio=card&&card.querySelector('.voice-audio'); if(audio&&Number.isFinite(audio.duration)) audio.currentTime=(Number(range.value)/100)*audio.duration;}
+</script>
+<script id="babylon-voice-autoplay-next">
+/* تشغيل الصوتية التالية تلقائياً عند انتهاء الحالية */
+document.addEventListener('ended',function(e){
+  var a=e.target; if(!a||!a.classList||!a.classList.contains('voice-audio')) return;
+  var card=a.closest('.custom-voice-card'); if(!card) return;
+  var list=Array.prototype.slice.call(document.querySelectorAll('#messagesArea .custom-voice-card'));
+  var next=list[list.indexOf(card)+1]; if(!next) return;
+  var btn=next.querySelector('.voice-play-btn'), au=next.querySelector('.voice-audio');
+  if(!btn||!au||!au.paused) return;
+  setTimeout(function(){
+    if(!next.isConnected||!au.paused) return;
+    try{ if(au.ended||(au.duration&&au.currentTime>=au.duration-0.1)) au.currentTime=0; }catch(_){}
+    btn.click();
+    try{ next.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(_){}
+  },250);
+},true);
 </script>
 
 
@@ -8872,6 +8909,10 @@ document.addEventListener('click',function(e){const menu=document.getElementById
  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
 </script>
+<style id="babylon-media-reply-quote-css">
+#chatView #messagesArea .msg-bubble.image-msg .reply-quote,
+#chatView #messagesArea .msg-bubble.video-msg .reply-quote{margin:6px 6px 6px;max-width:calc(100% - 12px);box-sizing:border-box}
+</style>
 <style id="babylon-hide-empty-stories-css">
 .pf-tab.no-stories-hidden,.pf-pane.no-stories-hidden{display:none!important}
 .pf-tabs.no-tabs-left{display:none!important}
@@ -10648,7 +10689,8 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 .bb-emoji-panel{position:relative}
 .bb-emoji-panel .bb-em-del{position:absolute;left:14px;bottom:14px;right:auto;z-index:5;flex:none;width:43px;height:43px;border-radius:15px;display:inline-flex;align-items:center;justify-content:center;padding:0;color:var(--text-main,#e8eef5);
   background:var(--cr-card,#1b2531);border:1px solid var(--cr-line,rgba(148,163,184,.28));box-shadow:0 4px 14px rgba(0,0,0,.28);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.bb-emoji-panel .bb-em-del svg{width:22px;height:22px;stroke-width:1.8}
+.bb-emoji-panel .bb-em-del svg{width:24px;height:24px;stroke-width:1.8}
+.bb-emoji-panel .bb-em-del{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .bb-emoji-panel .bb-em-del:active{transform:scale(.92);background:rgba(127,140,160,.3)}
 .bb-emoji-panel .bb-em-scroll{padding-bottom:12px}
 .bb-em-bar{display:flex;align-items:center;flex:0 0 auto;padding:4px 6px;gap:2px}
@@ -10853,8 +10895,17 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
     tabs=document.createElement('div'); tabs.className='bb-em-tabs'; tabs.setAttribute('role','tablist');
     var dl=document.createElement('button'); dl.type='button'; dl.className='bb-em-del'; dl.setAttribute('aria-label','حذف');
     dl.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.3 5H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.3a2 2 0 0 1-1.5-.7l-5.1-5.6a1.2 1.2 0 0 1 0-1.6l5.1-5.4A2 2 0 0 1 9.3 5Z"/><path d="m12.6 9.6 4.8 4.8m0-4.8-4.8 4.8"/></svg>';
-    dl.addEventListener('pointerdown',function(e){e.preventDefault();});
-    dl.addEventListener('click',del);
+    var delT=0, delI=0;
+    function stopDel(){ clearTimeout(delT); clearInterval(delI); delT=0; delI=0; }
+    dl.addEventListener('pointerdown',function(e){
+      e.preventDefault(); stopDel();
+      try{dl.setPointerCapture(e.pointerId);}catch(_){}
+      del();
+      delT=setTimeout(function(){ delI=setInterval(del,70); },380);
+    });
+    ['pointerup','pointercancel','lostpointercapture','contextmenu'].forEach(function(ev){ dl.addEventListener(ev,function(e){ if(ev==='contextmenu') e.preventDefault(); stopDel(); }); });
+    dl.addEventListener('click',function(e){ if(e.detail===0) del(); });
+    document.addEventListener('visibilitychange',stopDel);
     bar.appendChild(tabs);
     scroller=document.createElement('div'); scroller.className='bb-em-scroll';
     panel.appendChild(bar); panel.appendChild(scroller); panel.appendChild(dl);
