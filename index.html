@@ -7649,23 +7649,7 @@ function toggleVoicePlayback(button){
 }
 function seekVoicePlayback(range){var card=range.closest('.custom-voice-card'), audio=card&&card.querySelector('.voice-audio'); if(audio&&Number.isFinite(audio.duration)) audio.currentTime=(Number(range.value)/100)*audio.duration;}
 </script>
-<script id="babylon-voice-autoplay-next">
-/* تشغيل الصوتية التالية تلقائياً عند انتهاء الحالية */
-document.addEventListener('ended',function(e){
-  var a=e.target; if(!a||!a.classList||!a.classList.contains('voice-audio')) return;
-  var card=a.closest('.custom-voice-card'); if(!card) return;
-  var list=Array.prototype.slice.call(document.querySelectorAll('#messagesArea .custom-voice-card'));
-  var next=list[list.indexOf(card)+1]; if(!next) return;
-  var btn=next.querySelector('.voice-play-btn'), au=next.querySelector('.voice-audio');
-  if(!btn||!au||!au.paused) return;
-  setTimeout(function(){
-    if(!next.isConnected||!au.paused) return;
-    try{ if(au.ended||(au.duration&&au.currentTime>=au.duration-0.1)) au.currentTime=0; }catch(_){}
-    btn.click();
-    try{ next.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(_){}
-  },250);
-},true);
-</script>
+
 
 
 <style>
@@ -10690,7 +10674,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 .bb-emoji-panel .bb-em-del{position:absolute;left:14px;bottom:14px;right:auto;z-index:5;flex:none;width:43px;height:43px;border-radius:15px;display:inline-flex;align-items:center;justify-content:center;padding:0;color:var(--text-main,#e8eef5);
   background:var(--cr-card,#1b2531);border:1px solid var(--cr-line,rgba(148,163,184,.28));box-shadow:0 4px 14px rgba(0,0,0,.28);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .bb-emoji-panel .bb-em-del svg{width:24px;height:24px;stroke-width:1.8}
-.bb-emoji-panel .bb-em-del{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.bb-emoji-panel .bb-em-del{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
 .bb-emoji-panel .bb-em-del:active{transform:scale(.92);background:rgba(127,140,160,.3)}
 .bb-emoji-panel .bb-em-scroll{padding-bottom:12px}
 .bb-em-bar{display:flex;align-items:center;flex:0 0 auto;padding:4px 6px;gap:2px}
@@ -10895,15 +10879,24 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
     tabs=document.createElement('div'); tabs.className='bb-em-tabs'; tabs.setAttribute('role','tablist');
     var dl=document.createElement('button'); dl.type='button'; dl.className='bb-em-del'; dl.setAttribute('aria-label','حذف');
     dl.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.3 5H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.3a2 2 0 0 1-1.5-.7l-5.1-5.6a1.2 1.2 0 0 1 0-1.6l5.1-5.4A2 2 0 0 1 9.3 5Z"/><path d="m12.6 9.6 4.8 4.8m0-4.8-4.8 4.8"/></svg>';
-    var delT=0, delI=0;
-    function stopDel(){ clearTimeout(delT); clearInterval(delI); delT=0; delI=0; }
-    dl.addEventListener('pointerdown',function(e){
-      e.preventDefault(); stopDel();
-      try{dl.setPointerCapture(e.pointerId);}catch(_){}
+    var delT=0, delI=0, pressing=false;
+    function stopDel(){ pressing=false; clearTimeout(delT); clearInterval(delI); delT=0; delI=0; }
+    function startDel(e){
+      if(e&&e.cancelable) e.preventDefault();
+      if(pressing) return; pressing=true;
       del();
-      delT=setTimeout(function(){ delI=setInterval(del,70); },380);
-    });
-    ['pointerup','pointercancel','lostpointercapture','contextmenu'].forEach(function(ev){ dl.addEventListener(ev,function(e){ if(ev==='contextmenu') e.preventDefault(); stopDel(); }); });
+      delT=setTimeout(function(){ if(!pressing) return; delI=setInterval(function(){
+        if(!pressing){ stopDel(); return; }
+        if(!(input.textContent||'').length){ stopDel(); return; }
+        del();
+      },60); },350);
+    }
+    dl.addEventListener('pointerdown',startDel);
+    ['pointerup','pointercancel'].forEach(function(ev){ window.addEventListener(ev,stopDel,true); });
+    window.addEventListener('touchend',stopDel,true);
+    window.addEventListener('mouseup',stopDel,true);
+    dl.addEventListener('contextmenu',function(e){ e.preventDefault(); });
+    dl.addEventListener('touchstart',function(e){ e.preventDefault(); },{passive:false});
     dl.addEventListener('click',function(e){ if(e.detail===0) del(); });
     document.addEventListener('visibilitychange',stopDel);
     bar.appendChild(tabs);
@@ -12849,11 +12842,11 @@ function bbMsgUser(u){
 </style>
 
 <style id="babylon-voice-minibar">
-#vpBar{position:absolute;top:0;left:0;right:0;height:34px;z-index:4000;display:none;align-items:center;gap:10px;padding:0 12px;cursor:pointer;overflow:hidden;
+#vpBar{position:absolute;top:0;left:0;right:0;height:32px;z-index:4000;display:none;align-items:center;gap:10px;padding:0 12px;cursor:pointer;overflow:hidden;
   background:#1b2636;color:#f1f5f9;border-bottom:1px solid rgba(228,196,91,.35);border-radius:0 0 14px 14px;font-size:12.5px;font-weight:700;-webkit-tap-highlight-color:transparent}
 #vpBar.on{display:flex;animation:vpIn .2s ease}
-.app-container.vp-on{padding-top:34px}
-#vpBar.inflow{position:relative;top:auto;left:auto;right:auto;flex:0 0 auto;height:30px;margin:0 12px;border:1px solid rgba(228,196,91,.3);border-top:0;border-radius:0 0 14px 14px;animation:none;z-index:20}
+.app-container.vp-on{padding-top:32px}
+#vpBar.inflow{position:relative;top:auto;left:auto;right:auto;flex:0 0 auto;height:28px;margin:0 12px;border:1px solid rgba(228,196,91,.3);border-top:0;border-radius:0 0 14px 14px;animation:none;z-index:20}
 #vpBar.inflow.bottom{border:1px solid rgba(228,196,91,.3);border-bottom:0;border-radius:14px 14px 0 0}
 .app-container[data-app-theme="light"] #vpBar.inflow.bottom{border-color:rgba(194,157,48,.4);border-bottom:0}
 .app-container[data-app-theme="light"] #vpBar.inflow{border-color:rgba(194,157,48,.4);border-top:0}
@@ -12871,7 +12864,7 @@ function bbMsgUser(u){
 @keyframes vpEq{from{height:3px}to{height:13px}}
 @media(prefers-reduced-motion:reduce){#vpBar,#vpBar .vp-eq i{animation:none}}
 /* خارج المحادثة: الشريط أسفل الشاشة فوق أزرار التنقل، وزر إنشاء المجموعة يرتفع معه */
-#vpBar.inflow.bottom{height:32px;margin:0 12px}
+#vpBar.inflow.bottom{height:30px;margin:0 12px}
 #vpBar.inflow.bottom.on{animation:vpInUp .22s ease}
 @keyframes vpInUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}
 #newGroupFab{transition:transform .15s ease,bottom .22s ease!important}
@@ -12882,7 +12875,7 @@ function bbMsgUser(u){
   .app-container.vp-bottom #mainPage>#newGroupFab{bottom:calc(18px + 32px)!important}
 }
 /* داخل المحادثة: الشريط تحت الاسم والصورة، وتحت الرسالة المثبتة إن وُجدت */
-#chatView #vpBar.in-chat{position:absolute!important;top:var(--vp-top,110px)!important;left:10px!important;right:10px!important;margin:0!important;height:36px!important;min-height:36px;box-sizing:border-box;padding:0 14px!important;z-index:14;
+#chatView #vpBar.in-chat{position:absolute!important;top:var(--vp-top,110px)!important;left:10px!important;right:10px!important;margin:0!important;height:34px!important;min-height:34px;box-sizing:border-box;padding:0 14px!important;z-index:14;
   border:1px solid rgba(228,196,91,.35)!important;border-radius:16px!important;box-shadow:var(--cr-shadow,0 4px 12px rgba(0,0,0,.18));animation:vpInChat .22s ease}
 .app-container[data-app-theme="light"] #chatView #vpBar.in-chat{border-color:rgba(194,157,48,.45)!important}
 @keyframes vpInChat{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
@@ -12959,7 +12952,7 @@ function bbMsgUser(u){
     if(ref){top=Math.round(ref.getBoundingClientRect().bottom-cv.getBoundingClientRect().top)+2;}
     else top=110;
     cv.style.setProperty('--vp-top',top+'px');
-    cv.style.setProperty('--vp-pad',(top+36+8)+'px');
+    cv.style.setProperty('--vp-pad',(top+34+8)+'px');
   }
   var _lo=null;
   function watchChat(cv){
@@ -13023,7 +13016,15 @@ function bbMsgUser(u){
     G.removeAttribute('src');sync();
   }
   ['play','pause','timeupdate','loadedmetadata','durationchange'].forEach(function(ev){G.addEventListener(ev,sync);});
-  G.addEventListener('ended',function(){stop();});
+  G.addEventListener('ended',function(){
+    var nb=null;
+    try{
+      var m0=cur&&document.getElementById('message_'+cur.id), c0=m0&&m0.querySelector('.custom-voice-card');
+      if(c0){ var lst=Array.prototype.slice.call(document.querySelectorAll('#messagesArea .custom-voice-card')); var n0=lst[lst.indexOf(c0)+1]; if(n0) nb=n0.querySelector('.voice-play-btn'); }
+    }catch(e){}
+    stop();
+    if(nb) setTimeout(function(){ if(!nb.isConnected) return; nb.click(); try{ nb.closest('.custom-voice-card').scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(e){} },150);
+  });
 
   window.toggleVoicePlayback=function(button){
     var card=button.closest('.custom-voice-card');if(!card)return;
