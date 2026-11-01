@@ -12759,8 +12759,19 @@ function bbMsgUser(u){
 @keyframes vpIn{from{transform:translateY(-100%)}to{transform:none}}
 @keyframes vpEq{from{height:3px}to{height:13px}}
 @media(prefers-reduced-motion:reduce){#vpBar,#vpBar .vp-eq i{animation:none}}
+/* خارج المحادثة: الشريط أسفل الشاشة فوق أزرار التنقل، وزر إنشاء المجموعة يرتفع معه */
+#vpBar.inflow.bottom{height:36px;margin:0 12px}
+#vpBar.inflow.bottom.on{animation:vpInUp .22s ease}
+@keyframes vpInUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}
+#newGroupFab{transition:transform .15s ease,bottom .22s ease!important}
+.app-container.vp-bottom #newGroupFab{bottom:calc(72px + var(--sab-real,0px) + 36px)!important}
+@media (min-width:768px) and (min-height:481px){
+  #mainPage>#vpBar{grid-column:1;grid-row:3;align-self:start;margin-top:0;transform:translateY(-100%)}
+  #mainPage>#vpBar.on{animation:none}
+  .app-container.vp-bottom #mainPage>#newGroupFab{bottom:calc(18px + 36px)!important}
+}
 /* داخل المحادثة: الشريط تحت الاسم والصورة، وتحت الرسالة المثبتة إن وُجدت */
-#chatView #vpBar.in-chat{position:absolute!important;top:var(--vp-top,110px)!important;left:10px!important;right:10px!important;margin:0!important;height:32px;z-index:14;
+#chatView #vpBar.in-chat{position:absolute!important;top:var(--vp-top,110px)!important;left:10px!important;right:10px!important;margin:0!important;height:36px!important;min-height:36px;box-sizing:border-box;padding:0 14px!important;z-index:14;
   border:1px solid rgba(228,196,91,.35)!important;border-radius:16px!important;box-shadow:var(--cr-shadow,0 4px 12px rgba(0,0,0,.18));animation:vpInChat .22s ease}
 .app-container[data-app-theme="light"] #chatView #vpBar.in-chat{border-color:rgba(194,157,48,.45)!important}
 @keyframes vpInChat{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
@@ -12834,7 +12845,7 @@ function bbMsgUser(u){
     var pv=pin&&!pin.classList.contains('hidden');
     var top=(head?head.offsetHeight:0)+(pv?pin.offsetHeight+8:0)+(pv?0:6);
     cv.style.setProperty('--vp-top',top+'px');
-    cv.style.setProperty('--vp-h',(bar.offsetHeight||32)+8+'px');
+    cv.style.setProperty('--vp-h','44px');
   }
   var _lo=null;
   function watchChat(cv){
@@ -12859,8 +12870,8 @@ function bbMsgUser(u){
       return;
     }
     b.classList.remove('in-chat');
-    if(vis('homeView'))anchor=vis('selBar')||vis('mainHeader');
-    else if(['profileView','otherUserProfileView','editProfileView','settingsView','chatSettingsView','notificationSettingsView','privacySettingsView'].some(vis))nav=vis('bottomNav');
+    if(['homeView','profileView','otherUserProfileView','editProfileView','settingsView','chatSettingsView','notificationSettingsView','privacySettingsView'].some(vis))nav=vis('bottomNav');
+    if(!nav&&vis('homeView'))anchor=vis('selBar')||vis('mainHeader');
     b.classList.toggle('inflow',!!(anchor||nav));
     b.classList.toggle('bottom',!!nav);
     if(nav){anchor=nav;if(b.nextElementSibling!==nav)nav.before(b);}
