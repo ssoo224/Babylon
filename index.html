@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="referrer" content="no-referrer">
-<script src="perf/perf.js?v=2"></script>
 <noscript><style>body{display:none!important}html{background:#07090f}</style></noscript>
 <script id="babylon-app-only-guard">
 /* حارس «التطبيق فقط»: الموقع لا يعمل إطلاقاً خارج تطبيق الأندرويد (متصفح، PWA مثبّت، تبويب عادي).
@@ -2298,7 +2297,6 @@ html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView 
 #chatView #messagesArea .msg-bubble.emoji-only.emoji-only.emoji-only.emoji-only.emoji-only{animation:none!important}
 .verified-badge::after{animation:none!important}
 </style>
-<script src="debug/errors.js?v=1"></script>
 <link rel="stylesheet" href="stickers/stickers.css?v=1">
 <style id="babylon-stars-gifts-theme">
 /* ===== صفحات النجوم والهدايا: ألوان الطور النهاري + رموز SVG بدل الإيموجي ===== */
@@ -3283,7 +3281,6 @@ const firebaseConfig = {
   appId: "1:1022301130899:web:171184929244a979b6bd66"
 };
 
-window.__bbMark && __bbMark('sdk-ready');
 firebase.initializeApp(firebaseConfig);
 
 const APP_CHECK_SITE_KEY = "";
@@ -3296,9 +3293,8 @@ const auth = firebase.auth();
 try { auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => console.warn("Auth persistence preference:", err)); } catch (e) {}
 const db = firebase.firestore();
 try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) { console.warn('Firestore settings:', e && e.message); }
-window.__bbMark && __bbMark('db-created');
 /* العمل بدون إنترنت: تخزين محلي لبيانات Firestore كي تظهر المحادثات والملف عند انقطاع الاتصال */
-try { db.enablePersistence({ synchronizeTabs: true }).then(function () { window.__bbPersist = 'on'; }).catch(function (e) { window.__bbPersist = (e && e.code) || 'fail'; console.warn('Firestore persistence:', e && e.code); }); } catch (e) {}
+try { db.enablePersistence({ synchronizeTabs: true }).catch(function (e) { console.warn('Firestore persistence:', e && e.code); }); } catch (e) {}
 
 let messaging = null;
 if (firebase.messaging.isSupported()) {
@@ -3661,11 +3657,9 @@ function babylonStartSession(user) {
     }}
 
 auth.onAuthStateChanged(user => {
-  window.__bbMark && __bbMark('auth');
-  try { localStorage.setItem('bbDebug', (user && isDevEmail(user.email)) ? '1' : '0'); } catch (e) {}
   if (user && !user.emailVerified) { showVerifyPage(user); return; }
   if (user) {
-    babylonOtpGate(user).then(ok => { window.__bbMark && __bbMark('otp'); if (ok) babylonStartSession(user); });
+    babylonOtpGate(user).then(ok => { if (ok) babylonStartSession(user); });
   } else {
     isAppInitialized = false;
     currentUser = null;
@@ -3926,7 +3920,6 @@ function registerUser() {
 }
 
 function enterApp() {
-  window.__bbMark && __bbMark('enter-app');
   document.getElementById("authPage").classList.add("hidden");
   document.getElementById("mainPage").classList.remove("hidden");
   goHome();
@@ -4700,7 +4693,6 @@ function __bbFastApply(snap, box, existingTyping) {
     if (messageSelectionMode) refreshMessageSelectionUI();
     if (tail.length) box.scrollTop = box.scrollHeight;
     window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
-    window.__bbMark && __bbMark('fast', 1);
     return true;
   } catch (e) { return false; }
 }
@@ -4711,11 +4703,10 @@ function __bbInstantOpen() {
   const newest = Number(first.data().createdAt) || 0;
   const meta = (typeof chatMetaCache !== 'undefined' && chatMetaCache[activeChatId]) || null;
   if (meta && Number(meta.updatedAt) && newest < Number(meta.updatedAt) - 3000) return;   /* قديمة: ننتظر الحقيقية */
-  window.__bbMark && __bbMark('instant', 1);
   window.__bbMsgH(mem.snap);
 }
 function openChatRoom(otherUserId, keepLimit) {
-  window.__bbMsgSig = null; window.__bbRendered = null; window.__bbMark && __bbMark('chat-open', 1);
+  window.__bbMsgSig = null; window.__bbRendered = null;
   reorderChatListItems();
   document.getElementById('chatGroupInfoAction')?.classList.add('hidden'); { const _av = document.getElementById('chatAvatar'); if (_av) _av.style.background = ''; } try { hideMentionPop(); resetGroupUI(); } catch (e) {}
   if (!keepLimit) msgLimit = 50;
@@ -4806,8 +4797,6 @@ function openChatRoom(otherUserId, keepLimit) {
     .orderBy("createdAt", "desc").limit(msgLimit)
     .onSnapshot({ includeMetadataChanges: true }, window.__bbMsgH = snap => {
       try { const __sg = bbSnapSig(snap); if (__sg === window.__bbMsgSig && !window.__pendingJump && !loadingOlder) return; window.__bbMsgSig = __sg; } catch (e) {}
-      try { if (window.__bbMark) { __bbMark('msgs-' + (snap.metadata.fromCache ? 'cache' : 'server'), 1); requestAnimationFrame(() => __bbMark('painted', 1)); } } catch (e) {}
-      try { const __f = snap.docs[0]; if (__f && __f.data().senderId === currentUser.uid) { const __S = (window.__bbSend = window.__bbSend || {}); if (__f.metadata.hasPendingWrites) { if (!__S[__f.id]) __S[__f.id] = performance.now(); } else if (__S[__f.id]) { window.__bbMark && __bbMark('send-ack ' + Math.round(performance.now() - __S[__f.id]) + 'ms', 1); delete __S[__f.id]; } } } catch (e) {}
       try { const __m = (window.__bbSnapMem = window.__bbSnapMem || {}); __m[activeChatId] = { snap: snap, limit: msgLimit }; const __k = Object.keys(__m); if (__k.length > 8) delete __m[__k[0]]; } catch (e) {}
       const box = document.getElementById("messagesArea");
       const prevH = box.scrollHeight;
@@ -4846,7 +4835,6 @@ function openChatRoom(otherUserId, keepLimit) {
       else if (hasAdded || wasNearBottom) box.scrollTop = box.scrollHeight;   // رسالة جديدة أو كنت أسفل المحادثة
       else box.scrollTop = prevTop;                                            // تفاعل/تعديل: ابقَ في مكانك
       window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
-      window.__bbMark && __bbMark('full', 1);
     });
   try { __bbInstantOpen(); } catch (e) {}
 }
@@ -5817,7 +5805,7 @@ function loadChats() {
                         ${unreadCount > 0 ? `<div class="unread-badge">${unreadCount}</div>` : ''}
                       </div>
                     </div>`;
-                  existingItem.classList.toggle('has-unread', unreadCount > 0); existingItem.dataset.rendered = '1'; window.__bbMark && __bbMark('list-item');
+                  existingItem.classList.toggle('has-unread', unreadCount > 0); existingItem.dataset.rendered = '1';
                   updateUnreadChip();
                   reorderChatListItems();
                 });
@@ -8128,7 +8116,7 @@ function openGroupRoom(chatId,keepLimit){
       if(window.__pendingJump)setTimeout(runPendingJump,30);
       if(loadingOlder){box.scrollTop=Math.max(0,box.scrollHeight-prevH);loadingOlder=false;}else box.scrollTop=box.scrollHeight;
       if(snap.docs[0])markGroupRead(chatId,snap.docs[0].data());
-      window.__bbRendered={chat:activeChatId,limit:msgLimit,snap:snap};window.__bbMark&&__bbMark('full',1);
+      window.__bbRendered={chat:activeChatId,limit:msgLimit,snap:snap};
     });
   });
 }
