@@ -56,8 +56,33 @@
       new PerformanceObserver(function (l) { l.getEntries().forEach(function (e) { longN++; longSum += e.duration; if (e.duration > longMax) longMax = e.duration; }); schedule(); }).observe({ entryTypes: ['longtask'] });
     }
   } catch (e) {}
+
+  /* ===== قياس زمن كل مستمع Firestore (المحادثات، الرسائل، الملف الشخصي...) باسم السطر اللي أنشأه ===== */
+  function hookFirestore() {
+    try {
+      var F = window.firebase && firebase.firestore;
+      if (!F || !F.Query || !F.DocumentReference) return false;
+      [F.Query.prototype, F.DocumentReference.prototype].forEach(function (proto) {
+        if (!proto || proto.__bbHooked || typeof proto.onSnapshot !== 'function') return;
+        proto.__bbHooked = true;
+        var orig = proto.onSnapshot;
+        proto.onSnapshot = function () {
+          var args = Array.prototype.slice.call(arguments), site = where();
+          var wrap = function (cb) {
+            return typeof cb === 'function' ? function () { var t = performance.now(); try { return cb.apply(this, arguments); } finally { rec('SN ' + site, performance.now() - t); } } : cb;
+          };
+          if (typeof args[0] === 'function') args[0] = wrap(args[0]);
+          else if (typeof args[1] === 'function') args[1] = wrap(args[1]);
+          return orig.apply(this, args);
+        };
+      });
+      return true;
+    } catch (e) { return false; }
+  }
+  var hkN = 0, hk = setInterval(function () { if (hookFirestore() || ++hkN > 200) clearInterval(hk); }, 50);
+
   function topStats() {
-    return Object.keys(stats).map(function (k) { return [k, stats[k]]; }).sort(function (a, b) { return b[1].ms - a[1].ms; }).slice(0, 7)
+    return Object.keys(stats).map(function (k) { return [k, stats[k]]; }).sort(function (a, b) { return b[1].ms - a[1].ms; }).slice(0, 9)
       .map(function (x) { return '  ' + x[0] + ' · ' + x[1].n + '× · ' + Math.round(x[1].ms) + 'ms (أطول ' + Math.round(x[1].max) + ')'; });
   }
 
@@ -67,7 +92,7 @@
     boot.forEach(function (m) { out.push('  ' + m.name + ' ' + fmt(m.rel)); });
     out.push('تخزين Firestore المحلي: ' + (window.__bbPersist || '؟'));
     out.push('قراءة من السيرفر: ' + (srv === null ? '…' : srv < 0 ? 'فشلت' : fmt(srv)));
-    if (ch.length) { out.push('آخر فتح محادثة:'); ch.forEach(function (m) { out.push('  ' + m.name + ' +' + fmt(m.rel)); }); }
+    if (ch.length) { out.push('آخر فتح محادثة (آخر 14 حدث):'); ch.slice(-14).forEach(function (m) { out.push('  ' + m.name + ' +' + fmt(m.rel)); }); }
     out.push('مهام طويلة (>50ms): ' + longN + ' · المجموع ' + Math.round(longSum) + 'ms · الأطول ' + Math.round(longMax) + 'ms');
     out.push('الأثقل بالخلفية (مراقب/مؤقت · عدد · وقت):');
     topStats().forEach(function (l) { out.push(l); });

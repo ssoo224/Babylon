@@ -4693,6 +4693,7 @@ function __bbFastApply(snap, box, existingTyping) {
     if (messageSelectionMode) refreshMessageSelectionUI();
     if (tail.length) box.scrollTop = box.scrollHeight;
     window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
+    window.__bbMark && __bbMark('fast', 1);
     return true;
   } catch (e) { return false; }
 }
@@ -4838,6 +4839,7 @@ function openChatRoom(otherUserId, keepLimit) {
       else if (hasAdded || wasNearBottom) box.scrollTop = box.scrollHeight;   // رسالة جديدة أو كنت أسفل المحادثة
       else box.scrollTop = prevTop;                                            // تفاعل/تعديل: ابقَ في مكانك
       window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
+      window.__bbMark && __bbMark('full', 1);
     });
   try { __bbInstantOpen(); } catch (e) {}
 }
@@ -11499,7 +11501,7 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   var bar=document.getElementById('storiesBar'),top=document.getElementById('topStories'),btn=document.getElementById('hdrAvatarBtn');
   if(!bar||!btn)return;
   var av=btn.querySelector('.avatar');
-  function syncAv(){var src=bar.querySelector('.sb-item .avatar');if(!src)return;av.className=src.className;av.innerHTML=src.innerHTML;var p=av.querySelector('.sb-plus');if(p)p.remove();}
+  function syncAv(){var src=bar.querySelector('.sb-item .avatar');if(!src)return;var h=src.innerHTML,c=src.className;if(av.__h===h&&av.__c===c)return;av.__h=h;av.__c=c;av.className=c;av.innerHTML=h;var p=av.querySelector('.sb-plus');if(p)p.remove();}
   function syncTop(){
     var expanded=!bar.classList.contains('collapsed')&&!bar.classList.contains('hidden');
     if(top)top.classList.toggle('sb-off',!expanded);
@@ -11507,7 +11509,8 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
     btn.classList.toggle('story-avatar-moved',expanded);
     btn.setAttribute('aria-expanded',expanded?'true':'false');
   }
-  new MutationObserver(function(){syncAv();syncTop();}).observe(bar,{childList:true,attributes:true,attributeFilter:['class']});
+  var __sv=0;
+  new MutationObserver(function(){ if(__sv) return; __sv=requestAnimationFrame(function(){ __sv=0; syncAv(); syncTop(); }); }).observe(bar,{childList:true,attributes:true,attributeFilter:['class']});
   syncTop();
   btn.addEventListener('click',function(){
     if(bar.classList.contains('hidden'))return;
@@ -13369,6 +13372,7 @@ body.light #viewersModal .viewer-item {
   /* شاشة الاتصال (واردة/صادرة/جارية): تُنشأ من calls/calls.js — نكتشفها بالاسم والحجم */
   function callOn(){
     try{
+      if(!document.getElementById('bbCallOv')) return false;
       var els=document.querySelectorAll('[id*="call" i],[class*="call" i]'), W=innerWidth, H=innerHeight;
       for(var i=0;i<els.length;i++){
         var e=els[i]; if(e.closest('.hidden')) continue;
