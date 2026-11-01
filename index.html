@@ -10543,12 +10543,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 </script>
 
 <style id="composer-fullwidth-sticker">
-/* الحقل السفلي (الكتابة + التسجيل + الصور) يملأ عرض الشاشة بلا فراغ على الجانبين */
-#chatView .chat-input-container.chat-input-container{padding-left:0!important;padding-right:0!important}
-#chatView .chat-input-container #textInputBar.chat-input-bar{
-  width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important;
-  border-radius:0!important;border-left:0!important;border-right:0!important;box-sizing:border-box
-}
+#chatView .chat-input-container.chat-input-container{padding-left:4px!important;padding-right:4px!important}
 /* زر الملصقات: نفس لون الأيقونات المجاورة */
 #chatView #textInputBar .bb-sticker-btn{color:var(--text-muted)!important;-webkit-text-fill-color:currentColor!important;align-self:flex-end}
 #chatView #textInputBar .bb-sticker-btn svg{color:var(--text-muted)!important}
@@ -10557,7 +10552,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 </style>
 <script id="composer-sticker-side">
 (function(){
-  var form=null, input=null, origSide=null, busy=false;
+  var form=null, input=null, busy=false;
   var RX=/sticker|ملصق/i;
   function find(){
     form=document.getElementById('textInputBar'); input=document.getElementById('messageInput');
@@ -10581,13 +10576,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
       b.classList.add('bb-sticker-btn');
       var host=b; while(host.parentNode&&host.parentNode!==form) host=host.parentNode;
       if(host.parentNode!==form) return;
-      var kids=Array.prototype.slice.call(form.children);
-      var before=kids.indexOf(host)<kids.indexOf(input);
-      if(origSide===null) origSide=before?'before':'after';
-      if(origSide==='after'&&!before) return;       // موضعه الحالي هو الجهة الأخرى أصلاً
-      if(origSide==='before'&&before===false) return;
-      if(origSide==='after'){ form.insertBefore(host,form.firstChild); }
-      else { var send=form.querySelector('button[type="submit"]'); form.insertBefore(host,send||null); }
+      if(form.firstChild!==host) form.insertBefore(host,form.firstChild);   // أول الصف = أقصى اليمين (الاتجاه RTL)
     } finally { busy=false; }
   }
   function boot(){
@@ -13729,7 +13718,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 #chatView #messagesArea .msg-bubble .msg-image::after,
 #chatView #messagesArea .msg-bubble .msg-video::after{
   content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:3;
-  border:2px solid var(--babylon-gold,#c29d30);opacity:.85;box-sizing:border-box
+  border:1px solid var(--babylon-gold,#c29d30);opacity:.85;box-sizing:border-box
 }
 </style>
 
