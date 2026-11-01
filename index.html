@@ -10544,6 +10544,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 
 <style id="composer-fullwidth-sticker">
 #chatView .chat-input-container.chat-input-container{padding-left:4px!important;padding-right:4px!important}
+#chatView #textInputBar.has-message .bb-sticker-btn{display:none!important}
 /* زر الملصقات: نفس لون الأيقونات المجاورة */
 #chatView #textInputBar .bb-sticker-btn{color:var(--text-muted)!important;-webkit-text-fill-color:currentColor!important;align-self:flex-end}
 #chatView #textInputBar .bb-sticker-btn svg{color:var(--text-muted)!important}
@@ -10576,6 +10577,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
       b.classList.add('bb-sticker-btn');
       var host=b; while(host.parentNode&&host.parentNode!==form) host=host.parentNode;
       if(host.parentNode!==form) return;
+      host.classList.add('bb-sticker-btn');
       if(form.firstChild!==host) form.insertBefore(host,form.firstChild);   // أول الصف = أقصى اليمين (الاتجاه RTL)
     } finally { busy=false; }
   }
@@ -10585,6 +10587,161 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
     var t=0;
     new MutationObserver(function(){ if(t) return; t=requestAnimationFrame(function(){ t=0; apply(); }); }).observe(root,{childList:true,subtree:true});
     var n=0, iv=setInterval(function(){ apply(); if(++n>20) clearInterval(iv); },500);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})();
+</script>
+
+<style id="bb-emoji-picker-css">
+/* زر الإيموجي: يظهر بدل زر الملصقات عند الكتابة */
+#chatView #textInputBar .bb-emoji-btn{display:none!important;width:40px;height:40px;flex:0 0 40px;border:0;border-radius:12px;background:transparent;padding:0;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;-webkit-tap-highlight-color:transparent}
+#chatView #textInputBar.has-message .bb-emoji-btn,#chatView #textInputBar.bb-emoji-open .bb-emoji-btn{display:inline-flex!important}
+#chatView #textInputBar.bb-emoji-open .bb-sticker-btn{display:none!important}
+.bb-emoji-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.bb-emoji-btn svg circle.d{fill:currentColor;stroke:none}
+.bb-emoji-btn .ic-kb{display:none}
+.bb-emoji-btn.is-open .ic-kb{display:block}
+.bb-emoji-btn.is-open .ic-sm{display:none}
+/* لوحة الإيموجي */
+.bb-emoji-panel{display:none;flex-direction:column;height:min(300px,42vh);box-sizing:border-box;background:var(--cr-card,#1b2531);border-top:1px solid var(--cr-line,rgba(148,163,184,.2));direction:rtl;pointer-events:auto}
+.bb-emoji-panel.open{display:flex}
+.bb-em-bar{display:flex;align-items:center;flex:0 0 auto;padding:4px 6px;gap:2px}
+.bb-em-tabs{display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;gap:2px}
+.bb-em-tabs::-webkit-scrollbar{display:none}
+.bb-em-tab{flex:1 0 auto;min-width:36px;height:34px;border:0;border-radius:10px;background:transparent;font-size:20px;line-height:1;padding:0;opacity:.5;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.bb-em-tab.active{opacity:1;background:rgba(127,140,160,.2)}
+.bb-em-del{flex:0 0 38px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center;padding:0}
+.bb-em-del svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bb-em-del:active{background:rgba(127,140,160,.25)}
+.bb-em-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 6px 10px}
+.bb-em-title{position:sticky;top:0;z-index:1;padding:8px 4px 4px;font-size:12px;font-weight:700;color:var(--text-muted);background:var(--cr-card,#1b2531)}
+.bb-em-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr))}
+.bb-em-item{height:42px;border:0;border-radius:8px;background:transparent;padding:0;font-size:26px;line-height:42px;text-align:center;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;-webkit-tap-highlight-color:transparent}
+.bb-em-item:active{background:rgba(127,140,160,.28)}
+</style>
+<script id="bb-emoji-picker">
+(function(){
+  var DATA={"smileys":["☹️","☺️","😀","😁","😂","😃","😄","😅","😆","😇","😈","😉","😊","😋","😌","😍","😎","😏","😐","😑","😒","😓","😔","😕","😖","😗","😘","😙","😚","😛","😜","😝","😞","😟","😠","😡","😢","😣","😤","😥","😦","😧","😨","😩","😪","😫","😬","😭","😮","😯","😰","😱","😲","😳","😴","😵","😶","😷","😸","😹","😺","😻","😼","😽","😾","😿","🙀","🙁","🙂","🙃","🙄","🤐","🤑","🤒","🤓","🤔","🤕","🤖","🤗","🤘","🤙","🤚","🤛","🤜","🤝","🤞","🤟","🤠","🤡","🤢","🤣","🤤","🤥","🤦","🤧","🤨","🤩","🤪","🤫","🤬","🤭","🤮","🤯","🥰","🥱","🥲","🥳","🥴","🥵","🥶","🥷","🥸","🥹","🥺","🧐","🫠","🫡","🫢","🫣","🫤","🫥","🫦","🫨","☠️","❣️","❤️","👹","👺","👻","👽","👾","👿","💀","💋","💌","💓","💔","💕","💖","💗","💘","💙","💚","💛","💜","💝","💞","💟","💢","💤","💥","💦","💨","💩","💫","💬","💭","💯","🕳️","🖤","🗨️","🗯️","🙈","🙉","🙊","🤍","🤎","🧡","🩵","🩶","🩷","☝️","⛷️","⛹️","✊","✋","✌️","✍️","🎅","🏂","🏃","🏄","🏇","🏊","🏋️","🏌️","👀","👁️","👂","👃","👄","👅","👆","👇","👈","👉","👊","👋","👌","👍","👎","👏","👐","👣","👤","👥","👦","👧","👨","👩","👪","👫","👬","👭","👮","👯","👰","👱","👲","👳","👴","👵","👶","👷","👸","👼","💁","💂","💃","💄","💅","💆","💇","💏","💑","💪","🕴️","🕵️","🕺","🖐️","🖕","🖖","🙅","🙆","🙇","🙋","🙌","🙍","🙎","🙏","🚴","🚵","🚶","🛀","🛌","🤌","🤏","🤰","🤱","🤲","🤳","🤴","🤵","🤶","🤷","🤸","🤹","🤺","🤼","🤽","🤾","🦴","🦵","🦶","🦷","🦸","🦹","🦻","🦾","🦿","🧌","🧍","🧎","🧏","🧑","🧒","🧓","🧔","🧕","🧖","🧗","🧘","🧙","🧚","🧛","🧜","🧝","🧞","🧟","🧠","🪭","🫀","🫁","🫂","🫃","🫄","🫅","🫰","🫱","🫲","🫳","🫴","🫵","🫶","🫷","🫸"],"animals":["☘️","🌱","🌲","🌳","🌴","🌵","🌷","🌸","🌹","🌺","🌻","🌼","🌾","🌿","🍀","🍁","🍂","🍃","🍄","🏵️","🐀","🐁","🐂","🐃","🐄","🐅","🐆","🐇","🐈","🐉","🐊","🐋","🐌","🐍","🐎","🐏","🐐","🐑","🐒","🐓","🐔","🐕","🐖","🐗","🐘","🐙","🐚","🐛","🐜","🐝","🐞","🐟","🐠","🐡","🐢","🐣","🐤","🐥","🐦","🐧","🐨","🐩","🐪","🐫","🐬","🐭","🐮","🐯","🐰","🐱","🐲","🐳","🐴","🐵","🐶","🐷","🐸","🐹","🐺","🐻","🐼","🐽","🐾","🐿️","💐","💮","🕊️","🕷️","🕸️","🥀","🦀","🦁","🦂","🦃","🦄","🦅","🦆","🦇","🦈","🦉","🦊","🦋","🦌","🦍","🦎","🦏","🦐","🦑","🦒","🦓","🦔","🦕","🦖","🦗","🦘","🦙","🦚","🦛","🦜","🦝","🦞","🦟","🦠","🦡","🦢","🦣","🦤","🦥","🦦","🦧","🦨","🦩","🦫","🦬","🦭","🦮","🪰","🪱","🪲","🪳","🪴","🪵","🪶","🪷","🪸","🪹","🪺","🪻","🪼","🪽","🪿","🫎","🫏"],"food":["☕","🌭","🌮","🌯","🌰","🌶️","🌽","🍅","🍆","🍇","🍈","🍉","🍊","🍋","🍌","🍍","🍎","🍏","🍐","🍑","🍒","🍓","🍔","🍕","🍖","🍗","🍘","🍙","🍚","🍛","🍜","🍝","🍞","🍟","🍠","🍡","🍢","🍣","🍤","🍥","🍦","🍧","🍨","🍩","🍪","🍫","🍬","🍭","🍮","🍯","🍰","🍱","🍲","🍳","🍴","🍵","🍶","🍷","🍸","🍹","🍺","🍻","🍼","🍽️","🍾","🍿","🎂","🏺","🔪","🥄","🥐","🥑","🥒","🥓","🥔","🥕","🥖","🥗","🥘","🥙","🥚","🥛","🥜","🥝","🥞","🥟","🥠","🥡","🥢","🥣","🥤","🥥","🥦","🥧","🥨","🥩","🥪","🥫","🥬","🥭","🥮","🥯","🦪","🧀","🧁","🧂","🧃","🧄","🧅","🧆","🧇","🧈","🧉","🧊","🧋","🫐","🫑","🫒","🫓","🫔","🫕","🫖","🫗","🫘","🫙","🫚","🫛"],"activities":["♟️","♠️","♣️","♥️","♦️","⚽","⚾","⛳","⛸️","✨","🀄","🃏","🎀","🎁","🎃","🎄","🎆","🎇","🎈","🎉","🎊","🎋","🎍","🎎","🎏","🎐","🎑","🎖️","🎗️","🎞️","🎟️","🎣","🎨","🎫","🎭","🎮","🎯","🎰","🎱","🎲","🎳","🎴","🎵","🎶","🎷","🎸","🎹","🎺","🎻","🎼","🎽","🎾","🎿","🏀","🏅","🏆","🏈","🏉","🏏","🏐","🏑","🏒","🏓","🏸","🏹","🔮","🛷","🤿","🥅","🥇","🥈","🥉","🥊","🥋","🥌","🥍","🥎","🥏","🧩","🧵","🧶","🧸","🧿","🪀","🪁","🪂","🪃","🪄","🪅","🪆","🪡","🪢","🪩"],"travel":["⌚","⌛","⏰","⏱️","⏲️","⏳","☀️","☁️","☂️","☃️","☄️","☔","♨️","⚓","⚡","⛄","⛅","⛈️","⛰️","⛱️","⛲","⛴️","⛵","⛺","⛽","✈️","❄️","⭐","🌀","🌁","🌂","🌃","🌄","🌅","🌆","🌇","🌈","🌉","🌊","🌋","🌌","🌍","🌎","🌏","🌐","🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘","🌙","🌚","🌛","🌜","🌝","🌞","🌟","🌠","🌡️","🌤️","🌥️","🌦️","🌧️","🌨️","🌩️","🌪️","🌫️","🌬️","🎠","🎡","🎢","🎪","🏍️","🏎️","🏔️","🏕️","🏖️","🏗️","🏘️","🏙️","🏚️","🏛️","🏜️","🏝️","🏞️","🏟️","🏠","🏡","🏢","🏣","🏤","🏥","🏦","🏧","🏨","🏩","🏪","🏫","🏬","🏭","🏮","🏯","🏰","💧","💺","🔥","🕋","🕌","🕍","🕐","🕑","🕒","🕓","🕔","🕕","🕖","🕗","🕘","🕙","🕚","🕛","🕜","🕝","🕞","🕟","🕠","🕡","🕢","🕣","🕤","🕥","🕦","🕧","🕰️","🗺️","🗻","🗼","🗽","🗾","🗿","🚀","🚁","🚂","🚃","🚄","🚅","🚆","🚇","🚈","🚉","🚊","🚋","🚌","🚍","🚎","🚏","🚐","🚑","🚒","🚓","🚔","🚕","🚖","🚗","🚘","🚙","🚚","🚛","🚜","🚝","🚞","🚟","🚠","🚡","🚢","🚣","🚤","🚥","🚦","🚧","🚨","🚲","🛎️","🛑","🛕","🛖","🛗","🛝","🛞","🛟","🛢️","🛣️","🛤️","🛥️","🛩️","🛫","🛬","🛰️","🛳️","🛴","🛵","🛶","🛸","🛹","🛺","🛻","🛼","🦼","🦽","🧭","🪐"],"objects":["🫧","⌨️","☎️","⚒️","⚔️","⚖️","⚗️","⚙️","⚰️","⚱️","⛏️","⛑️","⛓️","⛩️","⛪","✂️","✉️","✏️","✒️","✝️","🎒","🎓","🎙️","🎚️","🎛️","🎤","🎥","🎦","🎧","🎩","🎬","🏷️","👑","👒","👓","👔","👕","👖","👗","👘","👙","👚","👛","👜","👝","👞","👟","👠","👡","👢","💈","💉","💊","💍","💎","💒","💡","💣","💰","💱","💲","💳","💴","💵","💶","💷","💸","💻","💼","💽","💾","💿","📀","📁","📂","📃","📄","📅","📆","📇","📈","📉","📊","📋","📌","📍","📎","📏","📐","📑","📒","📓","📔","📕","📖","📗","📘","📙","📚","📜","📝","📞","📟","📠","📡","📢","📣","📤","📥","📦","📧","📨","📩","📪","📫","📬","📭","📮","📯","📰","📱","📲","📷","📸","📹","📺","📻","📼","📽️","📿","🔇","🔈","🔉","🔊","🔋","🔌","🔍","🔎","🔏","🔐","🔑","🔒","🔓","🔔","🔕","🔖","🔗","🔦","🔧","🔨","🔩","🔫","🔬","🔭","🕯️","🕶️","🕹️","🖇️","🖊️","🖋️","🖌️","🖍️","🖥️","🖨️","🖱️","🖲️","🖼️","🗂️","🗃️","🗄️","🗑️","🗒️","🗓️","🗜️","🗝️","🗞️","🗡️","🗣️","🗳️","🚪","🚬","🚽","🚿","🛁","🛋️","🛍️","🛏️","🛒","🛠️","🛡️","🟰","🥁","🥂","🥃","🥻","🥼","🥽","🥾","🥿","🦯","🦰","🦱","🦲","🦳","🦺","🧢","🧣","🧤","🧥","🧦","🧧","🧨","🧪","🧫","🧬","🧮","🧯","🧰","🧱","🧲","🧳","🧴","🧷","🧹","🧺","🧻","🧼","🧽","🧾","🩰","🩱","🩲","🩳","🩴","🩸","🩹","🩺","🩻","🩼","🪇","🪈","🪑","🪒","🪓","🪔","🪕","🪖","🪗","🪘","🪙","🪚","🪛","🪜","🪝","🪞","🪟","🪠","🪣","🪤","🪥","🪦","🪧","🪨","🪪","🪫","🪬","🪮"],"symbols":["©️","®️","‼️","⁉️","™️","ℹ️","↔️","↕️","↖️","↗️","↘️","↙️","↩️","↪️","⏏️","⏩","⏪","⏫","⏬","⏭️","⏮️","⏯️","⏸️","⏹️","⏺️","Ⓜ️","▪️","▫️","▶️","◀️","◻️","◼️","◽","◾","☑️","☢️","☣️","☦️","☪️","☮️","☯️","☸️","♀️","♂️","♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓","♻️","♾️","♿","⚕️","⚛️","⚜️","⚠️","⚧️","⚪","⚫","⛎","⛔","✅","✔️","✖️","✡️","✳️","✴️","❇️","❌","❎","❓","❔","❕","❗","➕","➖","➗","➡️","➰","➿","⤴️","⤵️","⬅️","⬆️","⬇️","⬛","⬜","⭕","〰️","〽️","㊗️","㊙️","🅰️","🅱️","🅾️","🅿️","🆎","🆑","🆒","🆓","🆔","🆕","🆖","🆗","🆘","🆙","🆚","🈁","🈂️","🈚","🈯","🈲","🈳","🈴","🈵","🈶","🈷️","🈸","🈹","🈺","🉐","🉑","💠","💹","📛","📳","📴","📵","📶","🔀","🔁","🔂","🔃","🔄","🔅","🔆","🔘","🔙","🔚","🔛","🔜","🔝","🔞","🔟","🔠","🔡","🔢","🔣","🔤","🔯","🔰","🔱","🔲","🔳","🔴","🔵","🔶","🔷","🔸","🔹","🔺","🔻","🔼","🔽","🕉️","🕎","🚫","🚭","🚮","🚯","🚰","🚱","🚳","🚷","🚸","🚹","🚺","🚻","🚼","🚾","🛂","🛃","🛄","🛅","🛐","🛜","🟠","🟡","🟢","🟣","🟤","🟥","🟦","🟧","🟨","🟩","🟪","🟫","🪯","#️⃣","*️⃣","0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣"],"flags":["🎌","🏁","🏳️","🏴","🚩","🇦🇨","🇦🇩","🇦🇪","🇦🇫","🇦🇬","🇦🇮","🇦🇱","🇦🇲","🇦🇴","🇦🇶","🇦🇷","🇦🇸","🇦🇹","🇦🇺","🇦🇼","🇦🇽","🇦🇿","🇧🇦","🇧🇧","🇧🇩","🇧🇪","🇧🇫","🇧🇬","🇧🇭","🇧🇮","🇧🇯","🇧🇱","🇧🇲","🇧🇳","🇧🇴","🇧🇶","🇧🇷","🇧🇸","🇧🇹","🇧🇻","🇧🇼","🇧🇾","🇧🇿","🇨🇦","🇨🇨","🇨🇩","🇨🇫","🇨🇬","🇨🇭","🇨🇮","🇨🇰","🇨🇱","🇨🇲","🇨🇳","🇨🇴","🇨🇵","🇨🇷","🇨🇺","🇨🇻","🇨🇼","🇨🇽","🇨🇾","🇨🇿","🇩🇪","🇩🇬","🇩🇯","🇩🇰","🇩🇲","🇩🇴","🇩🇿","🇪🇦","🇪🇨","🇪🇪","🇪🇬","🇪🇭","🇪🇷","🇪🇸","🇪🇹","🇪🇺","🇫🇮","🇫🇯","🇫🇰","🇫🇲","🇫🇴","🇫🇷","🇬🇦","🇬🇧","🇬🇩","🇬🇪","🇬🇫","🇬🇬","🇬🇭","🇬🇮","🇬🇱","🇬🇲","🇬🇳","🇬🇵","🇬🇶","🇬🇷","🇬🇸","🇬🇹","🇬🇺","🇬🇼","🇬🇾","🇭🇰","🇭🇲","🇭🇳","🇭🇷","🇭🇹","🇭🇺","🇮🇨","🇮🇩","🇮🇪","🇮🇱","🇮🇲","🇮🇳","🇮🇴","🇮🇶","🇮🇷","🇮🇸","🇮🇹","🇯🇪","🇯🇲","🇯🇴","🇯🇵","🇰🇪","🇰🇬","🇰🇭","🇰🇮","🇰🇲","🇰🇳","🇰🇵","🇰🇷","🇰🇼","🇰🇾","🇰🇿","🇱🇦","🇱🇧","🇱🇨","🇱🇮","🇱🇰","🇱🇷","🇱🇸","🇱🇹","🇱🇺","🇱🇻","🇱🇾","🇲🇦","🇲🇨","🇲🇩","🇲🇪","🇲🇫","🇲🇬","🇲🇭","🇲🇰","🇲🇱","🇲🇲","🇲🇳","🇲🇴","🇲🇵","🇲🇶","🇲🇷","🇲🇸","🇲🇹","🇲🇺","🇲🇻","🇲🇼","🇲🇽","🇲🇾","🇲🇿","🇳🇦","🇳🇨","🇳🇪","🇳🇫","🇳🇬","🇳🇮","🇳🇱","🇳🇴","🇳🇵","🇳🇷","🇳🇺","🇳🇿","🇴🇲","🇵🇦","🇵🇪","🇵🇫","🇵🇬","🇵🇭","🇵🇰","🇵🇱","🇵🇲","🇵🇳","🇵🇷","🇵🇸","🇵🇹","🇵🇼","🇵🇾","🇶🇦","🇷🇪","🇷🇴","🇷🇸","🇷🇺","🇷🇼","🇸🇦","🇸🇧","🇸🇨","🇸🇩","🇸🇪","🇸🇬","🇸🇭","🇸🇮","🇸🇯","🇸🇰","🇸🇱","🇸🇲","🇸🇳","🇸🇴","🇸🇷","🇸🇸","🇸🇹","🇸🇻","🇸🇽","🇸🇾","🇸🇿","🇹🇦","🇹🇨","🇹🇩","🇹🇫","🇹🇬","🇹🇭","🇹🇯","🇹🇰","🇹🇱","🇹🇲","🇹🇳","🇹🇴","🇹🇷","🇹🇹","🇹🇻","🇹🇼","🇹🇿","🇺🇦","🇺🇬","🇺🇲","🇺🇳","🇺🇸","🇺🇾","🇺🇿","🇻🇦","🇻🇨","🇻🇪","🇻🇬","🇻🇮","🇻🇳","🇻🇺","🇼🇫","🇼🇸","🇽🇰","🇾🇪","🇾🇹","🇿🇦","🇿🇲","🇿🇼"]};
+  var TITLES={recent:'الأخيرة',smileys:'الوجوه والأشخاص',animals:'الحيوانات والطبيعة',food:'الطعام والشراب',activities:'الأنشطة',travel:'السفر والأماكن',objects:'الأشياء',symbols:'الرموز',flags:'الأعلام'};
+  var ICONS={recent:'\uD83D\uDD58',smileys:'\uD83D\uDE00',animals:'\uD83D\uDC3B',food:'\uD83C\uDF54',activities:'\u26BD',travel:'\uD83D\uDE97',objects:'\uD83D\uDCA1',symbols:'\uD83D\uDD23',flags:'\uD83C\uDFC1'};
+  var ORDER=['smileys','animals','food','activities','travel','objects','symbols','flags'];
+  var form,input,box,btn,panel,scroller,tabs,built=false,isOpen=false,saved=null,origMode='text';
+  var RKEY='bb_recent_emoji';
+
+  function supported(list){
+    try{
+      var c=document.createElement('canvas'),x=c.getContext('2d');
+      x.font='32px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+      var refs=[x.measureText('\uDBFF\uDFFF').width,x.measureText('\uDB40\uDFFF').width,x.measureText('\uDBBF\uDFFE').width];
+      return list.filter(function(e){var w=x.measureText(e).width;return w>0&&refs.indexOf(w)===-1;});
+    }catch(_){return list;}
+  }
+  function getRecent(){try{return JSON.parse(localStorage.getItem(RKEY)||'[]')||[];}catch(_){return [];}}
+  function addRecent(e){try{var r=getRecent().filter(function(x){return x!==e;});r.unshift(e);localStorage.setItem(RKEY,JSON.stringify(r.slice(0,32)));}catch(_){}}
+
+  function saveSel(){
+    var s=window.getSelection&&window.getSelection();
+    if(s&&s.rangeCount){var r=s.getRangeAt(0);if(input.contains(r.startContainer))saved=r.cloneRange();}
+  }
+  function restoreSel(){
+    var s=window.getSelection(); if(!s) return;
+    try{
+      if(saved&&input.contains(saved.startContainer)){s.removeAllRanges();s.addRange(saved);}
+      else{var r=document.createRange();r.selectNodeContents(input);r.collapse(false);s.removeAllRanges();s.addRange(r);}
+    }catch(_){}
+  }
+  function insert(e){
+    if(document.activeElement!==input){try{input.focus({preventScroll:true});}catch(_){input.focus();}}
+    restoreSel();
+    var ok=false; try{ok=document.execCommand('insertText',false,e);}catch(_){}
+    if(!ok){
+      var s=window.getSelection(),r;
+      if(s&&s.rangeCount){r=s.getRangeAt(0);r.deleteContents();var tn=document.createTextNode(e);r.insertNode(tn);r.setStartAfter(tn);r.collapse(true);s.removeAllRanges();s.addRange(r);}
+      else input.appendChild(document.createTextNode(e));
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+    saveSel(); addRecent(e);
+  }
+  function del(){
+    if(document.activeElement!==input){try{input.focus({preventScroll:true});}catch(_){input.focus();}}
+    restoreSel();
+    var ok=false; try{ok=document.execCommand('delete');}catch(_){}
+    if(!ok){input.textContent=(input.textContent||'').slice(0,-1);input.dispatchEvent(new Event('input',{bubbles:true}));}
+    saveSel();
+  }
+
+  function build(){
+    if(built) return; built=true;
+    panel=document.createElement('div'); panel.id='bbEmojiPanel'; panel.className='bb-emoji-panel';
+    var bar=document.createElement('div'); bar.className='bb-em-bar';
+    tabs=document.createElement('div'); tabs.className='bb-em-tabs';
+    var dl=document.createElement('button'); dl.type='button'; dl.className='bb-em-del'; dl.setAttribute('aria-label','حذف');
+    dl.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H9l-6 7 6 7h11a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1Z"/><path d="m13 9.5 5 5m0-5-5 5"/></svg>';
+    dl.addEventListener('pointerdown',function(e){e.preventDefault();});
+    dl.addEventListener('click',del);
+    bar.appendChild(tabs); bar.appendChild(dl);
+    scroller=document.createElement('div'); scroller.className='bb-em-scroll';
+    panel.appendChild(bar); panel.appendChild(scroller);
+    box.appendChild(panel);
+    scroller.addEventListener('pointerdown',function(e){ if(e.target.closest('.bb-em-item')) e.preventDefault(); });
+    scroller.addEventListener('click',function(e){var b=e.target.closest('.bb-em-item'); if(b) insert(b.textContent);});
+    var sections={};
+    function addSection(key,list){
+      if(!list.length) return;
+      var t=document.createElement('div'); t.className='bb-em-title'; t.textContent=TITLES[key]; t.dataset.cat=key;
+      var g=document.createElement('div'); g.className='bb-em-grid'; g.dataset.cat=key;
+      var f=document.createDocumentFragment();
+      list.forEach(function(e){var b=document.createElement('button');b.type='button';b.className='bb-em-item';b.textContent=e;f.appendChild(b);});
+      g.appendChild(f); scroller.appendChild(t); scroller.appendChild(g); sections[key]=t;
+      var tb=document.createElement('button'); tb.type='button'; tb.className='bb-em-tab'; tb.textContent=ICONS[key]; tb.dataset.cat=key; tb.setAttribute('aria-label',TITLES[key]);
+      tb.addEventListener('pointerdown',function(e){e.preventDefault();});
+      tb.addEventListener('click',function(){ scroller.scrollTop=t.offsetTop; });
+      tabs.appendChild(tb);
+    }
+    addSection('recent',getRecent());
+    ORDER.forEach(function(k){ addSection(k,supported(DATA[k]||[])); });
+    scroller.addEventListener('scroll',function(){
+      var top=scroller.scrollTop+4,cur=null;
+      Object.keys(sections).forEach(function(k){ if(sections[k].offsetTop<=top) cur=k; });
+      Array.prototype.forEach.call(tabs.children,function(tb){ tb.classList.toggle('active',tb.dataset.cat===cur); });
+    },{passive:true});
+    var first=tabs.firstChild; if(first) first.classList.add('active');
+  }
+  function refreshRecent(){
+    if(!built) return;
+    var r=getRecent(), t=scroller.querySelector('.bb-em-title[data-cat="recent"]'), g=scroller.querySelector('.bb-em-grid[data-cat="recent"]');
+    if(!t){ return; }
+    g.innerHTML=''; r.forEach(function(e){var b=document.createElement('button');b.type='button';b.className='bb-em-item';b.textContent=e;g.appendChild(b);});
+  }
+
+  function openPanel(){
+    build(); refreshRecent();
+    isOpen=true; panel.classList.add('open'); form.classList.add('bb-emoji-open'); btn.classList.add('is-open');
+    input.setAttribute('inputmode','none');
+    try{input.blur();}catch(_){}
+    setTimeout(function(){ try{input.focus({preventScroll:true});}catch(_){} restoreSel(); },40);
+  }
+  function closePanel(showKb){
+    if(!isOpen) return;
+    isOpen=false; panel&&panel.classList.remove('open'); form.classList.remove('bb-emoji-open'); btn.classList.remove('is-open');
+    input.setAttribute('inputmode',origMode);
+    if(showKb){ try{input.blur();}catch(_){} setTimeout(function(){ try{input.focus();}catch(_){} restoreSel(); },40); }
+  }
+
+  function boot(){
+    form=document.getElementById('textInputBar'); input=document.getElementById('messageInput');
+    if(!form||!input||document.getElementById('bbEmojiBtn')) return;
+    box=form.parentNode; origMode=input.getAttribute('inputmode')||'text';
+    btn=document.createElement('button'); btn.type='button'; btn.id='bbEmojiBtn'; btn.className='icon-btn bb-emoji-btn'; btn.setAttribute('aria-label','الإيموجي'); btn.title='الإيموجي';
+    btn.innerHTML='<svg class="ic-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M8.2 14.2c.9 1.5 2.2 2.3 3.8 2.3s2.9-.8 3.8-2.3"/><circle class="d" cx="9" cy="9.8" r="1.1"/><circle class="d" cx="15" cy="9.8" r="1.1"/></svg>'
+      +'<svg class="ic-kb" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9"/></svg>';
+    form.insertBefore(btn,input);
+    btn.addEventListener('pointerdown',function(e){e.preventDefault();});
+    btn.addEventListener('click',function(){ if(isOpen) closePanel(true); else openPanel(); });
+    document.addEventListener('selectionchange',function(){ if(document.activeElement===input) saveSel(); });
+    input.addEventListener('pointerdown',function(){ if(isOpen) setTimeout(function(){ closePanel(true); },60); });
+    form.addEventListener('submit',function(){ if(isOpen) closePanel(false); });
+    setInterval(function(){ if(isOpen&&input.offsetParent===null) closePanel(false); },700);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
 })();
