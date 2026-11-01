@@ -10605,16 +10605,23 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 /* لوحة الإيموجي */
 .bb-emoji-panel{display:none;flex-direction:column;height:min(300px,42vh);box-sizing:border-box;background:var(--cr-card,#1b2531);border-top:1px solid var(--cr-line,rgba(148,163,184,.2));direction:rtl;pointer-events:auto}
 .bb-emoji-panel.open{display:flex}
+.bb-emoji-panel{position:relative}
+.bb-emoji-panel .bb-em-del{position:absolute;right:14px;bottom:14px;left:auto;z-index:5;flex:none;width:46px;height:46px;border-radius:50%;color:var(--text-main,#e8eef5);
+  background:var(--cr-card,#1b2531);border:1px solid var(--cr-line,rgba(148,163,184,.28));box-shadow:0 4px 14px rgba(0,0,0,.28);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.bb-emoji-panel .bb-em-del svg{width:24px;height:24px}
+.bb-emoji-panel .bb-em-del:active{transform:scale(.92);background:rgba(127,140,160,.3)}
+.bb-emoji-panel .bb-em-scroll{padding-bottom:12px}
 .bb-em-bar{display:flex;align-items:center;flex:0 0 auto;padding:4px 6px;gap:2px}
 .bb-em-tabs{display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;gap:2px}
 .bb-em-tabs::-webkit-scrollbar{display:none}
 .bb-em-tab{flex:1 0 auto;min-width:38px;height:34px;border:0;border-radius:10px;background:transparent;font-size:20px;line-height:1;padding:0;opacity:.5;transition:opacity .18s,background-color .18s,transform .18s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .bb-em-tab[hidden],.bb-em-sec[hidden]{display:none!important}
-.bb-em-tab.active{opacity:1;background:rgba(127,140,160,.2);transform:scale(1.08)}
-.bb-em-tab{color:var(--text-muted)}
-.bb-em-tab svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;display:block;margin:auto}
+.bb-em-tab.active{opacity:1;background:rgba(127,140,160,.2);background:color-mix(in srgb,var(--tc,#94a3b8) 20%,transparent);transform:scale(1.08)}
+.bb-em-tab{color:var(--tc,var(--text-muted));opacity:.72}
+.bb-em-tab.active{opacity:1}
+.bb-em-tab svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;display:block;margin:auto}
 .bb-em-tab svg .f{fill:currentColor;stroke:none}
-.bb-em-tab.active{color:#d4af37}
+
 .bb-em-tabs{scroll-behavior:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
 .bb-em-del{flex:0 0 38px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center;padding:0}
 .bb-em-del svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -10660,6 +10667,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
     flags:I('<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>'),
     faith:I('<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/><path class="f" d="m17 3.5.7 1.6 1.7.2-1.3 1.1.4 1.7-1.5-.9-1.5.9.4-1.7-1.3-1.1 1.7-.2z"/>')
   };
+  var COLORS={recent:'#94a3b8',smileys:'#f5b82e',gestures:'#f08c52',people:'#4f8cf0',hearts:'#ef4565',clothing:'#a56be0',animals:'#b87a4b',nature:'#3fb868',food:'#f0902c',drinks:'#16b3c4',activities:'#6f6af0',celebrations:'#ec5fa8',travel:'#4fc3f0',objects:'#8d9bb0',symbols:'#e0644f',flags:'#2fb89a',faith:'#d4af37'};
   var ORDER=['smileys','gestures','people','hearts','clothing','animals','nature','food','drinks','activities','celebrations','travel','objects','symbols','flags','faith'];
   var OLD={people:'smileys',animals:'animals',food:'food',activities:'activities',travel:'travel',objects:'objects',symbols:'symbols',flags:'flags'};
 
@@ -10806,9 +10814,9 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
     dl.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H9l-6 7 6 7h11a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1Z"/><path d="m13 9.5 5 5m0-5-5 5"/></svg>';
     dl.addEventListener('pointerdown',function(e){e.preventDefault();});
     dl.addEventListener('click',del);
-    bar.appendChild(tabs); bar.appendChild(dl);
+    bar.appendChild(tabs);
     scroller=document.createElement('div'); scroller.className='bb-em-scroll';
-    panel.appendChild(bar); panel.appendChild(scroller);
+    panel.appendChild(bar); panel.appendChild(scroller); panel.appendChild(dl);
     box.appendChild(panel);
     scroller.addEventListener('pointerdown',function(e){ if(e.target.closest('.bb-em-item')) e.preventDefault(); });
     scroller.addEventListener('click',function(e){var b=e.target.closest('.bb-em-item'); if(b) insert(b.textContent);});
@@ -10818,7 +10826,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
       var t=document.createElement('div'); t.className='bb-em-title'; t.textContent=TITLES[key];
       var g=document.createElement('div'); g.className='bb-em-grid';
       fillGrid(g,list); sec.appendChild(t); sec.appendChild(g); scroller.appendChild(sec);
-      var tb=document.createElement('button'); tb.type='button'; tb.className='bb-em-tab'; tb.innerHTML=ICONS[key]; tb.dataset.cat=key; tb.setAttribute('role','tab'); tb.setAttribute('aria-label',TITLES[key]); tb.hidden=!!hidden;
+      var tb=document.createElement('button'); tb.type='button'; tb.className='bb-em-tab'; tb.innerHTML=ICONS[key]; tb.dataset.cat=key; tb.style.setProperty('--tc',COLORS[key]||'#94a3b8'); tb.setAttribute('role','tab'); tb.setAttribute('aria-label',TITLES[key]); tb.hidden=!!hidden;
       tb.addEventListener('pointerdown',function(e){e.preventDefault();});
       tb.addEventListener('click',function(){ goTo(key); });
       tabs.appendChild(tb);
@@ -11609,6 +11617,7 @@ function toggleFullEmojiPicker(ev){if(ev)ev.stopPropagation();var grid=document.
     if (visible('chatSearchPanel')) { if(typeof closeChatSearch==='function') closeChatSearch(); else document.getElementById('chatSearchPanel').classList.add('hidden'); return true; }
     if (visible('chatMoreMenu')) { if(typeof closeChatMenus==='function') closeChatMenus(); else document.getElementById('chatMoreMenu').classList.add('hidden'); return true; }
     if (visible('storyViewer')) { if(typeof closeStoryViewer==='function') closeStoryViewer(); else document.getElementById('storyViewer').classList.add('hidden'); return true; }
+    if (typeof messageSelectionMode!=='undefined' && messageSelectionMode && typeof clearMessageSelection==='function') { clearMessageSelection(); return true; }
     return false;
   };
   const currentView = () => ['chatView','editProfileView','chatSettingsView','notificationSettingsView','settingsView','otherUserProfileView','profileView','searchView','homeView'].find(id=>visible(id));
@@ -12760,23 +12769,23 @@ function bbMsgUser(u){
 @keyframes vpEq{from{height:3px}to{height:13px}}
 @media(prefers-reduced-motion:reduce){#vpBar,#vpBar .vp-eq i{animation:none}}
 /* خارج المحادثة: الشريط أسفل الشاشة فوق أزرار التنقل، وزر إنشاء المجموعة يرتفع معه */
-#vpBar.inflow.bottom{height:36px;margin:0 12px}
+#vpBar.inflow.bottom{height:32px;margin:0 12px}
 #vpBar.inflow.bottom.on{animation:vpInUp .22s ease}
 @keyframes vpInUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}
 #newGroupFab{transition:transform .15s ease,bottom .22s ease!important}
-.app-container.vp-bottom #newGroupFab{bottom:calc(72px + var(--sab-real,0px) + 36px)!important}
+.app-container.vp-bottom #newGroupFab{bottom:calc(72px + var(--sab-real,0px) + 32px)!important}
 @media (min-width:768px) and (min-height:481px){
   #mainPage>#vpBar{grid-column:1;grid-row:3;align-self:start;margin-top:0;transform:translateY(-100%)}
   #mainPage>#vpBar.on{animation:none}
-  .app-container.vp-bottom #mainPage>#newGroupFab{bottom:calc(18px + 36px)!important}
+  .app-container.vp-bottom #mainPage>#newGroupFab{bottom:calc(18px + 32px)!important}
 }
 /* داخل المحادثة: الشريط تحت الاسم والصورة، وتحت الرسالة المثبتة إن وُجدت */
 #chatView #vpBar.in-chat{position:absolute!important;top:var(--vp-top,110px)!important;left:10px!important;right:10px!important;margin:0!important;height:36px!important;min-height:36px;box-sizing:border-box;padding:0 14px!important;z-index:14;
   border:1px solid rgba(228,196,91,.35)!important;border-radius:16px!important;box-shadow:var(--cr-shadow,0 4px 12px rgba(0,0,0,.18));animation:vpInChat .22s ease}
 .app-container[data-app-theme="light"] #chatView #vpBar.in-chat{border-color:rgba(194,157,48,.45)!important}
 @keyframes vpInChat{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-#chatView#chatView.vp-chat #messagesArea.messages-area{padding-top:calc(var(--cr-head-h,110px) + 8px + var(--vp-h,0px))!important}
-#chatView#chatView.vp-chat #pinnedBar:not(.hidden) ~ #messagesArea.messages-area{padding-top:calc(var(--cr-head-h,110px) + 62px + var(--vp-h,0px))!important}
+#chatView#chatView.vp-chat #messagesArea.messages-area{padding-top:var(--vp-pad,calc(var(--cr-head-h,110px) + 52px))!important}
+#chatView#chatView.vp-chat #pinnedBar:not(.hidden) ~ #messagesArea.messages-area{padding-top:var(--vp-pad,calc(var(--cr-head-h,110px) + 106px))!important}
 
 /* مؤشر تحميل ذهبي: قوس دوّار متحرك فوق إطار القصة نفسه، وليس إطاراً ذهبياً كاملاً */
 .avatar.sring.story-launch-loading,
@@ -12841,11 +12850,14 @@ function bbMsgUser(u){
   function vis(id){var e=document.getElementById(id);return e&&!e.classList.contains('hidden')?e:null;}
   function chatLayout(){
     var cv=document.getElementById('chatView');if(!cv||!bar)return;
-    var head=cv.querySelector('.telegram-chat-header'),pin=document.getElementById('pinnedBar');
-    var pv=pin&&!pin.classList.contains('hidden');
-    var top=(head?head.offsetHeight:0)+(pv?pin.offsetHeight+8:0)+(pv?0:6);
+    var pin=document.getElementById('pinnedBar'),head=cv.querySelector('.telegram-chat-header');
+    var pv=pin&&!pin.classList.contains('hidden')&&pin.offsetHeight>0;
+    var ref=pv?pin:(head&&(head.querySelector('.telegram-user-info')||head));
+    var top;
+    if(ref){top=Math.round(ref.getBoundingClientRect().bottom-cv.getBoundingClientRect().top)+2;}
+    else top=110;
     cv.style.setProperty('--vp-top',top+'px');
-    cv.style.setProperty('--vp-h','44px');
+    cv.style.setProperty('--vp-pad',(top+36+8)+'px');
   }
   var _lo=null;
   function watchChat(cv){
@@ -17150,4 +17162,90 @@ return R("index");})();
   window.__bbQr = { drawCard: drawCard, parseUser: parseUser, open: openQr, scan: openScan };
 })();
 
+</script>
+
+<script id="babylon-chat-blank-tap-js">
+(function(){
+  var area=document.getElementById('messagesArea'); if(!area) return;
+  /* النقر على المساحة الفارغة بجانب الرسالة (أي نوع) = نقر على الرسالة نفسها */
+  function bubbleAt(y){
+    var kids=area.children;
+    for(var i=0;i<kids.length;i++){
+      var k=kids[i], b=null;
+      if(k.classList.contains('msg-bubble')) b=k;
+      else if(k.classList.contains('g-row')) b=k.querySelector('.msg-bubble');
+      if(!b||!b.id||b.id.indexOf('message_')!==0) continue;
+      var r=k.getBoundingClientRect();
+      if(y>=r.top&&y<=r.bottom) return b;
+    }
+    return null;
+  }
+  area.addEventListener('click',function(e){
+    var t=e.target;
+    if(t!==area&&!(t.classList&&t.classList.contains('g-row'))) return;
+    var b=bubbleAt(e.clientY); if(!b) return;
+    e.preventDefault(); e.stopPropagation();
+    if(typeof messageSelectionMode!=='undefined'&&messageSelectionMode){ toggleMessageSelection(b.id.slice(8)); return; }
+    b.click();
+  });
+  /* الخروج من المحادثة (أي شاشة غير المحادثة) يلغي التحديد؛ ومفتاح Esc أيضاً */
+  var _sv=window.showView;
+  if(typeof _sv==='function') window.showView=function(id){
+    try{ if(id!=='chatView'&&typeof messageSelectionMode!=='undefined'&&messageSelectionMode) clearMessageSelection(); }catch(e){}
+    return _sv.apply(this,arguments);
+  };
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&typeof messageSelectionMode!=='undefined'&&messageSelectionMode){ clearMessageSelection(); }
+  });
+})();
+</script>
+
+<style id="babylon-select-pin-css">
+#chatView#chatView #multiSelectBar .msb-pin{width:42px;height:42px;flex:0 0 42px;padding:0;border-radius:50%!important;border:none!important;background:rgba(127,140,160,.16)!important;color:inherit;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .12s;-webkit-tap-highlight-color:transparent}
+#chatView#chatView #multiSelectBar .msb-pin:active{transform:scale(.92);background:rgba(127,140,160,.3)!important}
+#chatView#chatView #multiSelectBar .msb-pin.hidden{display:none!important}
+#chatView #multiSelectBar .msb-pin svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.app-container[data-app-theme="light"] #chatView#chatView #multiSelectBar .msb-pin{background:#eef2f7!important;color:#3a4a5c!important}
+</style>
+<script id="babylon-select-pin-js">
+(function(){
+  var bar=document.getElementById('multiSelectBar'); if(!bar||bar.querySelector('.msb-pin')) return;
+  var btn=document.createElement('button');
+  btn.type='button'; btn.className='msb-pin hidden'; btn.setAttribute('aria-label','تثبيت الرسالة');
+  var fwd=bar.querySelector('.msb-fwd');
+  if(fwd) bar.insertBefore(btn,fwd); else bar.appendChild(btn);
+  function icon(un){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 3.5V14H6v-1.5L9 9z"/>'+(un?'<path d="m3 3 18 18"/>':'')+'</svg>';}
+  function canPin(){
+    try{ if(typeof isGroupChat==='function'&&isGroupChat()) return !!gRight('pin'); }catch(e){}
+    return true;
+  }
+  function onlyId(){ return (typeof selectedMessageIds!=='undefined'&&selectedMessageIds.size===1)?Array.from(selectedMessageIds)[0]:null; }
+  function isPinned(id){
+    try{ return (((chatMetaCache[activeChatId]||{}).pins)||[]).some(function(p){return p.id===id;}); }catch(e){return false;}
+  }
+  function sync(){
+    var id=(typeof messageSelectionMode!=='undefined'&&messageSelectionMode)?onlyId():null;
+    var show=!!id&&canPin();
+    btn.classList.toggle('hidden',!show);
+    if(show){
+      var pinned=isPinned(id);
+      btn.innerHTML=icon(pinned);
+      btn.setAttribute('aria-label',pinned?'إلغاء تثبيت الرسالة':'تثبيت الرسالة');
+    }
+  }
+  btn.addEventListener('click',async function(){
+    var id=onlyId(); if(!id) return;
+    var b=document.getElementById('message_'+id); if(!b) return;
+    var te=b.querySelector('.msg-text'), txt=te?(te.textContent||'').trim():'';
+    var isAudio=!!b.querySelector('.custom-voice-card,.voice-audio,audio');
+    if(!txt&&!isAudio) txt=b.querySelector('video,.msg-video')?'فيديو':'صورة';
+    selectedMsgId=id; selectedMsgText=txt; selectedMsgIsAudio=isAudio;
+    try{ await window.actionPinMsg(); }catch(e){ console.error(e); }
+    try{ clearMessageSelection(); }catch(e){}
+  });
+  var _r=window.refreshMessageSelectionUI;
+  if(typeof _r==='function') window.refreshMessageSelectionUI=function(){ var r=_r.apply(this,arguments); try{sync();}catch(e){} return r; };
+  var _c=window.clearMessageSelection;
+  if(typeof _c==='function') window.clearMessageSelection=function(){ var r=_c.apply(this,arguments); try{sync();}catch(e){} return r; };
+})();
 </script>
