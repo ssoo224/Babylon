@@ -10608,13 +10608,17 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 .bb-em-bar{display:flex;align-items:center;flex:0 0 auto;padding:4px 6px;gap:2px}
 .bb-em-tabs{display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;gap:2px}
 .bb-em-tabs::-webkit-scrollbar{display:none}
-.bb-em-tab{flex:1 0 auto;min-width:36px;height:34px;border:0;border-radius:10px;background:transparent;font-size:20px;line-height:1;padding:0;opacity:.5;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
-.bb-em-tab.active{opacity:1;background:rgba(127,140,160,.2)}
+.bb-em-tab{flex:1 0 auto;min-width:38px;height:34px;border:0;border-radius:10px;background:transparent;font-size:20px;line-height:1;padding:0;opacity:.5;transition:opacity .18s,background-color .18s,transform .18s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.bb-em-tab[hidden],.bb-em-sec[hidden]{display:none!important}
+.bb-em-tab.active{opacity:1;background:rgba(127,140,160,.2);transform:scale(1.08)}
+.bb-em-tabs{scroll-behavior:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
 .bb-em-del{flex:0 0 38px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center;padding:0}
 .bb-em-del svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .bb-em-del:active{background:rgba(127,140,160,.25)}
-.bb-em-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 6px 10px}
+.bb-em-scroll{position:relative;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 6px 10px}
 .bb-em-title{position:sticky;top:0;z-index:1;padding:8px 4px 4px;font-size:12px;font-weight:700;color:var(--text-muted);background:var(--cr-card,#1b2531)}
+.bb-em-sec{display:block}
+.bb-em-spacer{pointer-events:none}
 .bb-em-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr))}
 .bb-em-item{height:42px;border:0;border-radius:8px;background:transparent;padding:0;font-size:26px;line-height:42px;text-align:center;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;-webkit-tap-highlight-color:transparent}
 .bb-em-item:active{background:rgba(127,140,160,.28)}
@@ -10622,22 +10626,83 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 <script id="bb-emoji-picker">
 (function(){
   var DATA={"smileys":["☹️","☺️","😀","😁","😂","😃","😄","😅","😆","😇","😈","😉","😊","😋","😌","😍","😎","😏","😐","😑","😒","😓","😔","😕","😖","😗","😘","😙","😚","😛","😜","😝","😞","😟","😠","😡","😢","😣","😤","😥","😦","😧","😨","😩","😪","😫","😬","😭","😮","😯","😰","😱","😲","😳","😴","😵","😶","😷","😸","😹","😺","😻","😼","😽","😾","😿","🙀","🙁","🙂","🙃","🙄","🤐","🤑","🤒","🤓","🤔","🤕","🤖","🤗","🤘","🤙","🤚","🤛","🤜","🤝","🤞","🤟","🤠","🤡","🤢","🤣","🤤","🤥","🤦","🤧","🤨","🤩","🤪","🤫","🤬","🤭","🤮","🤯","🥰","🥱","🥲","🥳","🥴","🥵","🥶","🥷","🥸","🥹","🥺","🧐","🫠","🫡","🫢","🫣","🫤","🫥","🫦","🫨","☠️","❣️","❤️","👹","👺","👻","👽","👾","👿","💀","💋","💌","💓","💔","💕","💖","💗","💘","💙","💚","💛","💜","💝","💞","💟","💢","💤","💥","💦","💨","💩","💫","💬","💭","💯","🕳️","🖤","🗨️","🗯️","🙈","🙉","🙊","🤍","🤎","🧡","🩵","🩶","🩷","☝️","⛷️","⛹️","✊","✋","✌️","✍️","🎅","🏂","🏃","🏄","🏇","🏊","🏋️","🏌️","👀","👁️","👂","👃","👄","👅","👆","👇","👈","👉","👊","👋","👌","👍","👎","👏","👐","👣","👤","👥","👦","👧","👨","👩","👪","👫","👬","👭","👮","👯","👰","👱","👲","👳","👴","👵","👶","👷","👸","👼","💁","💂","💃","💄","💅","💆","💇","💏","💑","💪","🕴️","🕵️","🕺","🖐️","🖕","🖖","🙅","🙆","🙇","🙋","🙌","🙍","🙎","🙏","🚴","🚵","🚶","🛀","🛌","🤌","🤏","🤰","🤱","🤲","🤳","🤴","🤵","🤶","🤷","🤸","🤹","🤺","🤼","🤽","🤾","🦴","🦵","🦶","🦷","🦸","🦹","🦻","🦾","🦿","🧌","🧍","🧎","🧏","🧑","🧒","🧓","🧔","🧕","🧖","🧗","🧘","🧙","🧚","🧛","🧜","🧝","🧞","🧟","🧠","🪭","🫀","🫁","🫂","🫃","🫄","🫅","🫰","🫱","🫲","🫳","🫴","🫵","🫶","🫷","🫸"],"animals":["☘️","🌱","🌲","🌳","🌴","🌵","🌷","🌸","🌹","🌺","🌻","🌼","🌾","🌿","🍀","🍁","🍂","🍃","🍄","🏵️","🐀","🐁","🐂","🐃","🐄","🐅","🐆","🐇","🐈","🐉","🐊","🐋","🐌","🐍","🐎","🐏","🐐","🐑","🐒","🐓","🐔","🐕","🐖","🐗","🐘","🐙","🐚","🐛","🐜","🐝","🐞","🐟","🐠","🐡","🐢","🐣","🐤","🐥","🐦","🐧","🐨","🐩","🐪","🐫","🐬","🐭","🐮","🐯","🐰","🐱","🐲","🐳","🐴","🐵","🐶","🐷","🐸","🐹","🐺","🐻","🐼","🐽","🐾","🐿️","💐","💮","🕊️","🕷️","🕸️","🥀","🦀","🦁","🦂","🦃","🦄","🦅","🦆","🦇","🦈","🦉","🦊","🦋","🦌","🦍","🦎","🦏","🦐","🦑","🦒","🦓","🦔","🦕","🦖","🦗","🦘","🦙","🦚","🦛","🦜","🦝","🦞","🦟","🦠","🦡","🦢","🦣","🦤","🦥","🦦","🦧","🦨","🦩","🦫","🦬","🦭","🦮","🪰","🪱","🪲","🪳","🪴","🪵","🪶","🪷","🪸","🪹","🪺","🪻","🪼","🪽","🪿","🫎","🫏"],"food":["☕","🌭","🌮","🌯","🌰","🌶️","🌽","🍅","🍆","🍇","🍈","🍉","🍊","🍋","🍌","🍍","🍎","🍏","🍐","🍑","🍒","🍓","🍔","🍕","🍖","🍗","🍘","🍙","🍚","🍛","🍜","🍝","🍞","🍟","🍠","🍡","🍢","🍣","🍤","🍥","🍦","🍧","🍨","🍩","🍪","🍫","🍬","🍭","🍮","🍯","🍰","🍱","🍲","🍳","🍴","🍵","🍶","🍷","🍸","🍹","🍺","🍻","🍼","🍽️","🍾","🍿","🎂","🏺","🔪","🥄","🥐","🥑","🥒","🥓","🥔","🥕","🥖","🥗","🥘","🥙","🥚","🥛","🥜","🥝","🥞","🥟","🥠","🥡","🥢","🥣","🥤","🥥","🥦","🥧","🥨","🥩","🥪","🥫","🥬","🥭","🥮","🥯","🦪","🧀","🧁","🧂","🧃","🧄","🧅","🧆","🧇","🧈","🧉","🧊","🧋","🫐","🫑","🫒","🫓","🫔","🫕","🫖","🫗","🫘","🫙","🫚","🫛"],"activities":["♟️","♠️","♣️","♥️","♦️","⚽","⚾","⛳","⛸️","✨","🀄","🃏","🎀","🎁","🎃","🎄","🎆","🎇","🎈","🎉","🎊","🎋","🎍","🎎","🎏","🎐","🎑","🎖️","🎗️","🎞️","🎟️","🎣","🎨","🎫","🎭","🎮","🎯","🎰","🎱","🎲","🎳","🎴","🎵","🎶","🎷","🎸","🎹","🎺","🎻","🎼","🎽","🎾","🎿","🏀","🏅","🏆","🏈","🏉","🏏","🏐","🏑","🏒","🏓","🏸","🏹","🔮","🛷","🤿","🥅","🥇","🥈","🥉","🥊","🥋","🥌","🥍","🥎","🥏","🧩","🧵","🧶","🧸","🧿","🪀","🪁","🪂","🪃","🪄","🪅","🪆","🪡","🪢","🪩"],"travel":["⌚","⌛","⏰","⏱️","⏲️","⏳","☀️","☁️","☂️","☃️","☄️","☔","♨️","⚓","⚡","⛄","⛅","⛈️","⛰️","⛱️","⛲","⛴️","⛵","⛺","⛽","✈️","❄️","⭐","🌀","🌁","🌂","🌃","🌄","🌅","🌆","🌇","🌈","🌉","🌊","🌋","🌌","🌍","🌎","🌏","🌐","🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘","🌙","🌚","🌛","🌜","🌝","🌞","🌟","🌠","🌡️","🌤️","🌥️","🌦️","🌧️","🌨️","🌩️","🌪️","🌫️","🌬️","🎠","🎡","🎢","🎪","🏍️","🏎️","🏔️","🏕️","🏖️","🏗️","🏘️","🏙️","🏚️","🏛️","🏜️","🏝️","🏞️","🏟️","🏠","🏡","🏢","🏣","🏤","🏥","🏦","🏧","🏨","🏩","🏪","🏫","🏬","🏭","🏮","🏯","🏰","💧","💺","🔥","🕋","🕌","🕍","🕐","🕑","🕒","🕓","🕔","🕕","🕖","🕗","🕘","🕙","🕚","🕛","🕜","🕝","🕞","🕟","🕠","🕡","🕢","🕣","🕤","🕥","🕦","🕧","🕰️","🗺️","🗻","🗼","🗽","🗾","🗿","🚀","🚁","🚂","🚃","🚄","🚅","🚆","🚇","🚈","🚉","🚊","🚋","🚌","🚍","🚎","🚏","🚐","🚑","🚒","🚓","🚔","🚕","🚖","🚗","🚘","🚙","🚚","🚛","🚜","🚝","🚞","🚟","🚠","🚡","🚢","🚣","🚤","🚥","🚦","🚧","🚨","🚲","🛎️","🛑","🛕","🛖","🛗","🛝","🛞","🛟","🛢️","🛣️","🛤️","🛥️","🛩️","🛫","🛬","🛰️","🛳️","🛴","🛵","🛶","🛸","🛹","🛺","🛻","🛼","🦼","🦽","🧭","🪐"],"objects":["🫧","⌨️","☎️","⚒️","⚔️","⚖️","⚗️","⚙️","⚰️","⚱️","⛏️","⛑️","⛓️","⛩️","⛪","✂️","✉️","✏️","✒️","✝️","🎒","🎓","🎙️","🎚️","🎛️","🎤","🎥","🎦","🎧","🎩","🎬","🏷️","👑","👒","👓","👔","👕","👖","👗","👘","👙","👚","👛","👜","👝","👞","👟","👠","👡","👢","💈","💉","💊","💍","💎","💒","💡","💣","💰","💱","💲","💳","💴","💵","💶","💷","💸","💻","💼","💽","💾","💿","📀","📁","📂","📃","📄","📅","📆","📇","📈","📉","📊","📋","📌","📍","📎","📏","📐","📑","📒","📓","📔","📕","📖","📗","📘","📙","📚","📜","📝","📞","📟","📠","📡","📢","📣","📤","📥","📦","📧","📨","📩","📪","📫","📬","📭","📮","📯","📰","📱","📲","📷","📸","📹","📺","📻","📼","📽️","📿","🔇","🔈","🔉","🔊","🔋","🔌","🔍","🔎","🔏","🔐","🔑","🔒","🔓","🔔","🔕","🔖","🔗","🔦","🔧","🔨","🔩","🔫","🔬","🔭","🕯️","🕶️","🕹️","🖇️","🖊️","🖋️","🖌️","🖍️","🖥️","🖨️","🖱️","🖲️","🖼️","🗂️","🗃️","🗄️","🗑️","🗒️","🗓️","🗜️","🗝️","🗞️","🗡️","🗣️","🗳️","🚪","🚬","🚽","🚿","🛁","🛋️","🛍️","🛏️","🛒","🛠️","🛡️","🟰","🥁","🥂","🥃","🥻","🥼","🥽","🥾","🥿","🦯","🦰","🦱","🦲","🦳","🦺","🧢","🧣","🧤","🧥","🧦","🧧","🧨","🧪","🧫","🧬","🧮","🧯","🧰","🧱","🧲","🧳","🧴","🧷","🧹","🧺","🧻","🧼","🧽","🧾","🩰","🩱","🩲","🩳","🩴","🩸","🩹","🩺","🩻","🩼","🪇","🪈","🪑","🪒","🪓","🪔","🪕","🪖","🪗","🪘","🪙","🪚","🪛","🪜","🪝","🪞","🪟","🪠","🪣","🪤","🪥","🪦","🪧","🪨","🪪","🪫","🪬","🪮"],"symbols":["©️","®️","‼️","⁉️","™️","ℹ️","↔️","↕️","↖️","↗️","↘️","↙️","↩️","↪️","⏏️","⏩","⏪","⏫","⏬","⏭️","⏮️","⏯️","⏸️","⏹️","⏺️","Ⓜ️","▪️","▫️","▶️","◀️","◻️","◼️","◽","◾","☑️","☢️","☣️","☦️","☪️","☮️","☯️","☸️","♀️","♂️","♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓","♻️","♾️","♿","⚕️","⚛️","⚜️","⚠️","⚧️","⚪","⚫","⛎","⛔","✅","✔️","✖️","✡️","✳️","✴️","❇️","❌","❎","❓","❔","❕","❗","➕","➖","➗","➡️","➰","➿","⤴️","⤵️","⬅️","⬆️","⬇️","⬛","⬜","⭕","〰️","〽️","㊗️","㊙️","🅰️","🅱️","🅾️","🅿️","🆎","🆑","🆒","🆓","🆔","🆕","🆖","🆗","🆘","🆙","🆚","🈁","🈂️","🈚","🈯","🈲","🈳","🈴","🈵","🈶","🈷️","🈸","🈹","🈺","🉐","🉑","💠","💹","📛","📳","📴","📵","📶","🔀","🔁","🔂","🔃","🔄","🔅","🔆","🔘","🔙","🔚","🔛","🔜","🔝","🔞","🔟","🔠","🔡","🔢","🔣","🔤","🔯","🔰","🔱","🔲","🔳","🔴","🔵","🔶","🔷","🔸","🔹","🔺","🔻","🔼","🔽","🕉️","🕎","🚫","🚭","🚮","🚯","🚰","🚱","🚳","🚷","🚸","🚹","🚺","🚻","🚼","🚾","🛂","🛃","🛄","🛅","🛐","🛜","🟠","🟡","🟢","🟣","🟤","🟥","🟦","🟧","🟨","🟩","🟪","🟫","🪯","#️⃣","*️⃣","0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣"],"flags":["🎌","🏁","🏳️","🏴","🚩","🇦🇨","🇦🇩","🇦🇪","🇦🇫","🇦🇬","🇦🇮","🇦🇱","🇦🇲","🇦🇴","🇦🇶","🇦🇷","🇦🇸","🇦🇹","🇦🇺","🇦🇼","🇦🇽","🇦🇿","🇧🇦","🇧🇧","🇧🇩","🇧🇪","🇧🇫","🇧🇬","🇧🇭","🇧🇮","🇧🇯","🇧🇱","🇧🇲","🇧🇳","🇧🇴","🇧🇶","🇧🇷","🇧🇸","🇧🇹","🇧🇻","🇧🇼","🇧🇾","🇧🇿","🇨🇦","🇨🇨","🇨🇩","🇨🇫","🇨🇬","🇨🇭","🇨🇮","🇨🇰","🇨🇱","🇨🇲","🇨🇳","🇨🇴","🇨🇵","🇨🇷","🇨🇺","🇨🇻","🇨🇼","🇨🇽","🇨🇾","🇨🇿","🇩🇪","🇩🇬","🇩🇯","🇩🇰","🇩🇲","🇩🇴","🇩🇿","🇪🇦","🇪🇨","🇪🇪","🇪🇬","🇪🇭","🇪🇷","🇪🇸","🇪🇹","🇪🇺","🇫🇮","🇫🇯","🇫🇰","🇫🇲","🇫🇴","🇫🇷","🇬🇦","🇬🇧","🇬🇩","🇬🇪","🇬🇫","🇬🇬","🇬🇭","🇬🇮","🇬🇱","🇬🇲","🇬🇳","🇬🇵","🇬🇶","🇬🇷","🇬🇸","🇬🇹","🇬🇺","🇬🇼","🇬🇾","🇭🇰","🇭🇲","🇭🇳","🇭🇷","🇭🇹","🇭🇺","🇮🇨","🇮🇩","🇮🇪","🇮🇱","🇮🇲","🇮🇳","🇮🇴","🇮🇶","🇮🇷","🇮🇸","🇮🇹","🇯🇪","🇯🇲","🇯🇴","🇯🇵","🇰🇪","🇰🇬","🇰🇭","🇰🇮","🇰🇲","🇰🇳","🇰🇵","🇰🇷","🇰🇼","🇰🇾","🇰🇿","🇱🇦","🇱🇧","🇱🇨","🇱🇮","🇱🇰","🇱🇷","🇱🇸","🇱🇹","🇱🇺","🇱🇻","🇱🇾","🇲🇦","🇲🇨","🇲🇩","🇲🇪","🇲🇫","🇲🇬","🇲🇭","🇲🇰","🇲🇱","🇲🇲","🇲🇳","🇲🇴","🇲🇵","🇲🇶","🇲🇷","🇲🇸","🇲🇹","🇲🇺","🇲🇻","🇲🇼","🇲🇽","🇲🇾","🇲🇿","🇳🇦","🇳🇨","🇳🇪","🇳🇫","🇳🇬","🇳🇮","🇳🇱","🇳🇴","🇳🇵","🇳🇷","🇳🇺","🇳🇿","🇴🇲","🇵🇦","🇵🇪","🇵🇫","🇵🇬","🇵🇭","🇵🇰","🇵🇱","🇵🇲","🇵🇳","🇵🇷","🇵🇸","🇵🇹","🇵🇼","🇵🇾","🇶🇦","🇷🇪","🇷🇴","🇷🇸","🇷🇺","🇷🇼","🇸🇦","🇸🇧","🇸🇨","🇸🇩","🇸🇪","🇸🇬","🇸🇭","🇸🇮","🇸🇯","🇸🇰","🇸🇱","🇸🇲","🇸🇳","🇸🇴","🇸🇷","🇸🇸","🇸🇹","🇸🇻","🇸🇽","🇸🇾","🇸🇿","🇹🇦","🇹🇨","🇹🇩","🇹🇫","🇹🇬","🇹🇭","🇹🇯","🇹🇰","🇹🇱","🇹🇲","🇹🇳","🇹🇴","🇹🇷","🇹🇹","🇹🇻","🇹🇼","🇹🇿","🇺🇦","🇺🇬","🇺🇲","🇺🇳","🇺🇸","🇺🇾","🇺🇿","🇻🇦","🇻🇨","🇻🇪","🇻🇬","🇻🇮","🇻🇳","🇻🇺","🇼🇫","🇼🇸","🇽🇰","🇾🇪","🇾🇹","🇿🇦","🇿🇲","🇿🇼"]};
-  var TITLES={recent:'الأخيرة',smileys:'الوجوه والأشخاص',animals:'الحيوانات والطبيعة',food:'الطعام والشراب',activities:'الأنشطة',travel:'السفر والأماكن',objects:'الأشياء',symbols:'الرموز',flags:'الأعلام'};
-  var ICONS={recent:'\uD83D\uDD58',smileys:'\uD83D\uDE00',animals:'\uD83D\uDC3B',food:'\uD83C\uDF54',activities:'\u26BD',travel:'\uD83D\uDE97',objects:'\uD83D\uDCA1',symbols:'\uD83D\uDD23',flags:'\uD83C\uDFC1'};
-  var ORDER=['smileys','animals','food','activities','travel','objects','symbols','flags'];
-  var form,input,box,btn,panel,scroller,tabs,built=false,isOpen=false,saved=null,origMode='text';
-  var RKEY='bb_recent_emoji';
+  var V='\uFE0F', ZJ='\u200D';
+  function z(){return Array.prototype.slice.call(arguments).join(ZJ);}
+  function S(s){return s.split(/\s+/).filter(Boolean);}
+  function norm(e){
+    try{
+      if(e.indexOf(V)===-1&&e.length<=2&&/^\p{Emoji}$/u.test(e)&&!/^\p{Emoji_Presentation}$/u.test(e)&&!/^[0-9#*]$/.test(e)) return e+V;
+    }catch(_){}
+    return e;
+  }
+  var TITLES={recent:'الأخيرة',smileys:'الوجوه',gestures:'الأيدي والجسم',people:'الأشخاص',hearts:'القلوب والحب',clothing:'الملابس والإكسسوارات',animals:'الحيوانات',nature:'الطبيعة والطقس',food:'الطعام',drinks:'المشروبات',activities:'الرياضة والألعاب',celebrations:'احتفالات ومناسبات',travel:'السفر والأماكن',objects:'الأشياء',symbols:'الرموز',flags:'الأعلام',faith:'إسلاميات'};
+  var ICONS={recent:'\uD83D\uDD58',smileys:'\uD83D\uDE00',gestures:'\uD83D\uDC4B',people:'\uD83E\uDDD1',hearts:'\u2764\uFE0F',clothing:'\uD83D\uDC55',animals:'\uD83D\uDC3B',nature:'\uD83C\uDF3F',food:'\uD83C\uDF54',drinks:'\u2615',activities:'\u26BD',celebrations:'\uD83C\uDF89',travel:'\uD83D\uDE97',objects:'\uD83D\uDCA1',symbols:'\uD83D\uDD23',flags:'\uD83C\uDFC1',faith:'\uD83D\uDD4C'};
+  var ORDER=['smileys','gestures','people','hearts','clothing','animals','nature','food','drinks','activities','celebrations','travel','objects','symbols','flags','faith'];
+  var OLD={people:'smileys',animals:'animals',food:'food',activities:'activities',travel:'travel',objects:'objects',symbols:'symbols',flags:'flags'};
+
+  function peopleList(){
+    var l=S('👶 🧒 👦 👧 🧑 👱 👨 🧔 👩 🧓 👴 👵 🙍 🙎 🙅 🙆 💁 🙋 🧏 🙇 🤦 🤷 👮 🕵️ 💂 🥷 👷 🫅 🤴 👸 👳 👲 🧕 🤵 👰 🤰 🫃 🫄 🤱 👼 🎅 🤶 🦸 🦹 🧙 🧚 🧛 🧜 🧝 🧞 🧟 🧌 💆 💇 🚶 🧍 🧎 🏃 💃 🕺 🕴️ 👯 🧖 🧗 🤺 🏇 ⛷️ 🏂 🏌️ 🏄 🚣 🏊 ⛹️ 🏋️ 🚴 🚵 🤸 🤼 🤽 🤾 🤹 🧘 🛀 🛌 👭 👫 👬 💏 💑 👪 👤 👥 🫂 🗣️ 👣');
+    var tails=['\u2695'+V,'🎓','🏫','\u2696'+V,'🌾','🍳','🔧','🏭','💼','🔬','💻','🎤','🎨','\u2708'+V,'🚀','🚒','🦯','🦼','🦽','🦰','🦱','🦳','🦲'];
+    ['🧑','👨','👩'].forEach(function(p){tails.forEach(function(t){l.push(z(p,t));});});
+    l.push(z('🧑','🤝','🧑'),z('👨','👩','👧','👦'),z('👨','👩','👧'),z('👩','👩','👧'),z('👨','👨','👦'),z('👩','👧','👦'),z('👨','👧'),z('👩','👦'),z('🧑','🧑','🧒'),z('🧑','🧒'));
+    return l;
+  }
+  var EX={
+    smileys:S('😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 🫠 😉 😊 😇 🥰 😍 🤩 😘 😗 ☺️ 😚 😙 🥲 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🫢 🫣 🤫 🤔 🫡 🤐 🤨 😐 😑 😶 🫥 😏 😒 🙄 😬 🤥 🫨 😌 😔 😪 🤤 😴 🫩 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 🤯 🤠 🥳 🥸 😎 🤓 🧐 😕 🫤 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 🥹 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 ☠️ 💩 🤡 👹 👺 👻 👽 👾 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾 🙈 🙉 🙊 💯 💢 💥 💫 💦 💨 🕳️ 💬 🗨️ 🗯️ 💭 💤').concat([z('😮','💨'),z('😶','🌫'+V),z('😵','💫'),z('🙂','\u2194'+V),z('🙂','\u2195'+V),z('👁'+V,'🗨'+V)]),
+    gestures:S('👋 🤚 🖐️ ✋ 🖖 🫱 🫲 🫳 🫴 🫷 🫸 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 🫵 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 🫶 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦾 🦿 🦵 🦶 👂 🦻 👃 🧠 🫀 🫁 🦷 🦴 👀 👁️ 👅 👄 🫦 🫆'),
+    people:peopleList(),
+    hearts:S('❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 🩷 🩵 🩶 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ♥️ 💌 💋 😍 🥰 😘 😻 🫶 💑 💏 🫂 🫀 💍 💐 🌹').concat([z('\u2764'+V,'🔥'),z('\u2764'+V,'🩹')]),
+    clothing:S('🧣 🧤 🧥 🧦 👓 🕶️ 🥽 🥼 🦺 👔 👕 👖 🩲 🩳 👗 👘 🥻 🩱 👙 👚 🪭 👛 👜 👝 🛍️ 🎒 🩴 👞 👟 🥾 🥿 👠 👡 🩰 👢 🪮 👑 👒 🎩 🎓 🧢 🪖 ⛑️ 📿 💄 💍 💎 🧵 🪡 🧶 🪢 🌂 ☂️'),
+    animals:S('🐵 🐒 🦍 🦧 🐶 🐕 🦮 🐩 🐺 🦊 🦝 🐱 🐈 🦁 🐯 🐅 🐆 🐴 🫎 🫏 🐎 🦄 🦓 🦌 🦬 🐮 🐂 🐃 🐄 🐷 🐖 🐗 🐽 🐏 🐑 🐐 🐪 🐫 🦙 🦒 🐘 🦣 🦏 🦛 🐭 🐁 🐀 🐹 🐰 🐇 🐿️ 🦫 🦔 🦇 🐻 🐨 🐼 🦥 🦦 🦨 🦘 🦡 🐾 🦃 🐔 🐓 🐣 🐤 🐥 🐦 🐧 🕊️ 🦅 🦆 🦢 🦉 🦤 🪶 🦩 🦚 🦜 🪽 🪿 🐸 🐊 🐢 🦎 🐍 🐲 🐉 🦕 🦖 🐳 🐋 🐬 🦭 🐟 🐠 🐡 🦈 🐙 🐚 🪸 🪼 🦀 🦞 🦐 🦑 🦪 🐌 🦋 🐛 🐜 🐝 🪲 🐞 🦗 🪳 🕷️ 🕸️ 🦂 🦟 🪰 🪱 🦠 🫍').concat([z('🐕','🦺'),z('🐈','⬛'),z('🐦','⬛'),z('🐻','\u2744'+V),z('🐦','🔥')]),
+    nature:S('🌍 🌎 🌏 🌐 🌑 🌒 🌓 🌔 🌕 🌖 🌗 🌘 🌙 🌚 🌛 🌜 ☀️ 🌝 🌞 🪐 ⭐ 🌟 🌠 🌌 ☁️ ⛅ ⛈️ 🌤️ 🌥️ 🌦️ 🌧️ 🌨️ 🌩️ 🌪️ 🌫️ 🌬️ 🌀 🌈 ☔ ⛱️ ⚡ ❄️ ☃️ ⛄ ☄️ 🔥 💧 🌊 🌱 🪴 🌲 🌳 🌴 🪵 🌵 🌾 🌿 ☘️ 🍀 🍁 🍂 🍃 🍄 🪹 🪺 🌷 🌸 🌺 🌻 🌼 🥀 🪷 🪻 💮 🏵️ 🪨 ⛰️ 🏔️ 🌋 🏜️ 🏝️ 🏞️ 🪾'),
+    food:S('🍇 🍈 🍉 🍊 🍋 🍌 🍍 🥭 🍎 🍏 🍐 🍑 🍒 🍓 🫐 🥝 🍅 🫒 🥥 🥑 🍆 🥔 🥕 🌽 🌶️ 🫑 🥒 🥬 🥦 🧄 🧅 🥜 🫘 🌰 🫚 🫛 🫜 🍞 🥐 🥖 🫓 🥨 🥯 🥞 🧇 🧀 🍖 🍗 🥩 🥓 🍔 🍟 🍕 🌭 🥪 🌮 🌯 🫔 🥙 🧆 🥚 🍳 🥘 🍲 🫕 🥣 🥗 🍿 🧈 🧂 🥫 🍱 🍘 🍙 🍚 🍛 🍜 🍝 🍠 🍢 🍣 🍤 🍥 🥮 🍡 🥟 🥠 🥡 🍦 🍧 🍨 🍩 🍪 🎂 🍰 🧁 🥧 🍫 🍬 🍭 🍮 🍯').concat([z('🍋','🟩'),z('🍄','🟫')]),
+    drinks:S('🍼 🥛 ☕ 🫖 🍵 🍶 🍾 🍷 🍸 🍹 🍺 🍻 🥂 🥃 🫗 🥤 🧋 🧃 🧉 🧊 🥢 🍽️ 🍴 🥄 🔪 🫙 🏺'),
+    activities:S('⚽ 🏀 🏈 ⚾ 🥎 🎾 🏐 🏉 🥏 🎱 🪀 🏓 🏸 🏒 🏑 🥍 🏏 🪃 🥅 ⛳ 🪁 🏹 🎣 🤿 🥊 🥋 🎽 🛹 🛼 🛷 ⛸️ 🥌 🎿 🏆 🥇 🥈 🥉 🏅 🎖️ 🎪 🎭 🩰 🎨 🎬 🎤 🎧 🎼 🎹 🥁 🪘 🪇 🎷 🎺 🪗 🎸 🪕 🎻 🪈 🎲 ♟️ 🎯 🎳 🎮 🕹️ 🎰 🧩 🃏 🀄 🎴 ♠️ ♥️ ♦️ ♣️ 🧸 🪆 🔮 🪄 🪩'),
+    celebrations:S('🎉 🎊 🥳 🎈 🎁 🎀 🎂 🎆 🎇 🧨 ✨ 🪅 🎄 🎃 🎋 🎍 🎎 🎏 🎐 🎑 🧧 🎗️ 🎟️ 🎫 🪔 🕯️'),
+    travel:S('🚗 🚕 🚙 🚌 🚎 🏎️ 🚓 🚑 🚒 🚐 🛻 🚚 🚛 🚜 🛴 🚲 🛵 🏍️ 🛺 🚨 🚔 🚍 🚘 🚖 🛞 🚡 🚠 🚟 🚃 🚋 🚞 🚝 🚄 🚅 🚈 🚂 🚆 🚇 🚊 🚉 ✈️ 🛫 🛬 🛩️ 💺 🛰️ 🚀 🛸 🚁 🛶 ⛵ 🚤 🛥️ 🛳️ ⛴️ 🚢 ⚓ 🛟 ⛽ 🚧 🚦 🚥 🚏 🗺️ 🗿 🗽 🗼 🏰 🏯 🏟️ 🎡 🎢 🎠 ⛲ 🏖️ 🏕️ ⛺ 🛖 🏠 🏡 🏘️ 🏚️ 🏗️ 🏭 🏢 🏬 🏣 🏤 🏥 🏦 🏨 🏪 🏫 🏩 💒 🏛️ ⛪ 🕌 🛕 🕍 ⛩️ 🕋 🌁 🌃 🏙️ 🌄 🌅 🌆 🌇 🌉 ♨️ 🛣️ 🛤️ 🛢️ 🛎️ 🧳'),
+    objects:S('⌚ ⏰ ⏱️ ⏲️ 🕰️ ⌛ ⏳ 📱 📲 ☎️ 📞 📟 📠 🔋 🪫 🔌 💻 🖥️ 🖨️ ⌨️ 🖱️ 🖲️ 💽 💾 💿 📀 🧮 🎥 🎞️ 📽️ 📺 📷 📸 📹 📼 🔍 🔎 💡 🔦 🏮 📔 📕 📖 📗 📘 📙 📚 📓 📒 📃 📜 📄 📰 🗞️ 📑 🔖 🏷️ 💰 🪙 💴 💵 💶 💷 💸 💳 🧾 💹 ✉️ 📧 📨 📩 📤 📥 📦 📫 📪 📬 📭 📮 🗳️ ✏️ ✒️ 🖋️ 🖊️ 🖌️ 🖍️ 📝 💼 📁 📂 🗂️ 📅 📆 🗒️ 🗓️ 📇 📈 📉 📊 📋 📌 📍 📎 🖇️ 📏 📐 ✂️ 🗃️ 🗄️ 🗑️ 🔒 🔓 🔏 🔐 🔑 🗝️ 🔨 🪓 ⛏️ ⚒️ 🛠️ 🗡️ ⚔️ 💣 🛡️ 🪚 🔧 🪛 🔩 ⚙️ 🗜️ ⚖️ 🔗 ⛓️ 🪝 🧰 🧲 🪜 ⚗️ 🧪 🧫 🧬 🔬 🔭 📡 💉 🩸 💊 🩹 🩼 🩺 🩻 🚪 🛗 🪞 🪟 🛏️ 🛋️ 🪑 🚽 🪠 🚿 🛁 🪤 🪒 🧴 🧷 🧹 🧺 🧻 🪣 🧼 🫧 🪥 🧽 🧯 🛒 🚬 ⚰️ 🪦 ⚱️ 🧿 🪬 🪧 🪪 🔔 🔕 📢 📣 📯 🔈 🔉 🔊 🎙️ 🎚️ 🎛️ 📻 🪉 🪏 🫟').concat([z('⛓'+V,'💥')]),
+    symbols:S('✅ ☑️ ✔️ ❌ ❎ ➕ ➖ ➗ ✖️ ♾️ ❓ ❔ ❕ ❗ ‼️ ⁉️ 💲 ⚠️ 🚫 ⛔ 🔞 📵 🚭 ♻️ ⚜️ 🔱 📛 🔰 ⭕ 🔴 🟠 🟡 🟢 🔵 🟣 🟤 ⚫ ⚪ 🟥 🟧 🟨 🟩 🟦 🟪 🟫 ⬛ ⬜ 🔶 🔷 🔸 🔹 🔺 🔻 💠 🔘 🔳 🔲 ▶️ ⏸️ ⏹️ ⏺️ ⏩ ⏪ 🔁 🔂 🔀 🔄 🔃 ✳️ ❇️ 🆗 🆒 🆕 🆓 🆙 🆘 🅰️ 🅱️ 🅾️ 🅿️ ℹ️ Ⓜ️ 🛜'),
+    flags:S('🏁 🚩 🎌 🏴 🏳️ 🇸🇦 🇦🇪 🇪🇬 🇮🇶 🇯🇴 🇰🇼 🇶🇦 🇧🇭 🇴🇲 🇾🇪 🇸🇾 🇱🇧 🇵🇸 🇱🇾 🇹🇳 🇩🇿 🇲🇦 🇸🇩 🇲🇷 🇸🇴 🇩🇯 🇰🇲 🇹🇷 🇺🇸 🇬🇧 🇫🇷 🇩🇪 🇪🇸 🇮🇹 🇨🇦').concat([z('🏳'+V,'🌈'),z('🏳'+V,'\u26A7'+V),z('🏴','\u2620'+V)]),
+    faith:S('🕌 🕋 📿 🤲 🌙 ☪️ 🧕 🧔 🐪 🕯️ 🪔 🌴 🕊️ 🍵 ☕ 🌅 🌄 🌃 ⭐ 🌟 ✨ 🤍 🫶 🙏 🕍 ⛪ 🛐 ☮️ ✡️ ☸️ ☯️ ✝️ 🕉️ 🔯')
+  };
+  var DUPOK={faith:1};
+  var CATS=null;
+  function buildCats(){
+    if(CATS) return CATS;
+    var seen={}, out={};
+    ORDER.forEach(function(k){
+      var res=[];
+      (EX[k]||[]).forEach(function(e){ e=norm(e); if(!e||(!DUPOK[k]&&seen[e])) return; if(!DUPOK[k]) seen[e]=1; res.push(e); });
+      out[k]=res;
+    });
+    ORDER.forEach(function(k){
+      var src=OLD[k]||(DATA[k]?k:null); if(!src||!DATA[src]) return;
+      DATA[src].forEach(function(e){ e=norm(e); if(seen[e]) return; seen[e]=1; out[k].push(e); });
+    });
+    CATS=out; return out;
+  }
+
+  var form,input,box,btn,panel,scroller,tabs,spacer,built=false,isOpen=false,saved=null,origMode='text';
+  var RKEY='bb_recent_emoji', RMAX=36;
+  var secEls={}, tabEls={}, keys=[], activeKey=null, programmatic=false, raf=0, lastTop=0, recentH=0, spacerRaf=0;
+  var reduce=false; try{reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(_){}
 
   function supported(list){
     try{
       var c=document.createElement('canvas'),x=c.getContext('2d');
       x.font='32px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
       var refs=[x.measureText('\uDBFF\uDFFF').width,x.measureText('\uDB40\uDFFF').width,x.measureText('\uDBBF\uDFFE').width];
-      return list.filter(function(e){var w=x.measureText(e).width;return w>0&&refs.indexOf(w)===-1;});
+      var base=x.measureText('\uD83D\uDE00').width||32, cache={};
+      return list.filter(function(e){
+        var w=x.measureText(e).width;
+        if(!(w>0)||refs.indexOf(w)!==-1) return false;
+        if(e.length>2&&w>base*1.55) return false; // تسلسلات (ZWJ/أعلام) غير مدعومة تظهر كرموز منفصلة
+        return true;
+      });
     }catch(_){return list;}
   }
   function getRecent(){try{return JSON.parse(localStorage.getItem(RKEY)||'[]')||[];}catch(_){return [];}}
-  function addRecent(e){try{var r=getRecent().filter(function(x){return x!==e;});r.unshift(e);localStorage.setItem(RKEY,JSON.stringify(r.slice(0,32)));}catch(_){}}
+  function addRecent(e){try{var r=getRecent().filter(function(x){return x!==e;});r.unshift(e);localStorage.setItem(RKEY,JSON.stringify(r.slice(0,RMAX)));}catch(_){}}
 
   function saveSel(){
     var s=window.getSelection&&window.getSelection();
@@ -10670,11 +10735,50 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
     saveSel();
   }
 
+  function fillGrid(g,list){
+    g.textContent='';
+    var f=document.createDocumentFragment();
+    list.forEach(function(e){var b=document.createElement('button');b.type='button';b.className='bb-em-item';b.textContent=e;f.appendChild(b);});
+    g.appendChild(f);
+  }
+  function visibleKeys(){ return keys.filter(function(k){return !secEls[k].hidden;}); }
+  function setActive(k){
+    if(!k||k===activeKey) return;
+    activeKey=k;
+    keys.forEach(function(x){ tabEls[x].classList.toggle('active',x===k); });
+    var tb=tabEls[k];
+    try{
+      var a=tabs.getBoundingClientRect(), b=tb.getBoundingClientRect();
+      var d=(b.left+b.width/2)-(a.left+a.width/2);
+      if(Math.abs(d)>1) tabs.scrollBy({left:d,behavior:reduce||!isOpen?'auto':'smooth'});
+    }catch(_){}
+  }
+  function updateActive(){
+    raf=0; if(programmatic||!isOpen) return;
+    var vk=visibleKeys(); if(!vk.length) return;
+    var top=scroller.scrollTop+8, cur=vk[0];
+    for(var i=0;i<vk.length;i++){ if(secEls[vk[i]].offsetTop<=top) cur=vk[i]; else break; }
+    setActive(cur);
+  }
+  function goTo(k){
+    var s=secEls[k]; if(!s||s.hidden) return;
+    programmatic=true; setActive(k);
+    var y=s.offsetTop;
+    try{scroller.scrollTo({top:y,behavior:reduce?'auto':'smooth'});}catch(_){scroller.scrollTop=y;}
+  }
+  function updateSpacer(){
+    if(!built||!isOpen) return;
+    var vk=visibleKeys(); if(!vk.length) return;
+    var last=secEls[vk[vk.length-1]];
+    spacer.style.height=Math.max(0,scroller.clientHeight-last.offsetHeight)+'px';
+  }
+
   function build(){
     if(built) return; built=true;
+    var cats=buildCats();
     panel=document.createElement('div'); panel.id='bbEmojiPanel'; panel.className='bb-emoji-panel';
     var bar=document.createElement('div'); bar.className='bb-em-bar';
-    tabs=document.createElement('div'); tabs.className='bb-em-tabs';
+    tabs=document.createElement('div'); tabs.className='bb-em-tabs'; tabs.setAttribute('role','tablist');
     var dl=document.createElement('button'); dl.type='button'; dl.className='bb-em-del'; dl.setAttribute('aria-label','حذف');
     dl.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H9l-6 7 6 7h11a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1Z"/><path d="m13 9.5 5 5m0-5-5 5"/></svg>';
     dl.addEventListener('pointerdown',function(e){e.preventDefault();});
@@ -10685,44 +10789,50 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
     box.appendChild(panel);
     scroller.addEventListener('pointerdown',function(e){ if(e.target.closest('.bb-em-item')) e.preventDefault(); });
     scroller.addEventListener('click',function(e){var b=e.target.closest('.bb-em-item'); if(b) insert(b.textContent);});
-    var sections={};
-    function addSection(key,list){
-      if(!list.length) return;
-      var t=document.createElement('div'); t.className='bb-em-title'; t.textContent=TITLES[key]; t.dataset.cat=key;
-      var g=document.createElement('div'); g.className='bb-em-grid'; g.dataset.cat=key;
-      var f=document.createDocumentFragment();
-      list.forEach(function(e){var b=document.createElement('button');b.type='button';b.className='bb-em-item';b.textContent=e;f.appendChild(b);});
-      g.appendChild(f); scroller.appendChild(t); scroller.appendChild(g); sections[key]=t;
-      var tb=document.createElement('button'); tb.type='button'; tb.className='bb-em-tab'; tb.textContent=ICONS[key]; tb.dataset.cat=key; tb.setAttribute('aria-label',TITLES[key]);
+    ['touchstart','wheel','pointerdown','keydown'].forEach(function(ev){ scroller.addEventListener(ev,function(){ programmatic=false; },{passive:true}); });
+    function addSection(key,list,hidden){
+      var sec=document.createElement('section'); sec.className='bb-em-sec'; sec.dataset.cat=key; sec.hidden=!!hidden;
+      var t=document.createElement('div'); t.className='bb-em-title'; t.textContent=TITLES[key];
+      var g=document.createElement('div'); g.className='bb-em-grid';
+      fillGrid(g,list); sec.appendChild(t); sec.appendChild(g); scroller.appendChild(sec);
+      var tb=document.createElement('button'); tb.type='button'; tb.className='bb-em-tab'; tb.textContent=ICONS[key]; tb.dataset.cat=key; tb.setAttribute('role','tab'); tb.setAttribute('aria-label',TITLES[key]); tb.hidden=!!hidden;
       tb.addEventListener('pointerdown',function(e){e.preventDefault();});
-      tb.addEventListener('click',function(){ scroller.scrollTop=t.offsetTop; });
+      tb.addEventListener('click',function(){ goTo(key); });
       tabs.appendChild(tb);
+      secEls[key]=sec; tabEls[key]=tb; keys.push(key);
     }
-    addSection('recent',getRecent());
-    ORDER.forEach(function(k){ addSection(k,supported(DATA[k]||[])); });
-    scroller.addEventListener('scroll',function(){
-      var top=scroller.scrollTop+4,cur=null;
-      Object.keys(sections).forEach(function(k){ if(sections[k].offsetTop<=top) cur=k; });
-      Array.prototype.forEach.call(tabs.children,function(tb){ tb.classList.toggle('active',tb.dataset.cat===cur); });
-    },{passive:true});
-    var first=tabs.firstChild; if(first) first.classList.add('active');
+    var rec=getRecent();
+    addSection('recent',rec,!rec.length);
+    ORDER.forEach(function(k){ var l=supported(cats[k]||[]); if(l.length) addSection(k,l,false); });
+    spacer=document.createElement('div'); spacer.className='bb-em-spacer'; scroller.appendChild(spacer);
+    scroller.addEventListener('scroll',function(){ if(!raf) raf=requestAnimationFrame(updateActive); },{passive:true});
+    window.addEventListener('resize',function(){ if(!spacerRaf) spacerRaf=requestAnimationFrame(function(){spacerRaf=0;updateSpacer();}); });
   }
   function refreshRecent(){
     if(!built) return;
-    var r=getRecent(), t=scroller.querySelector('.bb-em-title[data-cat="recent"]'), g=scroller.querySelector('.bb-em-grid[data-cat="recent"]');
-    if(!t){ return; }
-    g.innerHTML=''; r.forEach(function(e){var b=document.createElement('button');b.type='button';b.className='bb-em-item';b.textContent=e;g.appendChild(b);});
+    var r=getRecent(), sec=secEls.recent, tb=tabEls.recent; if(!sec) return;
+    fillGrid(sec.querySelector('.bb-em-grid'),r);
+    sec.hidden=!r.length; tb.hidden=!r.length;
   }
 
   function openPanel(){
-    build(); refreshRecent();
+    build();
     isOpen=true; panel.classList.add('open'); form.classList.add('bb-emoji-open'); btn.classList.add('is-open');
+    var before=recentH; refreshRecent();
+    recentH=secEls.recent.hidden?0:secEls.recent.offsetHeight;
+    updateSpacer();
+    var y=lastTop+(lastTop>0?(recentH-before):0); if(y<0) y=0;
+    programmatic=false; activeKey=null;
+    scroller.scrollTop=y; updateActive();
+    if(!activeKey){ var vk=visibleKeys(); if(vk.length) setActive(vk[0]); }
+    try{ var at=tabEls[activeKey]; if(at){ var a=tabs.getBoundingClientRect(), b=at.getBoundingClientRect(); tabs.scrollBy({left:(b.left+b.width/2)-(a.left+a.width/2),behavior:'auto'}); } }catch(_){}
     input.setAttribute('inputmode','none');
     try{input.blur();}catch(_){}
     setTimeout(function(){ try{input.focus({preventScroll:true});}catch(_){} restoreSel(); },40);
   }
   function closePanel(showKb){
     if(!isOpen) return;
+    lastTop=scroller?scroller.scrollTop:0;
     isOpen=false; panel&&panel.classList.remove('open'); form.classList.remove('bb-emoji-open'); btn.classList.remove('is-open');
     input.setAttribute('inputmode',origMode);
     if(showKb){ try{input.blur();}catch(_){} setTimeout(function(){ try{input.focus();}catch(_){} restoreSel(); },40); }
@@ -12626,6 +12736,13 @@ function bbMsgUser(u){
 @keyframes vpIn{from{transform:translateY(-100%)}to{transform:none}}
 @keyframes vpEq{from{height:3px}to{height:13px}}
 @media(prefers-reduced-motion:reduce){#vpBar,#vpBar .vp-eq i{animation:none}}
+/* داخل المحادثة: الشريط تحت الاسم والصورة، وتحت الرسالة المثبتة إن وُجدت */
+#chatView #vpBar.in-chat{position:absolute!important;top:var(--vp-top,110px)!important;left:10px!important;right:10px!important;margin:0!important;height:32px;z-index:14;
+  border:1px solid rgba(228,196,91,.35)!important;border-radius:16px!important;box-shadow:var(--cr-shadow,0 4px 12px rgba(0,0,0,.18));animation:vpInChat .22s ease}
+.app-container[data-app-theme="light"] #chatView #vpBar.in-chat{border-color:rgba(194,157,48,.45)!important}
+@keyframes vpInChat{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+#chatView#chatView.vp-chat #messagesArea.messages-area{padding-top:calc(var(--cr-head-h,110px) + 8px + var(--vp-h,0px))!important}
+#chatView#chatView.vp-chat #pinnedBar:not(.hidden) ~ #messagesArea.messages-area{padding-top:calc(var(--cr-head-h,110px) + 62px + var(--vp-h,0px))!important}
 
 /* مؤشر تحميل ذهبي: قوس دوّار متحرك فوق إطار القصة نفسه، وليس إطاراً ذهبياً كاملاً */
 .avatar.sring.story-launch-loading,
@@ -12688,10 +12805,38 @@ function bbMsgUser(u){
     a.appendChild(bar);return bar;
   }
   function vis(id){var e=document.getElementById(id);return e&&!e.classList.contains('hidden')?e:null;}
+  function chatLayout(){
+    var cv=document.getElementById('chatView');if(!cv||!bar)return;
+    var head=cv.querySelector('.telegram-chat-header'),pin=document.getElementById('pinnedBar');
+    var pv=pin&&!pin.classList.contains('hidden');
+    var top=(head?head.offsetHeight:0)+(pv?pin.offsetHeight+8:0)+(pv?0:6);
+    cv.style.setProperty('--vp-top',top+'px');
+    cv.style.setProperty('--vp-h',(bar.offsetHeight||32)+8+'px');
+  }
+  var _lo=null;
+  function watchChat(cv){
+    if(_lo||!cv)return;
+    var f=function(){if(bar&&bar.classList.contains('in-chat'))chatLayout();};
+    try{
+      if(window.ResizeObserver){_lo=new ResizeObserver(f);var h=cv.querySelector('.telegram-chat-header'),pn=document.getElementById('pinnedBar');if(h)_lo.observe(h);if(pn)_lo.observe(pn);}
+      var pn2=document.getElementById('pinnedBar');if(pn2&&window.MutationObserver){new MutationObserver(f).observe(pn2,{attributes:true,attributeFilter:['class'],childList:true});_lo=_lo||true;}
+    }catch(e){}
+    window.addEventListener('resize',f);
+  }
   function place(b,playing){
-    var a=app(),anchor=null,nav=null,cv=vis('chatView');
-    if(cv)anchor=cv.querySelector('.telegram-chat-header');
-    else if(vis('homeView'))anchor=vis('selBar')||vis('mainHeader');
+    var a=app(),anchor=null,nav=null,cv=vis('chatView'),cvAny=document.getElementById('chatView');
+    if(!cv&&cvAny){cvAny.classList.remove('vp-chat');}
+    if(cv){
+      /* داخل المحادثة: يوضع الشريط داخل chatView ويُحسب موضعه تحت الهيدر/المثبتة */
+      b.classList.remove('inflow','bottom');b.classList.add('in-chat');
+      if(b.parentNode!==cv)cv.appendChild(b);
+      cv.classList.toggle('vp-chat',!!playing);
+      watchChat(cv);chatLayout();
+      if(a){a.classList.remove('vp-on');a.classList.remove('vp-bottom');}
+      return;
+    }
+    b.classList.remove('in-chat');
+    if(vis('homeView'))anchor=vis('selBar')||vis('mainHeader');
     else if(['profileView','otherUserProfileView','editProfileView','settingsView','chatSettingsView','notificationSettingsView','privacySettingsView'].some(vis))nav=vis('bottomNav');
     b.classList.toggle('inflow',!!(anchor||nav));
     b.classList.toggle('bottom',!!nav);
