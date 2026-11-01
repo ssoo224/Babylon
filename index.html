@@ -1037,7 +1037,7 @@ body {
 .check-mark.read { color: var(--tick-read, #4ade80); font-weight: bold; }
 
 .reactions-row { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
-.reaction-badge { background: rgba(0,0,0,0.3); border-radius: 14px; padding: 3px 9px; font-size: 20px; line-height:1.25; min-width:34px; min-height:32px; display:inline-flex; align-items:center; justify-content:center; border:1px solid rgba(212,175,55,.42); box-shadow:0 2px 7px rgba(0,0,0,.12); }
+.reaction-badge { background: rgba(0,0,0,0.3); border-radius: 14px; padding: 3px 9px; font-size: 20px; line-height:1.25; min-width:34px; min-height:32px; display:inline-flex; align-items:center; justify-content:center; border:0; box-shadow:0 2px 7px rgba(0,0,0,.12); }
 
 .audio-player { display: flex; align-items: center; gap: 8px; width: 220px; padding: 2px 0 6px 0; }
 .audio-player audio { width: 100%; height: 36px; filter: invert(0.9) hue-rotate(180deg); }
@@ -2805,7 +2805,7 @@ body:has(.app-container[data-app-theme]) #settingsView .bs-row .bs-star-svg{filt
         <div class="sx-label">التخصيص</div>
         <div class="sx-group appearance-setting-card">
           <div class="sx-item appearance-setting-row">
-            <span class="sx-ic appearance-main-icon"><i data-ic="palette" data-size="20"></i></span>
+            <span class="sx-ic appearance-main-icon"><i data-ic="sun" data-size="20"></i></span>
             <span class="sx-t"><span class="appearance-title">مظهر التطبيق</span><small id="themeDescription" class="appearance-description">الوضع النهاري مفعّل</small></span>
             <button id="settingsThemeToggle" type="button" class="settings-theme-switch" onclick="toggleAppTheme()" aria-label="تفعيل الوضع الليلي" title="تفعيل الوضع الليلي"><span class="theme-switch-icon" id="themeSwitchIcon"></span><span id="themeSwitchLabel">ليلي</span></button>
           </div>
@@ -3962,6 +3962,7 @@ function applyAppTheme(theme) {
   if (btn) { btn.title = title; btn.setAttribute('aria-label', title); }
   if (icon) icon.innerHTML = isLight ? '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13A8.5 8.5 0 0 1 11 3.1 8.8 8.8 0 1 0 20.9 13Z"/></svg>' : '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>'; 
   if (label) label.textContent = isLight ? 'ليلي' : 'نهاري';
+  try { const mi = document.querySelector('.appearance-main-icon [data-ic]'); if (mi) { mi.dataset.ic = isLight ? 'sun' : 'moon'; if (typeof svgIcon === 'function') mi.innerHTML = svgIcon(mi.dataset.ic, mi.dataset.size); } } catch (e) {}
   if (description) description.textContent = isLight ? 'الوضع النهاري مفعّل' : 'الوضع الليلي مفعّل';
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) metaTheme.setAttribute('content', isLight ? '#ffffff' : '#000000');
@@ -4868,7 +4869,7 @@ function reactionBadgesHtml(list, cls) {
   var st = document.createElement('style');
   st.textContent =
     '.reaction-badge small{font-size:11px;margin-inline-start:3px;opacity:.85;font-weight:700}' +
-    '.reaction-badge.mine{box-shadow:inset 0 0 0 1.5px rgba(212,175,55,.85)}' +
+    '.reaction-badge.mine{box-shadow:none}' +
     '#chatView #messagesArea .msg-bubble .msg-image,#chatView #messagesArea .msg-bubble .msg-video{position:relative}' +
     '#chatView #messagesArea .msg-bubble.has-media-react{margin-bottom:16px}' +
     '.media-react{position:absolute;right:10px;bottom:-12px;z-index:4;display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:14px;background:#1c2530;color:#fff;border:2px solid rgba(255,255,255,.14);box-shadow:0 2px 6px rgba(0,0,0,.35);line-height:1.3;direction:ltr;pointer-events:auto;cursor:pointer}' +
@@ -8871,6 +8872,45 @@ document.addEventListener('click',function(e){const menu=document.getElementById
  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
 </script>
+<style id="babylon-hide-empty-stories-css">
+.pf-tab.no-stories-hidden,.pf-pane.no-stories-hidden{display:none!important}
+.pf-tabs.no-tabs-left{display:none!important}
+</style>
+<script id="babylon-hide-empty-stories-js">
+/* إخفاء حقل القصص في البروفايل (تبويبي وقسمه) إذا لا توجد قصص منشورة */
+(function(){
+ function $(i){return document.getElementById(i)}
+ function setup(gridId, tabsId, paneId, showFn){
+  var grid=$(gridId), tabs=$(tabsId), pane=$(paneId);
+  if(!grid||!tabs||!pane) return;
+  var btn=tabs.querySelector('.pf-tab[data-tab="stories"]');
+  var gbtn=tabs.querySelector('.pf-tab[data-tab="gifts"]');
+  if(!btn) return;
+  var busy=false;
+  function sync(){
+   if(busy) return; busy=true;
+   var has=grid.children.length>0;
+   btn.classList.toggle('no-stories-hidden',!has);
+   pane.classList.toggle('no-stories-hidden',!has);
+   var giftsHidden=!gbtn||gbtn.classList.contains('no-gifts-hidden');
+   tabs.classList.toggle('no-tabs-left',!has&&giftsHidden);
+   if(!has&&gbtn&&!giftsHidden){ try{ window[showFn]('gifts'); }catch(e){} }
+   else if(has&&!btn.classList.contains('active')&&(!gbtn||!gbtn.classList.contains('active'))){ try{ window[showFn]('stories'); }catch(e){} }
+   busy=false;
+  }
+  sync();
+  if(window.MutationObserver){
+   new MutationObserver(sync).observe(grid,{childList:true});
+   if(gbtn) new MutationObserver(sync).observe(gbtn,{attributes:true,attributeFilter:['class']});
+  }
+ }
+ function init(){
+  setup('myStoriesGrid','pfTabs','pTabStories','pfShowTab');
+  setup('otherPinnedGrid','otherPfTabs','otherTabStories','otherPfShowTab');
+ }
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
 <!-- الهدايا: كل شي بمجلد gifts/ -->
 <script src="gifts/models.js?v=1"></script>
 <script src="gifts/cat-models.js?v=1"></script>
@@ -10617,8 +10657,9 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 .bb-em-tab{flex:1 0 auto;min-width:38px;height:34px;border:0;border-radius:10px;background:transparent;font-size:20px;line-height:1;padding:0;opacity:.5;transition:opacity .18s,background-color .18s,transform .18s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .bb-em-tab[hidden],.bb-em-sec[hidden]{display:none!important}
 .bb-em-tab.active{opacity:1;background:rgba(127,140,160,.2);background:color-mix(in srgb,var(--tc,#94a3b8) 20%,transparent);transform:scale(1.08)}
-.bb-em-tab{color:var(--tc,var(--text-muted));opacity:.72}
-.bb-em-tab.active{opacity:1}
+.bb-em-tab{color:var(--tc,var(--text-muted));opacity:1;background:rgba(127,140,160,.1);background:color-mix(in srgb,var(--tc,#94a3b8) 14%,transparent)}
+.bb-em-tab.active{opacity:1;background:color-mix(in srgb,var(--tc,#94a3b8) 28%,transparent);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--tc,#94a3b8) 55%,transparent)}
+.bb-em-tab svg{stroke-width:2}
 .bb-em-tab svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;display:block;margin:auto}
 .bb-em-tab svg .f{fill:currentColor;stroke:none}
 
@@ -10667,7 +10708,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
     flags:I('<path d="M5 21V4M5 4h12l-2 4 2 4H5"/>'),
     faith:I('<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/><path class="f" d="m17 3.5.7 1.6 1.7.2-1.3 1.1.4 1.7-1.5-.9-1.5.9.4-1.7-1.3-1.1 1.7-.2z"/>')
   };
-  var COLORS={recent:'#94a3b8',smileys:'#f5b82e',gestures:'#f08c52',people:'#4f8cf0',hearts:'#ef4565',clothing:'#a56be0',animals:'#b87a4b',nature:'#3fb868',food:'#f0902c',drinks:'#16b3c4',activities:'#6f6af0',celebrations:'#ec5fa8',travel:'#4fc3f0',objects:'#8d9bb0',symbols:'#e0644f',flags:'#2fb89a',faith:'#d4af37'};
+  var COLORS={recent:'#94a3b8',smileys:'#f5b82e',gestures:'#f08c52',people:'#4f8cf0',hearts:'#ef4565',clothing:'#a56be0',animals:'#b87a4b',nature:'#3fb868',food:'#f0902c',drinks:'#16b3c4',activities:'#6f6af0',celebrations:'#ec5fa8',travel:'#4fc3f0',objects:'#84cc16',symbols:'#e0644f',flags:'#2fb89a',faith:'#d4af37'};
   var ORDER=['smileys','gestures','people','hearts','clothing','animals','nature','food','drinks','activities','celebrations','travel','objects','symbols','flags','faith'];
   var OLD={people:'smileys',animals:'animals',food:'food',activities:'activities',travel:'travel',objects:'objects',symbols:'symbols',flags:'flags'};
 
@@ -10884,6 +10925,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
     form.addEventListener('submit',function(){ if(isOpen) closePanel(false); });
     setInterval(function(){ if(isOpen&&input.offsetParent===null) closePanel(false); },700);
   }
+  window.__bbCloseEmojiPanel=function(){ if(isOpen){ closePanel(false); return true; } return false; };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
 })();
 </script>
@@ -11605,11 +11647,20 @@ function toggleFullEmojiPicker(ev){if(ev)ev.stopPropagation();var grid=document.
   };
   const closeTopLayer = () => {
     if (closeGiftOverlay()) return true;
+    /* نوافذ التأكيد وقوائم الحذف وإعادة التوجيه والإيميل والمحظورين وحذف الحساب */
+    const lastShown = sel => { const a = Array.from(document.querySelectorAll(sel)).filter(el => el.isConnected && !el.classList.contains('hidden') && getComputedStyle(el).display !== 'none'); return a.length ? a[a.length - 1] : null; };
+    { const o = lastShown('.cl-dlg-ov'); if (o) { o.click(); setTimeout(() => { try { if (o.isConnected && !o.classList.contains('show')) o.remove(); } catch (e) {} }, 400); return true; } }
+    { const m = lastShown('.message-delete-modal'); if (m) { m.classList.add('hidden'); return true; } }
+    { const o = lastShown('#emailModal, #blkOverlay, #delPage'); if (o) { o.remove(); return true; } }
+    { const o = document.getElementById('updPage'); if (o && o.querySelector('#updLater')) { o.remove(); return true; } }
+    { const o = lastShown('#chatDeletePanel'); if (o) { o.classList.add('hidden'); return true; } }
+    { const o = document.querySelector('#otherTopMenu.open'); if (o) { o.classList.remove('open'); return true; } }
     if (document.getElementById('reactorsSheet')) { if (typeof closeReactorsSheet==='function') closeReactorsSheet(); return true; }
     if (visible('avatarGalleryModal')) { if(typeof closeAvatarGallery==='function') closeAvatarGallery(); else document.getElementById('avatarGalleryModal').classList.add('hidden'); return true; }
     // Close the top-most transient panel before leaving its underlying section.
     if (visible('viewersModal')) { if(typeof closeViewersList==='function') closeViewersList(); else document.getElementById('viewersModal').classList.add('hidden'); return true; }
     if (visible('msgModal')) { if(typeof closeMsgModal==='function') closeMsgModal({target:document.getElementById('msgModal')}); else document.getElementById('msgModal').classList.add('hidden'); return true; }
+    if (typeof window.__bbCloseEmojiPanel==='function' && window.__bbCloseEmojiPanel()) return true;
     if (typeof editingMsgId!=='undefined' && editingMsgId && typeof cancelEdit==='function') { cancelEdit(); return true; }
     if (visible('coverModal')) { if(typeof closeCoverModalDirect==='function') closeCoverModalDirect(); else document.getElementById('coverModal').classList.add('hidden'); return true; }
     if (visible('editModal')) { if(typeof closeEditModalDirect==='function') closeEditModalDirect(); else document.getElementById('editModal').classList.add('hidden'); return true; }
@@ -11620,7 +11671,7 @@ function toggleFullEmojiPicker(ev){if(ev)ev.stopPropagation();var grid=document.
     if (typeof messageSelectionMode!=='undefined' && messageSelectionMode && typeof clearMessageSelection==='function') { clearMessageSelection(); return true; }
     return false;
   };
-  const currentView = () => ['chatView','editProfileView','chatSettingsView','notificationSettingsView','settingsView','otherUserProfileView','profileView','searchView','homeView'].find(id=>visible(id));
+  const currentView = () => ['chatView','editProfileView','chatSettingsView','notificationSettingsView','privacySettingsView','settingsView','otherUserProfileView','profileView','searchView','homeView'].find(id=>visible(id));
   window.addEventListener('popstate', function(){
     // Ignore the history step used internally when a media viewer is closed manually.
     if (window.__babylonIgnoreNextBack) { window.__babylonIgnoreNextBack = false; return; }
@@ -11630,7 +11681,7 @@ function toggleFullEmojiPicker(ev){if(ev)ev.stopPropagation();var grid=document.
     const view=currentView();
     if (view==='chatView') { if(typeof goHome==='function') goHome(); else if(typeof showView==='function') showView('homeView'); guard(); return; }
     if (view==='editProfileView') { if(typeof openProfile==='function') openProfile(); else showView('profileView'); guard(); return; }
-    if (view==='chatSettingsView' || view==='notificationSettingsView') { showView('settingsView'); guard(); return; }
+    if (view==='chatSettingsView' || view==='notificationSettingsView' || view==='privacySettingsView') { if(typeof openSettings==='function') openSettings(); else showView('settingsView'); guard(); return; }
     if (view==='settingsView' || view==='profileView' || view==='otherUserProfileView' || view==='searchView') { if(typeof goHome==='function') goHome(); else showView('homeView'); guard(); return; }
     // On the home screen, allow the browser/app to handle Back normally.
   });
