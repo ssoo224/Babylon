@@ -17649,6 +17649,21 @@ return R("index");})();
 #chatView #messagesArea .msg-bubble.has-cap .msg-image{border-radius:12px;overflow:hidden;line-height:0;background:#000}
 #chatView #messagesArea .msg-bubble.has-cap .msg-image img{display:block;width:100%;max-width:none;border-radius:0}
 #chatView #messagesArea .msg-bubble.has-cap .media-cap{margin-top:7px;font-size:inherit;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;text-align:start;color:inherit}
+/* إطار الصورة/الفيديو عند وجود وصف: سمك 2 بكسل فقط */
+#chatView #messagesArea .msg-bubble.has-cap.has-cap.has-cap.has-cap.has-cap{padding:2px!important}
+#chatView #messagesArea .msg-bubble.has-cap .msg-video,#chatView #messagesArea .msg-bubble.has-cap .msg-image{border-radius:18px 18px 8px 8px}
+#chatView #messagesArea .msg-bubble.has-cap .media-cap{margin-top:0;padding:7px 11px 19px}
+#chatView #messagesArea .msg-bubble.has-cap>.reply-quote,#chatView #messagesArea .msg-bubble.has-cap>.story-reply-preview{margin:4px 4px 6px;max-width:calc(100% - 8px);box-sizing:border-box}
+#chatView #messagesArea .msg-bubble.has-cap>.fwd-label,#chatView #messagesArea .msg-bubble.has-cap>.g-sender{padding:4px 10px 3px}
+
+/* إطار القص: ذهبي متدرج بدون أي حدود بيضاء */
+.bbmc-box{border:2px solid transparent!important;border-radius:1px;box-shadow:0 0 0 9999px rgba(0,0,0,.58)!important}
+.bbmc-box::after{content:"";position:absolute;inset:-2px;padding:2px;border-radius:2px;background:var(--goldg);pointer-events:none;z-index:1;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.bbmc-box::before{background:linear-gradient(rgba(230,197,102,.5),rgba(230,197,102,.5)) 33.33% 0/1px 100% no-repeat,linear-gradient(rgba(230,197,102,.5),rgba(230,197,102,.5)) 66.66% 0/1px 100% no-repeat,linear-gradient(rgba(230,197,102,.5),rgba(230,197,102,.5)) 0 33.33%/100% 1px no-repeat,linear-gradient(rgba(230,197,102,.5),rgba(230,197,102,.5)) 0 66.66%/100% 1px no-repeat!important}
+.bbmc-hd[data-h=n]::after,.bbmc-hd[data-h=s]::after,.bbmc-hd[data-h=e]::after,.bbmc-hd[data-h=w]::after{background:var(--goldg)}
+.bbmc-hd[data-h=nw]::after,.bbmc-hd[data-h=ne]::after,.bbmc-hd[data-h=sw]::after,.bbmc-hd[data-h=se]::after{border-color:#d3a93b;border-image:var(--goldg) 1}
+/* عنوان "قص الصورة / قص الفيديو" بنفس تدرج الأزرار */
+.bbmc.crop-mode .bbmc-title{flex:0 1 auto;margin:0 auto;padding:2px 6px;background:var(--goldg);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 </style>
 
 <script id="babylon-media-composer">
