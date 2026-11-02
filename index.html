@@ -19077,9 +19077,10 @@ return R("index");})();
 
 
 <style id="bb-img-load-css">
-#chatView .msg-image.bb-loading{position:relative;min-height:calc(170px * var(--bb-s,1));min-width:calc(170px * var(--bb-s,1));background:#0b0f14}
-#chatView .msg-image.bb-loading>img{opacity:0}
-#chatView .bb-img-cover{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.22);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#chatView .msg-image.bb-loading{position:relative;overflow:hidden;aspect-ratio:4/3;min-height:calc(150px * var(--bb-s,1));min-width:calc(170px * var(--bb-s,1));background:#0b0f14}
+#chatView .msg-image.bb-loading>img{position:absolute;inset:0;opacity:0;pointer-events:none}
+#chatView .bb-img-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(14px) brightness(.8);transform:scale(1.15)}
+#chatView .bb-img-cover{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(0,0,0,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 #chatView .bb-img-cover .vp-logo{position:relative;width:calc(76px * var(--bb-s,1));height:calc(76px * var(--bb-s,1));display:grid;place-items:center;color:#fff}
 #chatView .bb-img-cover .vp-ring{position:absolute;inset:0;width:100%;height:100%;animation:bbImgSpin 1s linear infinite}
 #chatView .bb-img-cover .vp-logo img{width:calc(28px * var(--bb-s,1));height:auto;display:block;transform:translateX(2px);filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
@@ -19098,9 +19099,13 @@ return R("index");})();
       if(img.complete&&img.naturalWidth) return;
       var box=img.closest('.msg-image'); if(!box) return;
       img.__bbL=true; box.classList.add('bb-loading');
+      var bg=document.createElement('div'); bg.className='bb-img-bg';
+      var m=/^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.+)$/.exec(src.split('#')[0].split('?')[0]);
+      if(m&&!/^[a-z]{1,3}_/.test(m[2])) bg.style.backgroundImage='url("'+m[1]+'w_48,q_30,e_blur:300/'+m[2]+'?bbnc=1")';
+      box.appendChild(bg);
       var cv=document.createElement('div'); cv.className='bb-img-cover';
       cv.innerHTML='<div class="vp-logo">'+RING+mark()+'</div>'; box.appendChild(cv);
-      var done=function(){box.classList.remove('bb-loading');if(cv.parentNode)cv.parentNode.removeChild(cv);};
+      var done=function(){box.classList.remove('bb-loading');if(cv.parentNode)cv.parentNode.removeChild(cv);if(bg.parentNode)bg.parentNode.removeChild(bg);};
       img.addEventListener('load',done,{once:true}); img.addEventListener('error',done,{once:true});
     }catch(_){}
   }
