@@ -10975,12 +10975,20 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
 })();
 </script>
+<style id="bb-input-no-gold-css">
+#chatView #messageInput.msg-editable,
+#chatView #messageInput.msg-editable:focus,
+#chatView #messageInput.msg-editable:focus-visible,
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView #messageInput.msg-editable:focus,
+.app-container[data-app-theme] #messageInput:focus{border-color:transparent!important;outline:none!important;box-shadow:none!important}
+#chatView #textInputBar:focus-within{border-color:var(--cr-line)!important;box-shadow:var(--cr-shadow)!important}
+</style>
 <style id="bb-contacts-css">
-#otherUserProfileView #otherMoreBtn.pf-round,
-.app-container #otherUserProfileView #otherMoreBtn.pf-round,
-.app-container[data-app-theme="light"] #otherUserProfileView #otherMoreBtn.pf-round{background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0!important;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
-.app-container[data-app-theme="light"] #otherUserProfileView #otherMoreBtn.pf-round{filter:drop-shadow(0 1px 3px rgba(255,255,255,.7))}
-#otherUserProfileView #otherMoreBtn.pf-round:active{opacity:.6}
+#otherUserProfileView>.pf-topbar .pf-round,
+.app-container #otherUserProfileView>.pf-topbar .pf-round,
+.app-container[data-app-theme="light"] #otherUserProfileView>.pf-topbar .pf-round{background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0!important;filter:none!important;text-shadow:none!important;color:#fff!important}
+#otherUserProfileView>.pf-topbar .pf-round svg,#otherUserProfileView>.pf-topbar .pf-round i{color:#fff!important;filter:none!important}
+#otherUserProfileView>.pf-topbar .pf-round:active{opacity:.6}
 .bbc-ov{position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:22px;direction:rtl;animation:bbcFade .15s ease}
 @keyframes bbcFade{from{opacity:0}to{opacity:1}}
 .bbc-box{width:min(340px,100%);border-radius:22px;padding:20px 18px 16px;background:var(--babylon-surface-card,#17212b);color:var(--text-main,#f5f7fa);border:1px solid var(--babylon-border,rgba(255,255,255,.08));box-shadow:0 18px 50px rgba(0,0,0,.45);font-family:inherit}
