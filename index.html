@@ -2,6 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<script id="bb-early-theme">try{var __bt=localStorage.getItem('babylon_chat_app_theme');if(__bt==='light'||__bt==='dark')document.documentElement.setAttribute('data-app-theme',__bt);}catch(e){}</script>
+<style id="bb-early-bg">
+html[data-app-theme="light"],html[data-app-theme="light"] body{background:#edf2f8}
+html[data-app-theme="dark"],html[data-app-theme="dark"] body{background:#090d16}
+</style>
 <meta name="referrer" content="no-referrer">
 <script id="bb-dynamic-scale">
 /* مقياس ديناميكي حسب عرض الهاتف (320dp -> 711dp): --bb-s يضرب أحجام الخطوط والأزرار والأيقونات.
@@ -173,24 +179,7 @@ html,body{min-width:0}
       document.write(HEAD + BODY + '<plaintext hidden style="display:none">');
     } else {
       document.open('text/html', 'replace');
-      document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">' + HEAD + '<style id="bb-ipad-fullwidth-fix">
-/* إصلاح الآيباد/التابلت: شاشة التحميل والدخول تملأ العرض كاملاً بلا هوامش جانبية */
-@media (min-width:520px){
-  html,body{width:100%;height:100%;margin:0;padding:0;overflow-x:hidden}
-  body{display:block!important;min-height:100vh;min-height:100dvh}
-  .app-container,
-  .app-container:has(#mainPage.hidden),
-  .app-container:has(#mainPage:not(.hidden)){
-    width:100%!important;max-width:100%!important;margin:0!important;
-    height:100vh;height:100dvh;box-shadow:none!important;border-radius:0!important}
-  .app-container:has(#mainPage:not(.hidden)){max-width:min(100%,1500px)!important;margin-inline:auto!important}
-  /* محتوى شاشات الدخول والتحقق يبقى في عمود مركزي مريح */
-  .auth-page{align-items:center}
-  .auth-page>*{width:100%;max-width:440px}
-  .auth-page>.babylon-logo{width:calc(90px * var(--bb-s,1));max-width:none}
-}
-</style>
-</head><body>' + BODY + '</body></html>');
+      document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">' + HEAD + '</head><body>' + BODY + '</body></html>');
       document.close();
     }
   }
@@ -2672,6 +2661,27 @@ body:has(.app-container[data-app-theme]) #settingsView .bs-row .bs-star-svg{filt
 #chatView #messageInput.msg-editable{height:auto!important;min-height:calc(42px * var(--bb-s,1))!important;max-height:132px!important;white-space:pre-wrap!important;overflow-x:hidden!important;overflow-y:auto!important;overflow-wrap:anywhere;word-break:break-word}
 #textInputBar.chat-input-bar{align-items:flex-end!important}
 #textInputBar.chat-input-bar>.icon-btn,#textInputBar.chat-input-bar>.mic-button{align-self:flex-end}
+</style>
+<style id="bb-ipad-fullwidth-fix">
+/* آيباد/تابلت (مثل 711dp): كل الشاشات تملأ العرض كاملاً بلا هوامش، وبلا رمش عند البدء */
+@media (min-width:520px){
+  html,body{width:100%;height:100%;margin:0;padding:0;overflow-x:hidden}
+  body{display:block!important}
+  .app-container,
+  .app-container:has(#mainPage.hidden),
+  .app-container:has(#mainPage:not(.hidden)){
+    width:100%!important;max-width:100%!important;margin:0!important;
+    height:100%!important;box-shadow:none!important;border-radius:0!important}
+  .app-container:has(#mainPage:not(.hidden)){max-width:min(100%,1500px)!important;margin-inline:auto!important}
+  .auth-page{align-items:center}
+  .auth-page>*{width:100%;max-width:440px}
+  .auth-page>.babylon-logo{width:calc(90px * var(--bb-s,1));max-width:none}
+}
+/* شاشة التحميل: ثابتة على الشاشة كلها ومستقلة عن حجم الحاوية، وتعمل على طبقة GPU مستقلة */
+.splash-page{position:fixed!important;inset:0;width:100%;height:100%;
+  transform:translateZ(0);will-change:opacity;backface-visibility:hidden;contain:layout paint}
+html[data-app-theme="light"] .splash-page{background:radial-gradient(circle at center,#ffffff 0%,#edf2f8 100%)}
+html[data-app-theme="light"] .splash-title{color:#8b680e}
 </style>
 </head>
 
@@ -12874,8 +12884,8 @@ function bbMsgUser(u){
   function visible(el){return !el.classList.contains('hidden');}
   function finish(){
     if(finished)return;finished=true;obs.disconnect();clearTimeout(fallback);
-    splash.classList.add('leaving');
-    setTimeout(function(){splash.classList.add('gone');},400);
+    requestAnimationFrame(function(){requestAnimationFrame(function(){splash.classList.add('leaving');
+    setTimeout(function(){splash.classList.add('gone');},400);});});
   }
   function check(){if(watch.some(visible))finish();}
   var obs=new MutationObserver(check);
