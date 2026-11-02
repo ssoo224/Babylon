@@ -2807,7 +2807,7 @@ body:has(.app-container[data-app-theme]) #settingsView .bs-row .bs-star-svg{filt
         <div class="sx-label">التخصيص</div>
         <div class="sx-group appearance-setting-card">
           <div class="sx-item appearance-setting-row">
-            <span class="sx-ic appearance-main-icon"><i data-ic="sun" data-size="20"></i></span>
+            <span class="sx-ic appearance-main-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg></span>
             <span class="sx-t"><span class="appearance-title">مظهر التطبيق</span><small id="themeDescription" class="appearance-description">الوضع النهاري مفعّل</small></span>
             <button id="settingsThemeToggle" type="button" class="settings-theme-switch" onclick="toggleAppTheme()" aria-label="تفعيل الوضع الليلي" title="تفعيل الوضع الليلي"><span class="theme-switch-icon" id="themeSwitchIcon"></span><span id="themeSwitchLabel">ليلي</span></button>
           </div>
@@ -3964,7 +3964,6 @@ function applyAppTheme(theme) {
   if (btn) { btn.title = title; btn.setAttribute('aria-label', title); }
   if (icon) icon.innerHTML = isLight ? '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13A8.5 8.5 0 0 1 11 3.1 8.8 8.8 0 1 0 20.9 13Z"/></svg>' : '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>'; 
   if (label) label.textContent = isLight ? 'ليلي' : 'نهاري';
-  try { const mi = document.querySelector('.appearance-main-icon [data-ic]'); if (mi) { mi.dataset.ic = isLight ? 'sun' : 'moon'; if (typeof svgIcon === 'function') mi.innerHTML = svgIcon(mi.dataset.ic, mi.dataset.size); } } catch (e) {}
   if (description) description.textContent = isLight ? 'الوضع النهاري مفعّل' : 'الوضع الليلي مفعّل';
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) metaTheme.setAttribute('content', isLight ? '#ffffff' : '#000000');
