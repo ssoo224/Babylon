@@ -6249,7 +6249,7 @@ function sendImage(e, opts) {
   if (file.size > 15 * 1024 * 1024) return showToast('الصورة كبيرة جداً');
   const _rf = bbReplyFields(); try { cancelReply(); } catch (e) {}
   compressImage(file, dataUrl => {
-    if (!dataUrl) return showToast('تعذر تجهيز الصورة، جرب صورة أخرى');
+    if (!dataUrl) return showToast('تعذر تجهيز الصورة، جرب صورة أخرى (' + (file.type || 'نوع غير معروف') + ' ' + Math.round(file.size / 1024) + 'KB)');
     const chatId = activeChatId;
     db.collection('chats').doc(chatId).collection('messages').add({
       senderId: currentUser.uid, imageUrl: dataUrl, read: false, createdAt: Date.now(), ...((opts && opts.caption) ? { caption: opts.caption } : {}), ..._rf
@@ -6413,7 +6413,7 @@ function sendChatVideo(file, opts) {
   xhr.onerror = () => { fin(); showToast('تعذر رفع الفيديو: فشل الاتصال'); };
   xhr.onload = () => {
     let r = {}; try { r = JSON.parse(xhr.responseText); } catch (e) {}
-    if (!(xhr.status >= 200 && xhr.status < 300 && r.secure_url)) { fin(); return showToast('تعذر رفع الفيديو'); }
+    if (!(xhr.status >= 200 && xhr.status < 300 && r.secure_url)) { fin(); return showToast('تعذر رفع الفيديو: ' + ((r.error && r.error.message) || ('رمز ' + xhr.status))); }
     const finish = (videoUrl, posterUrl, durationSec) => db.collection('chats').doc(chatId).collection('messages').add({
       senderId: currentUser.uid, videoUrl: videoUrl, posterUrl: posterUrl, duration: durationSec, read: false, createdAt: Date.now(), ...((opts && opts.caption) ? { caption: opts.caption } : {}), ..._rf
     });
@@ -17651,11 +17651,37 @@ return R("index");})();
   var ICON_SEND = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9Z"/></svg>';
   var ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 
+  function snapshotFile(file) {
+    return new Promise(function (res, rej) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        try {
+          if (!fr.result || !fr.result.byteLength) return rej(new Error('empty'));
+          res(new File([fr.result], file.name || 'media', { type: file.type || '' }));
+        } catch (err) { rej(err); }
+      };
+      fr.onerror = function () { rej(fr.error || new Error('read')); };
+      fr.readAsArrayBuffer(file);
+    });
+  }
+
   /* ---------- فتح النافذة ---------- */
   window.openMediaComposer = function (e) {
     var file = e && e.target && e.target.files && e.target.files[0];
-    try { e.target.value = ''; } catch (_) {}
-    if (!file || typeof activeChatId === 'undefined' || !activeChatId) return;
+    if (!file || typeof activeChatId === 'undefined' || !activeChatId) { try { e.target.value = ''; } catch (_) {} return; }
+    /* نسخ الملف إلى الذاكرة فور اختياره: قراءته لاحقاً من مرجع الاختيار الأصلي قد تفشل في بعض الأجهزة */
+    if (!file.__bbSnap) {
+      if (file.size > 20 * 1048576) toast('جاري تجهيز الملف…');
+      snapshotFile(file).then(function (f) {
+        f.__bbSnap = 1;
+        try { e.target.value = ''; } catch (_) {}
+        window.openMediaComposer({ target: { files: [f], value: '' } });
+      }).catch(function () {
+        try { e.target.value = ''; } catch (_) {}
+        toast('تعذر قراءة الملف من الجهاز، اختره مرة أخرى');
+      });
+      return;
+    }
     var isVideo = /^video\//.test(file.type), isImage = /^image\//.test(file.type);
     if (!isVideo && !isImage) return toast('اختر صورة أو فيديو فقط');
     if (isVideo && file.size > MAX_STORY_VIDEO_MB * 1024 * 1024) return toast('حجم المقطع كبير (الأقصى ' + MAX_STORY_VIDEO_MB + ' ميجا)');
