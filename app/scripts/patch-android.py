@@ -1143,6 +1143,8 @@ public class BabylonMediaCache {
             if (u == null || !"https".equals(u.getScheme()) || !"res.cloudinary.com".equals(u.getHost())) return null;
             String p = u.getPath();
             if (p == null || !(p.contains("/image/upload/") || p.contains("/video/upload/"))) return null;
+            // bbnc=1: الصفحة طلبت تجاوز الكاش (احتياط إذا تعذّر التشغيل من الملف المحلي)
+            if (u.getQueryParameter("bbnc") != null) return null;
             String url = u.toString();
             String key = sha1(url);
             Map<String, String> hd = req.getRequestHeaders();
