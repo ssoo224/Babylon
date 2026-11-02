@@ -2509,11 +2509,13 @@ body:has(.app-container[data-app-theme]) #settingsView .bs-row .bs-star-svg{filt
     function toast(t){ if(typeof showToast==='function') showToast(t); }
     function build(){
       menu.innerHTML='';
+      return (typeof window.__bbContactBuild==='function') ? window.__bbContactBuild(menu) : false;
     }
-    btn.addEventListener('click',function(e){ e.stopPropagation(); e.preventDefault(); build(); menu.classList.toggle('open'); });
+    btn.addEventListener('click',function(e){ e.stopPropagation(); e.preventDefault(); if(menu.classList.contains('open')){ menu.classList.remove('open'); return; } if(build()!==false) menu.classList.add('open'); });
     menu.addEventListener('click',function(e){
       e.stopPropagation(); var b=e.target.closest('button'); if(!b) return;
       menu.classList.remove('open');
+      if(typeof window.__bbContactAction==='function' && window.__bbContactAction(b.dataset.a)) return;
       if(b.dataset.a==='stars'){
         var sb=document.getElementById('otherStarsBtn');
         if(sb && sb.classList.contains('hidden')) toast('إرسال النجوم غير متاح لحسابك');
@@ -10973,6 +10975,165 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
 })();
 </script>
+<style id="bb-contacts-css">
+#otherUserProfileView #otherMoreBtn.pf-round,
+.app-container #otherUserProfileView #otherMoreBtn.pf-round,
+.app-container[data-app-theme="light"] #otherUserProfileView #otherMoreBtn.pf-round{background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0!important;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
+.app-container[data-app-theme="light"] #otherUserProfileView #otherMoreBtn.pf-round{filter:drop-shadow(0 1px 3px rgba(255,255,255,.7))}
+#otherUserProfileView #otherMoreBtn.pf-round:active{opacity:.6}
+.bbc-ov{position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:22px;direction:rtl;animation:bbcFade .15s ease}
+@keyframes bbcFade{from{opacity:0}to{opacity:1}}
+.bbc-box{width:min(340px,100%);border-radius:22px;padding:20px 18px 16px;background:var(--babylon-surface-card,#17212b);color:var(--text-main,#f5f7fa);border:1px solid var(--babylon-border,rgba(255,255,255,.08));box-shadow:0 18px 50px rgba(0,0,0,.45);font-family:inherit}
+.app-container[data-app-theme="light"] .bbc-box{background:#fff;color:#17212b;border-color:rgba(15,23,42,.1)}
+.bbc-box h3{margin:0 0 6px;font-size:17px;font-weight:800;text-align:center}
+.bbc-sub{margin:0 0 14px;font-size:13px;line-height:1.7;text-align:center;opacity:.72}
+.bbc-sub b{font-weight:700;opacity:1}
+.bbc-in{width:100%;box-sizing:border-box;height:46px;border-radius:14px;border:1.5px solid rgba(148,163,184,.35);background:rgba(127,140,160,.12);color:inherit;font:inherit;font-size:15px;padding:0 14px;outline:none;text-align:right}
+.bbc-in:focus{border-color:#d4a937}
+.bbc-btns{display:flex;gap:10px;margin-top:16px}
+.bbc-btns button{flex:1;height:44px;border:0;border-radius:14px;font:inherit;font-size:14.5px;font-weight:700;cursor:pointer;background:rgba(127,140,160,.18);color:inherit}
+.bbc-btns button.ok{background:linear-gradient(135deg,#e4c45b,#c99a1c);color:#1a1305}
+.bbc-btns button.dg{background:#e5484d;color:#fff}
+.bbc-btns button:active{transform:scale(.97)}
+</style>
+<script id="bb-contacts-js">
+/* جهات الدردشة: أسماء مخصصة يضيفها المستخدم لأشخاص (تُخزَّن في users/{أنا}.chatContacts) */
+(function(){
+  var contacts={}, myUid=null, unsub=null;
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toast(t){ if(typeof showToast==='function') showToast(t); }
+  function ckey(){return 'bbContacts_'+myUid;}
+  window.bbCN=function(uid,fb){ return (uid&&contacts[uid])||fb; };
+
+  function setName(el,tn,uid){
+    var cur=tn.textContent, cn=uid&&contacts[uid], trail=(cur.match(/\s*$/)||[''])[0];
+    if(el.__cnFull!==undefined && cur===el.__cnFull){
+      if(cn){ var f=cn+trail; if(f!==cur){ tn.textContent=f; el.__cnFull=f; } }
+      else { tn.textContent=el.__orig; el.__cnFull=undefined; }
+    } else if(cn){
+      el.__orig=cur; var f2=cn+trail; tn.textContent=f2; el.__cnFull=f2;
+    } else { el.__cnFull=undefined; }
+  }
+  function firstText(n){ var c=n.childNodes[0]; return (c&&c.nodeType===3)?c:null; }
+  var busy=false;
+  function applyAll(){
+    if(busy) return; busy=true;
+    try{
+      document.querySelectorAll('#chatList .chat-item[id^="chat_item_"]').forEach(function(it){
+        var parts=it.id.slice(10).split('__'); if(parts.length!==2||!myUid) return;
+        var uid=parts[0]===myUid?parts[1]:(parts[1]===myUid?parts[0]:null); if(!uid) return;
+        var n=it.querySelector('.chat-item-name'), tn=n&&firstText(n); if(tn) setName(n,tn,uid);
+      });
+      var t=document.getElementById('chatTitleText');
+      if(t&&typeof currentChatOtherUserId!=='undefined'&&currentChatOtherUserId){ var tt=firstText(t); if(tt) setName(t,tt,currentChatOtherUserId); }
+      var p=document.getElementById('otherHeaderNameText');
+      if(p&&window.__otherProfileId){ var pt=firstText(p); if(pt) setName(p,pt,window.__otherProfileId); }
+    }catch(e){}
+    busy=false;
+  }
+  function start(uid){
+    if(myUid===uid) return; stop(); myUid=uid;
+    try{ contacts=JSON.parse(localStorage.getItem(ckey())||'{}')||{}; }catch(e){ contacts={}; }
+    applyAll();
+    try{
+      unsub=db.collection('users').doc(uid).onSnapshot(function(d){
+        var c=(d.exists&&d.data()&&d.data().chatContacts)||{};
+        contacts=c; try{ localStorage.setItem(ckey(),JSON.stringify(c)); }catch(e){}
+        applyAll();
+      },function(){});
+    }catch(e){}
+  }
+  function stop(){ if(unsub){ try{unsub();}catch(e){} unsub=null; } contacts={}; myUid=null; applyAll(); }
+
+  function originalName(uid){
+    var u=window.__bbOtherU;
+    var o=(u&&u.id===uid&&u.displayName)||'';
+    if(!o){ var el=document.getElementById('otherHeaderNameText'); if(el&&el.__cnFull!==undefined&&el.__orig) o=el.__orig.trim(); else if(el) o=(el.textContent||'').trim(); }
+    return o||'مستخدم';
+  }
+
+  function dialog(o){
+    var host=document.querySelector('.app-container')||document.body;
+    var ov=document.createElement('div'); ov.className='bbc-ov';
+    ov.innerHTML='<div class="bbc-box" role="dialog" aria-modal="true"><h3>'+esc(o.title)+'</h3>'
+      +(o.sub?'<p class="bbc-sub">'+o.sub+'</p>':'')
+      +(o.input?'<input class="bbc-in" type="text" maxlength="40" placeholder="الاسم" value="'+esc(o.value||'')+'">':'')
+      +'<div class="bbc-btns"><button type="button" class="'+(o.danger?'dg':'ok')+'" data-r="ok">'+esc(o.okText)+'</button><button type="button" data-r="no">إلغاء</button></div></div>';
+    host.appendChild(ov);
+    var inp=ov.querySelector('.bbc-in');
+    function close(){ if(ov.isConnected) ov.remove(); }
+    ov.addEventListener('click',function(e){
+      if(e.target===ov){ close(); return; }
+      var b=e.target.closest('button[data-r]'); if(!b) return;
+      if(b.dataset.r==='no'){ close(); return; }
+      var v=inp?inp.value.trim():'';
+      if(o.onOk&&o.onOk(v)===false) return;
+      close();
+    });
+    if(inp){
+      inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); var b=ov.querySelector('[data-r="ok"]'); if(b) b.click(); } });
+      setTimeout(function(){ try{ inp.focus(); inp.select(); }catch(e){} },60);
+    }
+  }
+  function saveContact(uid,name,isEdit){
+    contacts[uid]=name; try{ localStorage.setItem(ckey(),JSON.stringify(contacts)); }catch(e){}
+    applyAll();
+    var o={}; o[uid]=name;
+    db.collection('users').doc(myUid).set({chatContacts:o},{merge:true}).catch(function(){ toast('تعذر الحفظ، تحقق من الاتصال'); });
+    toast(isEdit?'تم تعديل جهة الدردشة':'تمت الإضافة إلى جهات الدردشة');
+  }
+  function deleteContact(uid){
+    delete contacts[uid]; try{ localStorage.setItem(ckey(),JSON.stringify(contacts)); }catch(e){}
+    applyAll();
+    var o={}; o['chatContacts.'+uid]=firebase.firestore.FieldValue.delete();
+    db.collection('users').doc(myUid).update(o).catch(function(){});
+    toast('تم حذف جهة الدردشة');
+  }
+
+  var IC={
+    add:'<svg class="pf-mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.6"/><path d="M3.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/></svg>',
+    edit:'<svg class="pf-mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z"/><path d="m14 7 3 3"/></svg>',
+    del:'<svg class="pf-mi" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="color:#ef4444"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg>'
+  };
+  window.__bbContactBuild=function(menu){
+    var uid=window.__otherProfileId;
+    menu.innerHTML='';
+    if(!uid||!myUid||uid===myUid) return false;
+    var has=!!contacts[uid];
+    menu.innerHTML=has
+      ?'<button type="button" data-a="c-edit">'+IC.edit+'<span>تعديل جهة الدردشة</span></button><button type="button" data-a="c-del">'+IC.del+'<span style="color:#ef4444">حذف جهة الدردشة</span></button>'
+      :'<button type="button" data-a="c-add">'+IC.add+'<span>إضافة لجهات الدردشة</span></button>';
+    return true;
+  };
+  window.__bbContactAction=function(a){
+    var uid=window.__otherProfileId; if(!uid||!myUid) return false;
+    var orig=originalName(uid);
+    if(a==='c-add'||a==='c-edit'){
+      var edit=a==='c-edit';
+      dialog({title:edit?'تعديل جهة الدردشة':'إضافة لجهات الدردشة',sub:'الاسم الأصلي: <b>'+esc(orig)+'</b>',input:true,value:edit?(contacts[uid]||orig):orig,okText:edit?'حفظ':'إضافة',
+        onOk:function(v){ if(!v){ toast('اكتب اسماً'); return false; } saveContact(uid,v,edit); }});
+      return true;
+    }
+    if(a==='c-del'){
+      dialog({title:'حذف جهة الدردشة',sub:'سيعود اسم <b>'+esc(contacts[uid]||orig)+'</b> إلى اسمه الأصلي <b>'+esc(orig)+'</b>.',okText:'حذف',danger:true,onOk:function(){ deleteContact(uid); }});
+      return true;
+    }
+    return false;
+  };
+
+  function init(){
+    try{ auth.onAuthStateChanged(function(u){ if(u) start(u.uid); else stop(); }); }catch(e){}
+    if(window.MutationObserver){
+      var list=document.getElementById('chatList');
+      if(list) new MutationObserver(function(){ applyAll(); }).observe(list,{childList:true,subtree:true});
+      ['chatTitleText','otherHeaderNameText'].forEach(function(id){
+        var el=document.getElementById(id); if(el) new MutationObserver(function(){ applyAll(); }).observe(el,{childList:true,characterData:true,subtree:true});
+      });
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+})();
+</script>
 </body>
 </html>
 
@@ -11695,7 +11856,7 @@ function toggleFullEmojiPicker(ev){if(ev)ev.stopPropagation();var grid=document.
     const lastShown = sel => { const a = Array.from(document.querySelectorAll(sel)).filter(el => el.isConnected && !el.classList.contains('hidden') && getComputedStyle(el).display !== 'none'); return a.length ? a[a.length - 1] : null; };
     { const o = lastShown('.cl-dlg-ov'); if (o) { o.click(); setTimeout(() => { try { if (o.isConnected && !o.classList.contains('show')) o.remove(); } catch (e) {} }, 400); return true; } }
     { const m = lastShown('.message-delete-modal'); if (m) { m.classList.add('hidden'); return true; } }
-    { const o = lastShown('#emailModal, #blkOverlay, #delPage'); if (o) { o.remove(); return true; } }
+    { const o = lastShown('#emailModal, #blkOverlay, #delPage, .bbc-ov'); if (o) { o.remove(); return true; } }
     { const o = document.getElementById('updPage'); if (o && o.querySelector('#updLater')) { o.remove(); return true; } }
     { const o = lastShown('#chatDeletePanel'); if (o) { o.classList.add('hidden'); return true; } }
     { const o = document.querySelector('#otherTopMenu.open'); if (o) { o.classList.remove('open'); return true; } }
@@ -14339,7 +14500,7 @@ body:has(.app-container[data-app-theme="dark"]) .cl-dlg.cl-del .cl-btns button#c
 <style id="babylon-chat-more-menu-pro">
 /* قائمة الثلاث نقاط داخل المحادثة: بطاقة عصرية بأيقونات داخل مربعات ذهبية ناعمة */
 .app-container .chat-more-menu{
-  width:min(200px,calc(100% - 24px));padding:4px 8px;border-radius:22px;
+  width:min(220px,calc(100% - 24px));padding:4px 8px;border-radius:22px;
   border:1px solid var(--babylon-border,#dce4ee);
   background:var(--cl-card,#ffffff);color:var(--cl-text,#16202b);
   box-shadow:0 20px 48px rgba(10,18,30,.24),0 2px 6px rgba(10,18,30,.07);
