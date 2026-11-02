@@ -18914,4 +18914,51 @@ return R("index");})();
 })();
 </script>
 
+<style id="babylon-split-layout-fix">
+/* ============================================================
+   إصلاح واجهة التابلت/الأفقي (شاشة مقسومة: قائمة + محادثة)
+   1) إزالة الهوامش الفارغة على الجوانب: التطبيق يملأ الشاشة كاملة
+   2) شريط الكتابة محصور داخل مساحة المحادثة ولا يتجاوزها
+   3) زر «مجموعة جديدة» داخل قسم المحادثات (القائمة) وليس فوق المحادثة
+   ============================================================ */
+@media (min-width:768px) and (min-height:481px){
+  /* 1) بلا هوامش/ظلال/زوايا: ملء الشاشة بالكامل */
+  html,body{width:100%;margin:0;padding:0}
+  body{display:block!important;min-height:100dvh}
+  .app-container,
+  .app-container:has(#mainPage:not(.hidden)){
+    width:100%!important;max-width:none!important;margin:0!important;
+    height:100dvh!important;max-height:100dvh!important;
+    border-radius:0!important;border:0!important;box-shadow:none!important;
+  }
 
+  /* 2) شريط الكتابة داخل عمود المحادثة فقط */
+  #mainPage:not(.hidden)>#chatView{position:relative!important;overflow:hidden!important;min-width:0!important;max-width:100%}
+  #chatView .chat-input-container{
+    position:absolute!important;left:0!important;right:0!important;bottom:0!important;
+    width:auto!important;max-width:100%!important;min-width:0!important;
+    margin:0!important;transform:none!important;box-sizing:border-box!important;
+  }
+  #chatView #textInputBar{max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin-inline:0!important}
+  #chatView #recordingBar,#chatView .reply-preview-bar,#chatView .block-banner{max-width:100%;box-sizing:border-box}
+
+  /* 3) زر المجموعة: أسفل-داخل عمود قائمة المحادثات، فوق شريط التنقل */
+  #mainPage>#newGroupFab{
+    position:absolute!important;left:auto!important;
+    right:calc(clamp(340px,33%,440px) - 16px - (56px * var(--bb-s,1)))!important;
+    bottom:calc((72px * var(--bb-s,1)) + 14px + var(--sab-real,0px))!important;
+    z-index:20;
+  }
+  .app-container.vp-bottom #mainPage>#newGroupFab{
+    bottom:calc((72px * var(--bb-s,1)) + 14px + 32px + var(--sab-real,0px))!important;
+  }
+  /* لا يظهر الزر فوق المحادثة أبداً: يتبع ظهور القائمة فقط */
+  #mainPage:has(#homeView.hidden):not(:has(#chatView:not(.hidden)))>#newGroupFab{display:none!important}
+}
+@media (min-width:768px) and (max-height:480px){
+  /* هاتف بوضع أفقي: بلا هوامش أيضاً */
+  .app-container,.app-container:has(#mainPage:not(.hidden)){
+    max-width:100%!important;width:100%!important;box-shadow:none!important;border-radius:0!important}
+  body{display:block!important}
+}
+</style>
