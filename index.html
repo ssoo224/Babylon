@@ -6253,7 +6253,22 @@ function sendImage(e, opts) {
   if (!file.type.startsWith('image/')) return showToast('اختر صورة أو فيديو فقط');
   if (file.size > 15 * 1024 * 1024) return showToast('الصورة كبيرة جداً');
   const _rf = bbReplyFields(); try { cancelReply(); } catch (e) {}
-  compressImage(file, dataUrl => {
+  const _area = document.getElementById('messagesArea');
+  const _bMark = (() => { const i = document.querySelector('img.bb-b-mark'); return i ? i.src : ''; })();
+  const _prev = (() => { try { return URL.createObjectURL(file); } catch (e) { return ''; } })();
+  const _ph = document.createElement('div');
+  _ph.id = 'chatImagePending'; _ph.className = 'msg-bubble mine video-msg video-pending';
+  _ph.innerHTML = '<div class="msg-video"><img class="vp-img" alt="" src="' + _prev + '"><div class="vp-cover"><div class="vp-logo"><svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>' + (_bMark ? '<img src="' + _bMark + '" alt="" draggable="false">' : '<b class="vp-b">B</b>') + '</div></div></div><button type="button" class="vp-cancel" aria-label="إلغاء الإرسال"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div class="msg-meta"><span>' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '</span> <span class="check-mark">' + TICK_SVG.wait + '</span></div>';
+  let _cancelled = false;
+  const _place = () => { if (_area && !_ph.isConnected) { _area.appendChild(_ph); _area.scrollTop = _area.scrollHeight; } };
+  _place();
+  const _keep = setInterval(_place, 250);
+  const _fin = () => { clearInterval(_keep); _ph.remove(); if (_prev) setTimeout(() => URL.revokeObjectURL(_prev), 3000); };
+  _ph.querySelector('.vp-cancel').addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); _cancelled = true; _fin(); showToast('تم إلغاء الإرسال'); });
+  const _wait = new Promise(r => setTimeout(r, 2000));
+  compressImage(file, dataUrl => _wait.then(() => {
+    if (_cancelled) return;
+    _fin();
     if (!dataUrl) return showToast('تعذر تجهيز الصورة، جرب صورة أخرى (' + (file.type || 'نوع غير معروف') + ' ' + Math.round(file.size / 1024) + 'KB)');
     const chatId = activeChatId;
     db.collection('chats').doc(chatId).collection('messages').add({
@@ -6266,7 +6281,7 @@ function sendImage(e, opts) {
       }, { merge: true });
       notifyPeer(chatId, '▧ صورة');
     }).catch(() => showToast('تعذر إرسال الصورة'));
-  });
+  }));
 }
 
 function openImageViewer(src, messageId = '', isMine = false) {
@@ -6409,19 +6424,20 @@ function sendChatVideo(file, opts) {
   const poster = (() => { try { return URL.createObjectURL(file); } catch (e) { return ''; } })();
   const bMark = (() => { const i = document.querySelector('img.bb-b-mark'); return i ? i.src : ''; })();
   const fmtVP = n => { n = Number(n) || 0; return n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB'; };
-  ph.innerHTML = '<div class="msg-video"><video src="' + poster + '#t=0.1" preload="metadata" muted playsinline></video><div class="vp-cover"><div class="vp-logo"><svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>' + (bMark ? '<img src="' + bMark + '" alt="" draggable="false">' : '<b class="vp-b">B</b>') + '</div><div class="vp-pct" dir="ltr">' + fmtVP(file.size) + ' | 0 KB</div></div></div><div class="msg-meta"><span>' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '</span> <span class="check-mark">' + TICK_SVG.wait + '</span></div>';
+  ph.innerHTML = '<div class="msg-video"><video src="' + poster + '#t=0.1" preload="metadata" muted playsinline></video><div class="vp-cover"><div class="vp-logo"><svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>' + (bMark ? '<img src="' + bMark + '" alt="" draggable="false">' : '<b class="vp-b">B</b>') + '</div><div class="vp-pct" dir="ltr">' + fmtVP(file.size) + ' | 0 KB</div></div></div><button type="button" class="vp-cancel" aria-label="إلغاء الإرسال"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div class="msg-meta"><span>' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '</span> <span class="check-mark">' + TICK_SVG.wait + '</span></div>';
   const place = () => { if (area && !ph.isConnected) { area.appendChild(ph); area.scrollTop = area.scrollHeight; } };
   place();
   const fin = () => { ph.remove(); if (poster) setTimeout(() => URL.revokeObjectURL(poster), 3000); };
   const xhr = new XMLHttpRequest(), fd = new FormData();
   fd.append('file', file); fd.append('upload_preset', CLD_PRESET); fd.append('folder', 'chat');
   xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/video/upload`);
+  { const cb = ph.querySelector('.vp-cancel'); if (cb) cb.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); ph.__cancelled = true; try { xhr.abort(); } catch (_) {} fin(); showToast('تم إلغاء الإرسال'); }); }
   xhr.upload.onprogress = e => { if (e.lengthComputable) { place(); const t = ph.querySelector('.vp-pct'); if (t) t.textContent = fmtVP(file.size) + ' | ' + fmtVP(e.loaded); } };
-  xhr.onerror = () => { fin(); showToast('تعذر رفع الفيديو: فشل الاتصال'); };
+  xhr.onerror = () => { if (ph.__cancelled) return; fin(); showToast('تعذر رفع الفيديو: فشل الاتصال'); };
   xhr.onload = () => {
     let r = {}; try { r = JSON.parse(xhr.responseText); } catch (e) {}
     if (!(xhr.status >= 200 && xhr.status < 300 && r.secure_url)) { fin(); return showToast('تعذر رفع الفيديو: ' + ((r.error && r.error.message) || ('رمز ' + xhr.status))); }
-    const finish = (videoUrl, posterUrl, durationSec) => db.collection('chats').doc(chatId).collection('messages').add({
+    const finish = (videoUrl, posterUrl, durationSec) => ph.__cancelled ? Promise.resolve() : db.collection('chats').doc(chatId).collection('messages').add({
       senderId: currentUser.uid, videoUrl: videoUrl, posterUrl: posterUrl, duration: durationSec, read: false, createdAt: Date.now(), ...((opts && opts.caption) ? { caption: opts.caption } : {}), ..._rf
     });
     const plainPoster = r.secure_url.replace('/video/upload/', '/video/upload/so_0,w_480,c_limit/').replace(/\.[^/.]+$/, '.jpg');
@@ -6441,6 +6457,7 @@ function sendChatVideo(file, opts) {
       job = finish(r.secure_url, plainPoster, Math.round(r.duration || 0));
     }
     job.then(() => {
+      if (ph.__cancelled) return;
       fin();
       db.collection('chats').doc(chatId).set({
         updatedAt: Date.now(),
@@ -9859,6 +9876,9 @@ body:has(.app-container[data-app-theme="dark"]){background:#000000!important;bac
 #chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-ring{position:absolute;inset:0;width:100%;height:100%;animation:btSpin 1s linear infinite}
 #chatView #messagesArea .msg-bubble.video-pending .vp-logo img{width:32px;height:auto;display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
 #chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-b{font-size:34px;font-weight:900;line-height:1}
+#chatView #messagesArea .msg-bubble.video-pending .msg-video img.vp-img{display:block;width:100%;max-height:360px;min-height:120px;object-fit:cover;filter:blur(14px) brightness(.8);transform:scale(1.15)}
+#chatView #messagesArea .msg-bubble.video-pending .vp-cancel{position:absolute;top:8px;right:8px;z-index:6;width:26px;height:26px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.42);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);cursor:pointer;-webkit-tap-highlight-color:transparent}
+#chatView #messagesArea .msg-bubble.video-pending .vp-cancel:active{transform:scale(.9)}
 #chatView #messagesArea .msg-bubble.video-pending .vp-pct{color:#fff;font-size:12px;font-weight:800;line-height:1.2;direction:ltr;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.5);white-space:nowrap}
 
 .check-mark{display:inline-flex;align-items:center;line-height:0}
@@ -18237,14 +18257,12 @@ return R("index");})();
 })();
 </script>
 <style id="babylon-media-menu-style">
-#bbMediaMenu{position:fixed;z-index:9990;display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px;border-radius:16px;background:#0f172a;border:1px solid #2e3b4e;box-shadow:0 10px 28px rgba(0,0,0,.35);transform-origin:50% 100%;opacity:0;transform:translateY(10px) scale(.6,.35);transition:transform .22s cubic-bezier(.2,.9,.3,1.15),opacity .15s}
+#bbMediaMenu{position:fixed;z-index:9990;display:flex;flex-direction:row;align-items:center;gap:4px;padding:4px;border-radius:16px;background:#0f172a;border:1px solid #2e3b4e;box-shadow:0 10px 28px rgba(0,0,0,.35);transform-origin:50% 100%;opacity:0;transform:translateY(10px) scale(.4,.6);transition:transform .22s cubic-bezier(.2,.9,.3,1.15),opacity .15s}
 #bbMediaMenu[data-app-theme="light"]{background:#fff;border-color:#dce4ee;box-shadow:0 10px 28px rgba(60,70,90,.22)}
-#bbMediaMenu::after{content:"";position:absolute;left:50%;bottom:-6px;width:11px;height:11px;margin-left:-5.5px;transform:rotate(45deg);background:inherit;border-right:1px solid;border-bottom:1px solid;border-color:inherit;border-radius:0 0 3px 0}
 #bbMediaMenu.open{opacity:1;transform:none}
 #bbMediaMenu.hidden{display:none}
-#bbMediaMenu button{width:46px;height:42px;border-radius:12px;border:0;padding:0;display:grid;place-items:center;color:#fff;cursor:pointer;background:linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%);box-shadow:0 4px 12px rgba(190,150,40,.35);-webkit-tap-highlight-color:transparent}
-#bbMediaMenu button svg{filter:drop-shadow(0 1px 2px rgba(110,72,0,.45))}
-#bbMediaMenu button:active{transform:scale(.94)}
+#bbMediaMenu button{width:46px;height:42px;border-radius:12px;border:0;padding:0;display:grid;place-items:center;color:inherit;cursor:pointer;background:transparent;box-shadow:none;-webkit-tap-highlight-color:transparent}
+#bbMediaMenu button:active{transform:scale(.92)}
 .file-card{display:flex;align-items:center;gap:10px;min-width:210px;max-width:100%;padding:2px 2px 4px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:start}
 .file-card .fc-ico{flex:0 0 44px;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(127,140,160,.2);color:inherit}
 .file-card .fc-ico b{font-size:9.5px;font-weight:800;letter-spacing:.3px;direction:ltr}
@@ -18270,8 +18288,8 @@ return R("index");})();
     if(menu) return menu;
     menu=document.createElement('div');
     menu.id='bbMediaMenu'; menu.className='hidden'; menu.setAttribute('role','menu');
-    menu.innerHTML='<button type="button" data-k="file" role="menuitem" aria-label="الملفات" title="الملفات">'+FILE_SVG+'</button>'+
-                   '<button type="button" data-k="gallery" role="menuitem" aria-label="المعرض" title="المعرض">'+IMG_SVG+'</button>';
+    menu.innerHTML='<button type="button" data-k="gallery" role="menuitem" aria-label="المعرض" title="المعرض">'+IMG_SVG+'</button>'+
+                   '<button type="button" data-k="file" role="menuitem" aria-label="الملفات" title="الملفات">'+FILE_SVG+'</button>';
     document.body.appendChild(menu);
     menu.addEventListener('click',function(e){
       var b=e.target.closest('button[data-k]'); if(!b) return;
@@ -18285,12 +18303,13 @@ return R("index");})();
   function openMenu(btn){
     build(); trigger=btn;
     var r=btn.getBoundingClientRect();
-    var left=Math.round(r.left+r.width/2-29);
-    left=Math.max(8,Math.min(window.innerWidth-66,left));
+    var left=Math.round(r.left+r.width/2-53);
+    left=Math.max(8,Math.min(window.innerWidth-114,left));
     var ac=document.querySelector('.app-container');
     menu.setAttribute('data-app-theme',(ac&&ac.getAttribute('data-app-theme'))||'light');
+    try{menu.style.color=getComputedStyle(btn).color;}catch(_){}
     menu.style.left=left+'px';
-    menu.style.bottom=Math.round(window.innerHeight-r.top+12)+'px';
+    menu.style.bottom=Math.round(window.innerHeight-r.top+8)+'px';
     menu.classList.remove('hidden');
     void menu.offsetWidth;
     menu.classList.add('open');
