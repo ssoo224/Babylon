@@ -9874,8 +9874,8 @@ body:has(.app-container[data-app-theme="dark"]){background:#000000!important;bac
 #chatView #messagesArea .msg-bubble.video-pending .vp-cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(0,0,0,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 #chatView #messagesArea .msg-bubble.video-pending .vp-logo{position:relative;width:76px;height:76px;display:grid;place-items:center;color:#fff;background:none;border:0;box-shadow:none}
 #chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-ring{position:absolute;inset:0;width:100%;height:100%;animation:btSpin 1s linear infinite}
-#chatView #messagesArea .msg-bubble.video-pending .vp-logo img{width:28px;height:auto;display:block;transform:translateX(3px);filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
-#chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-b{font-size:30px;font-weight:900;line-height:1;transform:translateX(3px)}
+#chatView #messagesArea .msg-bubble.video-pending .vp-logo img{width:28px;height:auto;display:block;transform:translateX(2px);filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+#chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-b{font-size:30px;font-weight:900;line-height:1;transform:translateX(2px)}
 #chatView #messagesArea .msg-bubble.video-pending .msg-video img.vp-img{display:block;width:100%;max-height:360px;min-height:120px;object-fit:cover;filter:blur(14px) brightness(.8);transform:scale(1.15)}
 #chatView #messagesArea .msg-bubble.video-pending .vp-cancel{position:absolute;top:8px;right:8px;z-index:6;width:26px;height:26px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.42);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);cursor:pointer;-webkit-tap-highlight-color:transparent}
 #chatView #messagesArea .msg-bubble.video-pending .vp-cancel:active{transform:scale(.9)}
@@ -18182,9 +18182,11 @@ return R("index");})();
       parts.push(cropPart); w = cw; h = ch;
     }
     var side = Math.min(w || 0, h || 0);
+    var scaled = false;
     if (o.res && side && o.res < side - 1) {
       var kk = o.res / side;
       parts.push('c_scale,w_' + ev2(w * kk) + ',h_' + ev2(h * kk));
+      scaled = true;
     }
     out.duration = Math.round(trimmed ? (o.end - o.start) : (o.dur || 0));
     posterParts.push('so_' + startAt.toFixed(2));
@@ -18192,7 +18194,9 @@ return R("index");})();
     posterParts.push('w_480,c_limit');
     out.poster = secureUrl.replace('/video/upload/', '/video/upload/' + posterParts.join('/') + '/').replace(/\.[^/.]+$/, '.jpg');
     if (!parts.length) return out;
-    parts.push('vc_h264,ac_aac,q_auto');
+    var qMap = { 240: 'q_auto:low', 480: 'q_auto:eco', 720: 'q_auto:good', 1080: 'q_auto:best' };
+    var qv = (o.res && qMap[o.res]) ? qMap[o.res] : 'q_auto';
+    parts.push('vc_h264,ac_aac,' + qv);
     out.url = secureUrl.replace('/video/upload/', '/video/upload/' + parts.join('/') + '/').replace(/\.[^/.]+$/, '.mp4');
     out.edited = true;
     return out;
