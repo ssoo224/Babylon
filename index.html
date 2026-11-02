@@ -6773,6 +6773,23 @@ function openVideoViewer(src, messageId = '', isMine = false) {
   /* أندرويد: نحمّل الفيديو كاملاً إلى Download/.babylon (عبر الكاش الأصلي) ثم نشغّله من الملف المحلي كـ blob */
   if (window.BabylonAndroidNative && /^https:\/\/res\.cloudinary\.com\//.test(String(src))) {
     ui.classList.add('is-loading');
+    /* نفس شكل «قيد الإرسال»: بوستر مموّه + الشعار + الحلقة حتى يبدأ الفيديو */
+    let _cov = null;
+    try {
+      const _mi = messageId && window.__bbMsgMedia && window.__bbMsgMedia[messageId];
+      const _mk = document.querySelector('img.bb-b-mark');
+      _cov = document.createElement('div'); _cov.className = 'bb-vv-ldg';
+      const _bg = document.createElement('div'); _bg.className = 'bb-vv-bg';
+      if (_mi && _mi.u && !/^data:/.test(_mi.u)) _bg.style.backgroundImage = 'url("' + String(_mi.u).replace(/"/g, '%22') + '")';
+      _cov.appendChild(_bg);
+      const _cc = document.createElement('div'); _cc.className = 'vp-cover';
+      _cc.innerHTML = '<div class="vp-logo"><svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>' + (_mk && _mk.src ? '<img src="' + _mk.src + '" alt="" draggable="false">' : '<b class="vp-b">B</b>') + '</div>';
+      _cov.appendChild(_cc);
+      v.appendChild(_cov);
+      const _rm = () => { if (_cov && _cov.parentNode) _cov.parentNode.removeChild(_cov); _cov = null; };
+      ['loadeddata', 'canplay', 'playing', 'error'].forEach(ev => vid.addEventListener(ev, _rm, { once: true }));
+      setTimeout(_rm, 240000);
+    } catch (e) {}
     const _t = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 180000));
     Promise.race([fetch(src).then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.blob(); }), _t])
       .then(b => { if (!b || !b.size) throw new Error('empty'); vid.src = URL.createObjectURL(b); })
@@ -19077,20 +19094,30 @@ return R("index");})();
 
 
 <style id="bb-img-load-css">
-#chatView .msg-image.bb-loading{position:relative;overflow:hidden;aspect-ratio:4/3;min-height:calc(150px * var(--bb-s,1));min-width:calc(170px * var(--bb-s,1));background:#0b0f14}
-#chatView .msg-image.bb-loading>img{position:absolute;inset:0;opacity:0;pointer-events:none}
-#chatView .bb-img-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(14px) brightness(.8);transform:scale(1.15)}
-#chatView .bb-img-cover{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(0,0,0,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-#chatView .bb-img-cover .vp-logo{position:relative;width:calc(76px * var(--bb-s,1));height:calc(76px * var(--bb-s,1));display:grid;place-items:center;color:#fff}
-#chatView .bb-img-cover .vp-ring{position:absolute;inset:0;width:100%;height:100%;animation:bbImgSpin 1s linear infinite}
-#chatView .bb-img-cover .vp-logo img{width:calc(28px * var(--bb-s,1));height:auto;display:block;transform:translateX(2px);filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
-#chatView .bb-img-cover .vp-b{font-size:calc(30px * var(--bb-s,1));font-weight:900;line-height:1;transform:translateX(2px)}
-@keyframes bbImgSpin{to{transform:rotate(360deg)}}
+/* نفس قواعد شكل «قيد الإرسال» (.video-pending) تماماً، مطبّقة على صورة قيد التحميل */
+#chatView .msg-image.bb-loading>img.bb-real{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none}
+#chatView #messagesArea .msg-bubble.bb-ldg .msg-video{position:relative;line-height:0;overflow:hidden;border-radius:inherit}
+#chatView #messagesArea .msg-bubble.bb-ldg .vp-cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(0,0,0,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#chatView #messagesArea .msg-bubble.bb-ldg .vp-logo{position:relative;width:calc(76px * var(--bb-s,1));height:calc(76px * var(--bb-s,1));display:grid;place-items:center;color:#fff;background:none;border:0;box-shadow:none}
+#chatView #messagesArea .msg-bubble.bb-ldg .vp-logo .vp-ring{position:absolute;inset:0;width:100%;height:100%;animation:btSpin 1s linear infinite}
+#chatView #messagesArea .msg-bubble.bb-ldg .vp-logo img{width:calc(28px * var(--bb-s,1));height:auto;display:block;transform:translateX(2px);filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+#chatView #messagesArea .msg-bubble.bb-ldg .vp-logo .vp-b{font-size:calc(30px * var(--bb-s,1));font-weight:900;line-height:1;transform:translateX(2px)}
+#chatView #messagesArea .msg-bubble.bb-ldg .msg-video video{filter:blur(14px) brightness(.8);transform:scale(1.15)}
+#chatView #messagesArea .msg-bubble.bb-ldg .msg-video .msg-video-play{display:none!important}
+#chatView #messagesArea .msg-bubble.bb-ldg .msg-video img.vp-img{display:block;width:100%;max-width:none;max-height:360px;min-height:calc(120px * var(--bb-s,1));object-fit:cover;border-radius:0;filter:blur(14px) brightness(.8);transform:scale(1.15)}
+.bb-vv-ldg{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden;background:#000}
+.bb-vv-ldg .bb-vv-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(14px) brightness(.8);transform:scale(1.15)}
+.bb-vv-ldg .vp-cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(0,0,0,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.bb-vv-ldg .vp-logo{position:relative;width:calc(76px * var(--bb-s,1));height:calc(76px * var(--bb-s,1));display:grid;place-items:center;color:#fff}
+.bb-vv-ldg .vp-ring{position:absolute;inset:0;width:100%;height:100%;animation:btSpin 1s linear infinite}
+.bb-vv-ldg .vp-logo img{width:calc(28px * var(--bb-s,1));height:auto;display:block;transform:translateX(2px);filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+.bb-vv-ldg .vp-b{font-size:calc(30px * var(--bb-s,1));font-weight:900;line-height:1;transform:translateX(2px)}
 </style>
 <script id="bb-img-load">
-/* صور المحادثة: إذا لم تكن محمّلة/محفوظة محلياً يظهر الشعار مع الحلقة الدوّارة (مثل لحظة الإرسال) حتى تكتمل */
+/* صور المحادثة: إذا لم تكن محمّلة/محفوظة محلياً يظهر نفس شكل «قيد الإرسال» (صورة مموّهة + الشعار + الحلقة) حتى تكتمل */
 (function(){
   var RING='<svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>';
+  var BLANK='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><rect width="4" height="3" fill="#0b0f14"/></svg>');
   function mark(){var i=document.querySelector('img.bb-b-mark');return i&&i.src?'<img src="'+i.src+'" alt="" draggable="false">':'<b class="vp-b">B</b>';}
   function attach(img){
     try{
@@ -19098,23 +19125,46 @@ return R("index");})();
       var src=img.getAttribute('src')||''; if(!src||/^data:/.test(src)) return;
       if(img.complete&&img.naturalWidth) return;
       var box=img.closest('.msg-image'); if(!box) return;
-      img.__bbL=true; box.classList.add('bb-loading');
-      var bg=document.createElement('div'); bg.className='bb-img-bg';
+      var bubble=img.closest('.msg-bubble'); if(!bubble) return;
+      img.__bbL=true; img.classList.add('bb-real'); box.classList.add('bb-loading'); bubble.classList.add('bb-ldg');
+      var thumb=BLANK;
       var m=/^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.+)$/.exec(src.split('#')[0].split('?')[0]);
-      if(m&&!/^[a-z]{1,3}_/.test(m[2])) bg.style.backgroundImage='url("'+m[1]+'w_48,q_30,e_blur:300/'+m[2]+'?bbnc=1")';
-      box.appendChild(bg);
-      var cv=document.createElement('div'); cv.className='bb-img-cover';
-      cv.innerHTML='<div class="vp-logo">'+RING+mark()+'</div>'; box.appendChild(cv);
-      var done=function(){box.classList.remove('bb-loading');if(cv.parentNode)cv.parentNode.removeChild(cv);if(bg.parentNode)bg.parentNode.removeChild(bg);};
+      if(m&&!/^[a-z]{1,3}_/.test(m[2])) thumb=m[1]+'w_64,q_auto:low/'+m[2]+'?bbnc=1';
+      var mv=document.createElement('div'); mv.className='msg-video bb-ldg-v';
+      mv.innerHTML='<img class="vp-img" alt="" src="'+thumb+'"><div class="vp-cover"><div class="vp-logo">'+RING+mark()+'</div></div>';
+      var th=mv.firstChild; th.addEventListener('error',function(){th.src=BLANK;},{once:true});
+      box.appendChild(mv);
+      var done=function(){box.classList.remove('bb-loading');img.classList.remove('bb-real');bubble.classList.remove('bb-ldg');if(mv.parentNode)mv.parentNode.removeChild(mv);};
       img.addEventListener('load',done,{once:true}); img.addEventListener('error',done,{once:true});
+    }catch(_){}
+  }
+  function attachVideo(v){
+    try{
+      if(v.__bbL||!v.matches||!v.matches('.msg-video video')) return;
+      var bubble=v.closest('.msg-bubble'); if(!bubble||bubble.classList.contains('video-pending')) return;
+      var box=v.closest('.msg-video'); if(!box||box.querySelector('.vp-cover')) return;
+      var poster=v.getAttribute('poster')||'', probe=null, ready=false;
+      if(poster&&!/^data:/.test(poster)){ probe=new Image(); probe.src=poster; ready=probe.complete&&probe.naturalWidth>0; }
+      else ready=v.readyState>=2;
+      if(ready) return;
+      v.__bbL=true; bubble.classList.add('bb-ldg');
+      var cv=document.createElement('div'); cv.className='vp-cover';
+      cv.innerHTML='<div class="vp-logo">'+RING+mark()+'</div>'; box.appendChild(cv);
+      var done=function(){bubble.classList.remove('bb-ldg');if(cv.parentNode)cv.parentNode.removeChild(cv);};
+      if(probe){probe.addEventListener('load',done,{once:true});probe.addEventListener('error',done,{once:true});}
+      else{v.addEventListener('loadeddata',done,{once:true});v.addEventListener('error',done,{once:true});}
+      setTimeout(done,45000);
     }catch(_){}
   }
   function scan(root){
     try{
       if(root.nodeType!==1) return;
       if(root.matches&&root.matches('.msg-image img')) attach(root);
+      if(root.matches&&root.matches('.msg-video video')) attachVideo(root);
       var l=root.querySelectorAll?root.querySelectorAll('.msg-image img'):[];
       for(var i=0;i<l.length;i++) attach(l[i]);
+      var vs=root.querySelectorAll?root.querySelectorAll('.msg-video video'):[];
+      for(var k=0;k<vs.length;k++) attachVideo(vs[k]);
     }catch(_){}
   }
   function start(){
