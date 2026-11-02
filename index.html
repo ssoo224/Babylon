@@ -6407,14 +6407,16 @@ function sendChatVideo(file, opts) {
   const ph = document.createElement('div');
   ph.id = 'chatVideoPending'; ph.className = 'msg-bubble mine video-msg video-pending';
   const poster = (() => { try { return URL.createObjectURL(file); } catch (e) { return ''; } })();
-  ph.innerHTML = '<div class="msg-video"><video src="' + poster + '#t=0.1" preload="metadata" muted playsinline></video><div class="vp-cover"><div class="vp-logo"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 54h48M12 48h40M16 48V28h32v20M12 24h40L32 10 12 24Zm8 4v20m8-20v20m8-20v20m8-20v20" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="vp-pct">0%</div></div></div><div class="msg-meta"><span>' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '</span> <span class="check-mark">' + TICK_SVG.wait + '</span></div>';
+  const bMark = (() => { const i = document.querySelector('img.bb-b-mark'); return i ? i.src : ''; })();
+  const fmtVP = n => { n = Number(n) || 0; return n < 1024 ? n + ' B' : n < 1048576 ? Math.round(n / 1024) + ' KB' : (n / 1048576).toFixed(1) + ' MB'; };
+  ph.innerHTML = '<div class="msg-video"><video src="' + poster + '#t=0.1" preload="metadata" muted playsinline></video><div class="vp-cover"><div class="vp-logo"><svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>' + (bMark ? '<img src="' + bMark + '" alt="" draggable="false">' : '<b class="vp-b">B</b>') + '</div><div class="vp-pct" dir="ltr">' + fmtVP(file.size) + ' | 0 KB</div></div></div><div class="msg-meta"><span>' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '</span> <span class="check-mark">' + TICK_SVG.wait + '</span></div>';
   const place = () => { if (area && !ph.isConnected) { area.appendChild(ph); area.scrollTop = area.scrollHeight; } };
   place();
   const fin = () => { ph.remove(); if (poster) setTimeout(() => URL.revokeObjectURL(poster), 3000); };
   const xhr = new XMLHttpRequest(), fd = new FormData();
   fd.append('file', file); fd.append('upload_preset', CLD_PRESET); fd.append('folder', 'chat');
   xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/video/upload`);
-  xhr.upload.onprogress = e => { if (e.lengthComputable) { place(); const t = ph.querySelector('.vp-pct'); if (t) t.textContent = Math.round(e.loaded / e.total * 100) + '%'; } };
+  xhr.upload.onprogress = e => { if (e.lengthComputable) { place(); const t = ph.querySelector('.vp-pct'); if (t) t.textContent = fmtVP(file.size) + ' | ' + fmtVP(e.loaded); } };
   xhr.onerror = () => { fin(); showToast('تعذر رفع الفيديو: فشل الاتصال'); };
   xhr.onload = () => {
     let r = {}; try { r = JSON.parse(xhr.responseText); } catch (e) {}
@@ -9853,9 +9855,11 @@ body:has(.app-container[data-app-theme="dark"]){background:#000000!important;bac
 #chatView #messagesArea .msg-bubble.video-pending{align-self:flex-end}
 #chatView #messagesArea .msg-bubble.video-pending .msg-video video{filter:blur(14px) brightness(.8);transform:scale(1.15)}
 #chatView #messagesArea .msg-bubble.video-pending .vp-cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(0,0,0,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-#chatView #messagesArea .msg-bubble.video-pending .vp-logo{width:60px;height:60px;display:flex;align-items:center;justify-content:center;color:#fff;background:none;border:0;box-shadow:none;animation:splashBreath 1.6s ease-in-out infinite}
-#chatView #messagesArea .msg-bubble.video-pending .vp-logo svg{width:100%;height:100%;filter:none}
-#chatView #messagesArea .msg-bubble.video-pending .vp-pct{color:#fff;font-size:12px;font-weight:800;line-height:1}
+#chatView #messagesArea .msg-bubble.video-pending .vp-logo{position:relative;width:76px;height:76px;display:grid;place-items:center;color:#fff;background:none;border:0;box-shadow:none}
+#chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-ring{position:absolute;inset:0;width:100%;height:100%;animation:btSpin 1s linear infinite}
+#chatView #messagesArea .msg-bubble.video-pending .vp-logo img{width:32px;height:auto;display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+#chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-b{font-size:34px;font-weight:900;line-height:1}
+#chatView #messagesArea .msg-bubble.video-pending .vp-pct{color:#fff;font-size:12px;font-weight:800;line-height:1.2;direction:ltr;text-align:center;text-shadow:0 1px 3px rgba(0,0,0,.5);white-space:nowrap}
 
 .check-mark{display:inline-flex;align-items:center;line-height:0}
 .check-mark .tick-svg{display:block;height:11px;width:auto}
@@ -18233,13 +18237,14 @@ return R("index");})();
 })();
 </script>
 <style id="babylon-media-menu-style">
-#bbMediaMenu{position:fixed;z-index:9990;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+#bbMediaMenu{position:fixed;z-index:9990;display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px;border-radius:16px;background:#0f172a;border:1px solid #2e3b4e;box-shadow:0 10px 28px rgba(0,0,0,.35);transform-origin:50% 100%;opacity:0;transform:translateY(10px) scale(.6,.35);transition:transform .22s cubic-bezier(.2,.9,.3,1.15),opacity .15s}
+#bbMediaMenu[data-app-theme="light"]{background:#fff;border-color:#dce4ee;box-shadow:0 10px 28px rgba(60,70,90,.22)}
+#bbMediaMenu::after{content:"";position:absolute;left:50%;bottom:-6px;width:11px;height:11px;margin-left:-5.5px;transform:rotate(45deg);background:inherit;border-right:1px solid;border-bottom:1px solid;border-color:inherit;border-radius:0 0 3px 0}
+#bbMediaMenu.open{opacity:1;transform:none}
 #bbMediaMenu.hidden{display:none}
-#bbMediaMenu button{pointer-events:auto;width:48px;height:48px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;color:#fff;cursor:pointer;background:linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%);box-shadow:0 8px 20px rgba(190,150,40,.4);opacity:0;transform:translateY(22px) scale(.55);transition:transform .22s cubic-bezier(.2,.9,.3,1.2),opacity .18s;-webkit-tap-highlight-color:transparent}
+#bbMediaMenu button{width:46px;height:42px;border-radius:12px;border:0;padding:0;display:grid;place-items:center;color:#fff;cursor:pointer;background:linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%);box-shadow:0 4px 12px rgba(190,150,40,.35);-webkit-tap-highlight-color:transparent}
 #bbMediaMenu button svg{filter:drop-shadow(0 1px 2px rgba(110,72,0,.45))}
-#bbMediaMenu.open button{opacity:1;transform:none}
-#bbMediaMenu.open button:nth-child(1){transition-delay:.05s}
-#bbMediaMenu button:active{transform:scale(.92)!important}
+#bbMediaMenu button:active{transform:scale(.94)}
 .file-card{display:flex;align-items:center;gap:10px;min-width:210px;max-width:100%;padding:2px 2px 4px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:start}
 .file-card .fc-ico{flex:0 0 44px;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(127,140,160,.2);color:inherit}
 .file-card .fc-ico b{font-size:9.5px;font-weight:800;letter-spacing:.3px;direction:ltr}
@@ -18280,10 +18285,12 @@ return R("index");})();
   function openMenu(btn){
     build(); trigger=btn;
     var r=btn.getBoundingClientRect();
-    var left=Math.round(r.left+r.width/2-24);
-    left=Math.max(8,Math.min(window.innerWidth-56,left));
+    var left=Math.round(r.left+r.width/2-29);
+    left=Math.max(8,Math.min(window.innerWidth-66,left));
+    var ac=document.querySelector('.app-container');
+    menu.setAttribute('data-app-theme',(ac&&ac.getAttribute('data-app-theme'))||'light');
     menu.style.left=left+'px';
-    menu.style.bottom=Math.round(window.innerHeight-r.top+8)+'px';
+    menu.style.bottom=Math.round(window.innerHeight-r.top+12)+'px';
     menu.classList.remove('hidden');
     void menu.offsetWidth;
     menu.classList.add('open');
