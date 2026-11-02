@@ -19027,6 +19027,25 @@ return R("index");})();
 })();
 </script>
 
+
+<script id="bb-media-fallback">
+/* احتياط: إذا فشل تشغيل فيديو/عرض صورة من الكاش المحلي، نعيد المحاولة مباشرة من الإنترنت (bbnc=1 يتجاوز الكاش). */
+(function(){
+  document.addEventListener('error',function(e){
+    try{
+      var el=e.target; if(!el||(el.tagName!=='VIDEO'&&el.tagName!=='IMG')) return;
+      var src=el.currentSrc||el.getAttribute('src')||''; if(!/^https:\/\/res\.cloudinary\.com\//.test(src)) return;
+      if(el.__bbncTried||/[?&]bbnc=1/.test(src)) return;
+      el.__bbncTried=true;
+      var hi=src.indexOf('#'), hash=hi>=0?src.slice(hi):'', base=hi>=0?src.slice(0,hi):src;
+      var next=base+(base.indexOf('?')>=0?'&':'?')+'bbnc=1'+hash;
+      el.setAttribute('src',next);
+      if(el.tagName==='VIDEO'){ try{el.load();}catch(_){} }
+    }catch(_){}
+  },true);
+})();
+</script>
+
 <style id="babylon-split-layout-fix">
 /* ============================================================
    إصلاح واجهة التابلت/الأفقي (شاشة مقسومة: قائمة + محادثة)
