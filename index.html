@@ -9874,8 +9874,8 @@ body:has(.app-container[data-app-theme="dark"]){background:#000000!important;bac
 #chatView #messagesArea .msg-bubble.video-pending .vp-cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(0,0,0,.18);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 #chatView #messagesArea .msg-bubble.video-pending .vp-logo{position:relative;width:76px;height:76px;display:grid;place-items:center;color:#fff;background:none;border:0;box-shadow:none}
 #chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-ring{position:absolute;inset:0;width:100%;height:100%;animation:btSpin 1s linear infinite}
-#chatView #messagesArea .msg-bubble.video-pending .vp-logo img{width:32px;height:auto;display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
-#chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-b{font-size:34px;font-weight:900;line-height:1}
+#chatView #messagesArea .msg-bubble.video-pending .vp-logo img{width:28px;height:auto;display:block;transform:translateX(3px);filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+#chatView #messagesArea .msg-bubble.video-pending .vp-logo .vp-b{font-size:30px;font-weight:900;line-height:1;transform:translateX(3px)}
 #chatView #messagesArea .msg-bubble.video-pending .msg-video img.vp-img{display:block;width:100%;max-height:360px;min-height:120px;object-fit:cover;filter:blur(14px) brightness(.8);transform:scale(1.15)}
 #chatView #messagesArea .msg-bubble.video-pending .vp-cancel{position:absolute;top:8px;right:8px;z-index:6;width:26px;height:26px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.42);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);cursor:pointer;-webkit-tap-highlight-color:transparent}
 #chatView #messagesArea .msg-bubble.video-pending .vp-cancel:active{transform:scale(.9)}
@@ -17688,7 +17688,7 @@ return R("index");})();
 .bbmc-box{border:2px solid transparent!important;border-radius:1px;box-shadow:0 0 0 9999px rgba(0,0,0,.58)!important}
 .bbmc-box::after{content:"";position:absolute;inset:-2px;padding:2px;border-radius:2px;background:var(--goldg);pointer-events:none;z-index:1;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 .bbmc-box::before{background:linear-gradient(rgba(230,197,102,.5),rgba(230,197,102,.5)) 33.33% 0/1px 100% no-repeat,linear-gradient(rgba(230,197,102,.5),rgba(230,197,102,.5)) 66.66% 0/1px 100% no-repeat,linear-gradient(rgba(230,197,102,.5),rgba(230,197,102,.5)) 0 33.33%/100% 1px no-repeat,linear-gradient(rgba(230,197,102,.5),rgba(230,197,102,.5)) 0 66.66%/100% 1px no-repeat!important}
-.bbmc-hd[data-h=n]::after,.bbmc-hd[data-h=s]::after,.bbmc-hd[data-h=e]::after,.bbmc-hd[data-h=w]::after{background:var(--goldg)}
+.bbmc-hd[data-h=n]::after,.bbmc-hd[data-h=s]::after,.bbmc-hd[data-h=e]::after,.bbmc-hd[data-h=w]::after{display:none}
 .bbmc-hd[data-h=nw]::after,.bbmc-hd[data-h=ne]::after,.bbmc-hd[data-h=sw]::after,.bbmc-hd[data-h=se]::after{border-color:#d3a93b;border-image:var(--goldg) 1}
 /* عنوان "قص الصورة / قص الفيديو" بنفس تدرج الأزرار */
 .bbmc.crop-mode .bbmc-title{flex:0 1 auto;margin:0 auto;padding:2px 6px;background:var(--goldg);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
