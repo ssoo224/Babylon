@@ -6485,7 +6485,29 @@ function sendImage(e, opts) {
   const _fin = () => { clearInterval(_keep); _ph.remove(); if (_prev) setTimeout(() => URL.revokeObjectURL(_prev), 3000); };
   _ph.querySelector('.vp-cancel').addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); _cancelled = true; _fin(); showToast('تم إلغاء الإرسال'); });
   const _wait = new Promise(r => setTimeout(r, 2000));
-  compressImage(file, dataUrl => _wait.then(() => {
+  /* أعلى دقة: نرفع الصورة الأصلية بدون ضغط إلى Cloudinary (تُحفظ محلياً في Download/.babylon عند العرض)،
+     وإذا فشل الرفع نرجع للطريقة القديمة (ضغط + إرسالها داخل الرسالة). */
+  const _prepImage = cb => {
+    if (!CLD_CLOUD || !CLD_PRESET) return compressImage(file, cb);
+    const fd = new FormData(), x = new XMLHttpRequest();
+    fd.append('file', file); fd.append('upload_preset', CLD_PRESET); fd.append('folder', 'chat');
+    x.open('POST', `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/image/upload`);
+    let done = false;
+    const fallback = () => { if (done) return; done = true; compressImage(file, cb); };
+    x.timeout = 120000;
+    x.onerror = x.ontimeout = fallback;
+    x.onload = () => {
+      let r = {}; try { r = JSON.parse(x.responseText); } catch (e) {}
+      if (!(x.status >= 200 && x.status < 300 && r.secure_url)) return fallback();
+      if (done) return; done = true;
+      let u = r.secure_url;
+      if (!/^image\/(jpeg|png|gif|webp)$/i.test(file.type || '')) u = u.replace(/\.[^/.]+$/, '.jpg');
+      cb(u);
+    };
+    _ph.querySelector('.vp-cancel').addEventListener('click', () => { done = true; try { x.abort(); } catch (e) {} });
+    x.send(fd);
+  };
+  _prepImage(dataUrl => _wait.then(() => {
     if (_cancelled) return;
     _fin();
     if (!dataUrl) return showToast('تعذر تجهيز الصورة، جرب صورة أخرى (' + (file.type || 'نوع غير معروف') + ' ' + Math.round(file.size / 1024) + 'KB)');
