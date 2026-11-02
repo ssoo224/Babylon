@@ -6477,7 +6477,7 @@ function sendChatVideo(file, opts) {
   window.bbCompressVideo(file, opts, null, () => ph.__cancelled).then(out => {
     if (ph.__cancelled) return;
     if (out && out.size) { startUpload(out, Object.assign({}, opts, { res: 0, crop: null, start: 0, end: 1e9, dur: 0 })); }
-    else { showToast('تعذر ضغط الفيديو على هذا الجهاز، سيُرسل بحجمه الأصلي'); startUpload(file, opts); }
+    else { startUpload(file, opts); }
   }).catch(() => { if (ph.__cancelled) return; startUpload(file, opts); });
 }
 
@@ -18199,11 +18199,9 @@ return R("index");})();
       parts.push(cropPart); w = cw; h = ch;
     }
     var side = Math.min(w || 0, h || 0);
-    var scaled = false;
     if (o.res && side && o.res < side - 1) {
       var kk = o.res / side;
       parts.push('c_scale,w_' + ev2(w * kk) + ',h_' + ev2(h * kk));
-      scaled = true;
     }
     out.duration = Math.round(trimmed ? (o.end - o.start) : (o.dur || 0));
     posterParts.push('so_' + startAt.toFixed(2));
@@ -18211,17 +18209,16 @@ return R("index");})();
     posterParts.push('w_480,c_limit');
     out.poster = secureUrl.replace('/video/upload/', '/video/upload/' + posterParts.join('/') + '/').replace(/\.[^/.]+$/, '.jpg');
     if (!parts.length) return out;
-    var qMap = { 240: 'q_auto:low', 480: 'q_auto:eco', 720: 'q_auto:good', 1080: 'q_auto:best' };
-    var qv = (o.res && qMap[o.res]) ? qMap[o.res] : 'q_auto';
-    parts.push('vc_h264,ac_aac,' + qv);
+    var qMap = { 480: 'q_auto:good', 720: 'q_auto:good', 1080: 'q_auto:best' };
+    parts.push('vc_h264,ac_aac,' + (qMap[o.res] || 'q_auto'));
     out.url = secureUrl.replace('/video/upload/', '/video/upload/' + parts.join('/') + '/').replace(/\.[^/.]+$/, '.mp4');
     out.edited = true;
     return out;
   };
 
 
-  /* ---------- ضغط الفيديو على الجهاز قبل الرفع (دقة + معدل بت + قص + مدة) ---------- */
-  var BR = { 240: 450000, 480: 1100000, 720: 2600000, 1080: 5000000 };
+  /* ---------- ضغط الفيديو على الجهاز قبل الرفع (دقة 480/720 بالضبط + جودة عالية) ---------- */
+  var BR = { 480: 2200000, 720: 4500000, 1080: 8000000 };
   window.bbCompressNeeded = function (o) {
     if (!o || !window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return false;
     var w = o.crop ? o.crop.w : o.natW, h = o.crop ? o.crop.h : o.natH, side = Math.min(w || 0, h || 0);
@@ -18245,23 +18242,28 @@ return R("index");})();
           var W = v.videoWidth, H = v.videoHeight; if (!W || !H) return done(null);
           var c = o.crop ? { x: o.crop.x, y: o.crop.y, w: o.crop.w, h: o.crop.h } : { x: 0, y: 0, w: W, h: H };
           var side = Math.min(c.w, c.h), k = (o.res && o.res < side - 1) ? o.res / side : 1;
-          var ow = Math.max(2, Math.round(c.w * k / 2) * 2), oh = Math.max(2, Math.round(c.h * k / 2) * 2);
+          var ow, oh;
+          if (k < 1) {
+            /* الضلع الأقصر = الدقة المختارة بالضبط (480 أو 720) والآخر بنفس النسبة */
+            if (c.w <= c.h) { ow = o.res; oh = Math.max(2, Math.round(c.h * o.res / c.w / 2) * 2); }
+            else { oh = o.res; ow = Math.max(2, Math.round(c.w * o.res / c.h / 2) * 2); }
+          } else { ow = Math.max(2, Math.round(c.w / 2) * 2); oh = Math.max(2, Math.round(c.h / 2) * 2); }
           var dur = v.duration || o.dur || 0;
           var st = (o.dur && o.start > 0.05) ? o.start : 0;
           var en = (o.dur && o.end < o.dur - 0.05) ? o.end : dur;
           var cv = document.createElement('canvas'); cv.width = ow; cv.height = oh;
-          var cx = cv.getContext('2d', { alpha: false });
+          var cx = cv.getContext('2d', { alpha: false }); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
           var stream = cv.captureStream(30);
           try {
             actx = new (window.AudioContext || window.webkitAudioContext)();
             var src = actx.createMediaElementSource(v), dst = actx.createMediaStreamDestination();
             src.connect(dst); dst.stream.getAudioTracks().forEach(function (t) { stream.addTrack(t); });
           } catch (_) {}
-          var mime = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+          var mime = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
             .find(function (t) { return MediaRecorder.isTypeSupported(t); });
           if (!mime) return done(null);
-          var vbr = BR[o.res] || Math.min(5000000, Math.max(450000, Math.round(ow * oh * 2.2)));
-          rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: vbr, audioBitsPerSecond: 96000 });
+          var vbr = BR[o.res] || Math.min(8000000, Math.max(1500000, Math.round(ow * oh * 4)));
+          rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: vbr, audioBitsPerSecond: 128000 });
           var chunks = [];
           rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
           rec.onstop = function () {
