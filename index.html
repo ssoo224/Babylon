@@ -2185,7 +2185,7 @@ i[data-ic]{display:inline-flex;font-style:normal}
 #chatView #textInputBar{padding:6px 8px!important;gap:6px!important;border-radius:14px!important;background:var(--cr-card)!important;border:1px solid var(--cr-line)!important;box-shadow:var(--cr-shadow)}
 /* حقل الكتابة نفسه: انحناء بسيط */
 #chatView #messageInput.msg-editable{height:42px!important;min-height:42px!important;padding:10px 12px!important;border-radius:10px!important;background:rgba(127,140,160,.10)!important;border:1px solid transparent!important;color:var(--cr-ink)!important;transition:background .15s,border-color .15s}
-#chatView #messageInput.msg-editable:focus{background:rgba(127,140,160,.16)!important;border-color:rgba(212,175,55,.55)!important}
+#chatView #messageInput.msg-editable:focus{background:rgba(127,140,160,.16)!important;border-color:#c9cfd8!important}
 .app-container[data-app-theme="light"] #chatView #messageInput.msg-editable{background:#f1f5fa!important;color:#17212b!important}
 .app-container[data-app-theme="light"] #chatView #messageInput.msg-editable:focus{background:#fff!important}
 .app-container[data-app-theme="dark"] #chatView #messageInput.msg-editable{color:#f1f5f9!important}
@@ -2226,7 +2226,7 @@ i[data-ic]{display:inline-flex;font-style:normal}
 html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView{--cr-surface:var(--chat-bg);--cr-card:var(--bubble-other);--cr-ink:var(--text-other);--cr-muted:var(--meta-other);--cr-line:var(--bubble-line)}
 html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView .msg-bubble.mine{background:var(--bubble-mine)!important;box-shadow:0 4px 12px rgba(0,0,0,.18)!important}
 html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView #messageInput.msg-editable{background:rgba(127,140,160,.16)!important;color:var(--text-other)!important}
-html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView #messageInput.msg-editable:focus{background:rgba(127,140,160,.24)!important;border-color:var(--accent-chat)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView #messageInput.msg-editable:focus{background:rgba(127,140,160,.24)!important;border-color:#c9cfd8!important}
 html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView .telegram-avatar{box-shadow:0 0 0 2px var(--bubble-other),0 0 0 4px var(--accent-chat)}
 html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView .pattern-layer{opacity:.08!important}
 </style>
@@ -6474,7 +6474,7 @@ function sendChatVideo(file, opts) {
   const needC = opts && typeof window.bbCompressVideo === 'function' && window.bbCompressNeeded(opts);
   if (!needC) { startUpload(file, opts); return; }
   { const cb = ph.querySelector('.vp-cancel'); if (cb) cb.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); ph.__cancelled = true; try { xhr && xhr.abort(); } catch (_) {} fin(); showToast('تم إلغاء الإرسال'); }); }
-  window.bbCompressVideo(file, opts, p => { place(); const t = ph.querySelector('.vp-pct'); if (t) t.textContent = 'ضغط ' + Math.round(p * 100) + '%'; }, () => ph.__cancelled).then(out => {
+  window.bbCompressVideo(file, opts, null, () => ph.__cancelled).then(out => {
     if (ph.__cancelled) return;
     if (out && out.size) { startUpload(out, Object.assign({}, opts, { res: 0, crop: null, start: 0, end: 1e9, dur: 0 })); }
     else { showToast('تعذر ضغط الفيديو على هذا الجهاز، سيُرسل بحجمه الأصلي'); startUpload(file, opts); }
@@ -11222,6 +11222,12 @@ html body .app-container .bbc-ov .bbc-box input.bbc-in:active{outline:none!impor
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
 })();
 </script>
+<style id="msg-input-gray-border">
+#chatView #messageInput.msg-editable:focus,
+.app-container[data-app-theme="light"] #chatView #messageInput.msg-editable:focus,
+.app-container[data-app-theme="dark"] #chatView #messageInput.msg-editable:focus,
+html[data-chat-theme] .app-container #chatView #messageInput.msg-editable:focus{border-color:#c9cfd8!important;box-shadow:none!important;outline:none!important}
+</style>
 </body>
 </html>
 
@@ -17708,7 +17714,7 @@ return R("index");})();
 <script id="babylon-media-composer">
 (function () {
   'use strict';
-  var RES = [240, 480, 720, 1080];
+  var RES = [480, 720, 1080];
   var ASPECTS = [['حر', 0], ['1:1', 1], ['4:3', 4 / 3], ['3:4', 3 / 4], ['16:9', 16 / 9], ['9:16', 9 / 16]];
   var S = null;
 
