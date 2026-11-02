@@ -8325,7 +8325,7 @@ function renderPickerList(){
   GP.extra.forEach(u=>{if(ids.indexOf(u)<0)ids.push(u);});
   if(q)ids=ids.filter(u=>{const g=GU[u]||{};return String(g.displayName||'').toLowerCase().indexOf(q)>=0||String(g.username||'').toLowerCase().indexOf(q)>=0;});
   if(!ids.length){box.innerHTML='<div class="gx-empty">'+(q?'لا توجد نتائج. اكتب اليوزر كاملاً للبحث عن مستخدم جديد.':'ما عندك محادثات بعد. ابحث بيوزر الشخص حتى تضيفه.')+'</div>';return;}
-  box.innerHTML=(q?'':'<div class="gx-sec">جهات الاتصال</div>')+ids.map(u=>{
+  box.innerHTML=(q?'':'<div class="gx-sec">جهات الدردشة</div>')+ids.map(u=>{
     const g=GU[u]||{},on=GP.selected.indexOf(u)>=0;
     return '<div class="gx-row'+(on?' on':'')+'" data-u="'+u+'">'+userAvHtml(u,'gx-av')+'<div class="gx-t"><b>'+esc(g.displayName||'مستخدم')+'</b><span>'+(g.username?'@'+esc(g.username):'')+'</span></div><div class="gx-check"></div></div>';
   }).join('');
@@ -14025,7 +14025,7 @@ body.light #viewersModal .viewer-item {
 #otherUserProfileView #otherStarsBtn svg.pf-gift-yellow{width:20px;height:20px;flex:0 0 20px;fill:none!important;stroke:#eab624!important;color:#eab624!important;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;background:none!important}
 #otherUserProfileView #otherStarsBtn svg.pf-gift-yellow *{fill:none!important;stroke:#eab624!important}
 /* قائمة النقاط الثلاث العلوية كانت تحوي "إرسال نجوم" فقط: صارت فارغة فنخفي الزر */
-#otherUserProfileView #otherMoreWrap,#otherTopMenu{display:none!important}
+/* (أُعيد تفعيل الزر: صارت قائمته تحوي خيارات جهات الدردشة) */
 </style>
 <script id="status-bar-color-sync">
 /* مزامنة لون شريط الإشعارات (theme-color + Capacitor StatusBar) مع لون رأس القسم الظاهر حاليًا.
