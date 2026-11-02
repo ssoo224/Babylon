@@ -6728,7 +6728,7 @@ function openVideoViewer(src, messageId = '', isMine = false) {
   v.className = 'babylon-media-viewer video-viewer';
   v.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;';
   const vid = document.createElement('video');
-  vid.preload = 'auto'; vid.poster = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; vid.src = src; vid.controls = false; vid.autoplay = true; vid.playsInline = true;
+  vid.preload = 'auto'; vid.poster = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; vid.controls = false; vid.autoplay = true; vid.playsInline = true;
   vid.setAttribute('playsinline', ''); vid.setAttribute('webkit-playsinline', '');
   vid.style.cssText = 'max-width:100%;max-height:100%;background:#000;';
 
@@ -6749,6 +6749,14 @@ function openVideoViewer(src, messageId = '', isMine = false) {
   const seek = ui.querySelector('.bvp-seek');
   const cur = ui.querySelector('.bvp-cur');
   const dur = ui.querySelector('.bvp-dur');
+  /* أندرويد: نحمّل الفيديو كاملاً إلى Download/.babylon (عبر الكاش الأصلي) ثم نشغّله من الملف المحلي كـ blob */
+  if (window.BabylonAndroidNative && /^https:\/\/res\.cloudinary\.com\//.test(String(src))) {
+    ui.classList.add('is-loading');
+    const _t = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 180000));
+    Promise.race([fetch(src).then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.blob(); }), _t])
+      .then(b => { if (!b || !b.size) throw new Error('empty'); vid.src = URL.createObjectURL(b); })
+      .catch(() => { vid.src = src; });
+  } else { vid.src = src; }
 
   const fmt = t => {
     if (!isFinite(t) || t < 0) return '0:00';
