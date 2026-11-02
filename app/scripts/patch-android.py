@@ -1149,6 +1149,8 @@ public class BabylonMediaCache {
             String key = sha1(url);
             Map<String, String> hd = req.getRequestHeaders();
             String range = hd == null ? null : hd.get("Range");
+            // طلبات Range (مشغّل الفيديو المباشر) تمر للشبكة كالمعتاد؛ الكاش للطلبات الكاملة (صور + fetch للفيديو)
+            if (range != null) return null;
             Entry e = find(ctx, key);
             if (e == null) {
                 synchronized (lockFor(key)) {
