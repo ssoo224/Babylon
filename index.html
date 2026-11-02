@@ -3007,6 +3007,11 @@ html[data-app-theme="light"] .splash-title{color:#8b680e}
           <div class="sx-item sx-item-seg"><span class="sx-t"><span class="appearance-title">صورة الملف الشخصي</span><small class="appearance-description">إظهار أو إخفاء صورتك للآخرين</small></span>
             <div class="sx-seg" id="segAvatar"><button type="button" data-v="show" onclick="setPrivacy('hideAvatar',false)">إظهار</button><button type="button" data-v="hide" onclick="setPrivacy('hideAvatar',true)">إخفاء</button></div></div>
         </div>
+
+        <div class="sx-label">البيانات</div>
+        <div class="sx-group sx-group-danger">
+          <div class="sx-item sx-danger" onclick="sxWipeAllData()"><span class="sx-ic" style="background:#dc2626"><i data-ic="trash" data-size="19"></i></span><span class="sx-t">مسح جميع البيانات</span></div>
+        </div>
       </div>
     </div>
 
@@ -3406,6 +3411,7 @@ html[data-app-theme="light"] .splash-title{color:#8b680e}
     <div class="msg-actions-card">
       <button id="btnReplyMsg" type="button" onclick="actionReply()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 10 4 15l5 5M4 15h9a7 7 0 0 0 7-7V5"/></svg><span>رد على الرسالة</span></button>
       <button id="btnCopyMsg" type="button" onclick="actionCopy()"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>نسخ النص</span></button>
+      <button id="btnDownloadMsg" type="button" class="hidden" onclick="actionDownloadMsg()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3"/></svg><span>تحميل</span></button>
       <button id="btnEditMsg" type="button" class="hidden" onclick="actionEdit()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.8 4.3 4.3-.8L19.8 7.7a2.1 2.1 0 0 0-3-3Z"/><path d="m15.5 6 3 3"/></svg><span>تعديل الرسالة</span></button>
       <button id="btnDeleteMsg" type="button" class="danger hidden" onclick="openMessageDeleteOptions()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 10v7M14 10v7"/></svg><span>حذف الرسالة</span></button>
       <button id="btnCloseMsg" type="button" class="msg-action-cancel" onclick="closeMsgModal()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg><span>إلغاء</span></button>
@@ -4332,6 +4338,26 @@ function sxChangePassword() {
 }
 function sxClearCache() {
   bbConfirm('مسح الذاكرة المؤقتة؟ (ما يحذف حسابك ولا رسائلك)', {title:'مسح الذاكرة المؤقتة', ok:'مسح', icon:'trash'}).then(ok => { if (ok) sxClearCacheDo(); });
+}
+function sxWipeAllData() {
+  bbConfirm('سيتم مسح جميع بيانات التطبيق من هذا الهاتف (الصور والفيديوهات المحفوظة، الذاكرة المؤقتة، الإعدادات المحلية) وتسجيل خروجك. حسابك ورسائلك على الخادم لا تُحذف.', {title:'مسح جميع البيانات', ok:'مسح الكل', icon:'trash'}).then(ok => { if (ok) sxWipeAllDataDo(); });
+}
+async function sxWipeAllDataDo() {
+  const safe = fn => { try { return fn(); } catch (e) {} };
+  showToast('جارٍ مسح البيانات…');
+  try { if (currentUser) { clearInterval(heartbeatInterval); await db.collection('users').doc(currentUser.uid).set({ online: false, lastSeen: Date.now() }, { merge: true }).catch(() => {}); } } catch (e) {}
+  // الملفات المحفوظة محلياً (Download/.babylon) — أندرويد
+  safe(() => { const n = window.BabylonAndroidNative; if (n && typeof n.clearLocalData === 'function') n.clearLocalData(); });
+  // كاش المتصفح + عمال الخدمة
+  await safe(() => window.caches && caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k))))) ;
+  await safe(() => navigator.serviceWorker && navigator.serviceWorker.getRegistrations().then(rs => Promise.all(rs.map(r => r.unregister()))));
+  // قواعد IndexedDB (بيانات Firebase المحلية)
+  await safe(() => indexedDB.databases && indexedDB.databases().then(dbs => Promise.all(dbs.map(d => new Promise(res => { const r = indexedDB.deleteDatabase(d.name); r.onsuccess = r.onerror = r.onblocked = () => res(); })))));
+  safe(() => localStorage.clear());
+  safe(() => sessionStorage.clear());
+  try { await auth.signOut(); } catch (e) {}
+  showToast('تم مسح جميع البيانات ✓');
+  setTimeout(() => location.reload(), 700);
 }
 function sxClearCacheDo() {
   try { Object.keys(localStorage).filter(k => k.indexOf('babylon_seen_users') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) {}
@@ -18912,14 +18938,23 @@ return R("index");})();
       '<div class="fc-ico"><b>'+esc(extOf(name))+'</b></div>'+
       '<div class="fc-body"><div class="fc-name">'+esc(name)+'</div><div class="fc-size">'+esc(fmtSize(m.fileSize))+'</div></div></div>';
   };
+  var MIME={pdf:'application/pdf',doc:'application/msword',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xls:'application/vnd.ms-excel',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',ppt:'application/vnd.ms-powerpoint',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',txt:'text/plain',csv:'text/csv',zip:'application/zip',rar:'application/vnd.rar','7z':'application/x-7z-compressed',apk:'application/vnd.android.package-archive',mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',ogg:'audio/ogg',json:'application/json'};
+  function mimeOf(name){var m=/\.([A-Za-z0-9]{1,5})$/.exec(name||'');return (m&&MIME[m[1].toLowerCase()])||'application/octet-stream';}
   function download(url,name){
+    name=name||'file';
+    /* داخل تطبيق الأندرويد: حفظ أصلي في مجلد التنزيلات (Downloads/Babylon Chat) */
+    if(window.BabylonAndroid&&typeof window.BabylonAndroid.saveMedia==='function'){
+      toast('جارٍ تحميل الملف…');
+      try{window.BabylonAndroid.saveMedia(String(url),String(name),mimeOf(name));return;}catch(_){}
+    }
     toast('جارٍ تحميل الملف…');
     fetch(url).then(function(r){if(!r.ok)throw 0;return r.blob();}).then(function(b){
       var a=document.createElement('a'), u=URL.createObjectURL(b);
-      a.href=u; a.download=name||'file'; document.body.appendChild(a); a.click();
+      a.href=u; a.download=name; document.body.appendChild(a); a.click();
       setTimeout(function(){a.remove();URL.revokeObjectURL(u);},4000);
     }).catch(function(){ try{window.open(url,'_blank');}catch(_){ location.href=url; } });
   }
+  window.bbDownloadFile=download;
   document.addEventListener('click',function(e){
     var c=e.target.closest&&e.target.closest('.file-card[data-url]'); if(!c) return;
     var cv=document.getElementById('chatView'); if(cv&&cv.classList.contains('msg-selecting')) return;
@@ -18938,6 +18973,57 @@ return R("index");})();
       return r;
     };
   }
+})();
+</script>
+
+
+<script id="bb-msg-download">
+/* زر «تحميل» في قائمة خيارات الرسالة: صورة/فيديو → المعرض، ملف → التنزيلات */
+(function(){
+  function infoFor(id){
+    var el=document.getElementById('message_'+id);
+    var card=el&&el.querySelector&&el.querySelector('.file-card[data-url]');
+    if(card) return {kind:'file',url:card.getAttribute('data-url'),name:card.getAttribute('data-name')||'file'};
+    var mi=window.__bbMsgMedia&&window.__bbMsgMedia[id];
+    if(mi&&mi.t==='video'&&mi.v) return {kind:'video',url:mi.v};
+    if(mi&&mi.t==='image'&&mi.u) return {kind:'image',url:mi.u};
+    return null;
+  }
+  function extFrom(url,def){var m=/\.(jpe?g|png|gif|webp|mp4|webm|mov)(?:[?#]|$)/i.exec(String(url).slice(0,2000));return m?m[1].toLowerCase().replace('jpeg','jpg'):def;}
+  function saveMedia(kind,url){
+    var isV=kind==='video', def=isV?'mp4':'jpg';
+    var ext=/^data:image\/png/i.test(url)?'png':/^data:image\/gif/i.test(url)?'gif':/^data:image\/webp/i.test(url)?'webp':extFrom(url,def);
+    var mime=isV?(ext==='webm'?'video/webm':ext==='mov'?'video/quicktime':'video/mp4'):(ext==='png'?'image/png':ext==='gif'?'image/gif':ext==='webp'?'image/webp':'image/jpeg');
+    var name=(isV?'babylon-video-':'babylon-image-')+Date.now()+'.'+ext;
+    if(window.BabylonAndroid&&typeof window.BabylonAndroid.saveMedia==='function'){
+      try{window.BabylonAndroid.saveMedia(String(url),name,mime);showToast('جارٍ تحميل '+(isV?'الفيديو':'الصورة')+'…');}
+      catch(e){showToast('تعذر بدء الحفظ في المعرض');}
+      return;
+    }
+    fetch(url,{mode:'cors'}).then(function(r){if(!r.ok)throw 0;return r.blob();}).then(function(b){
+      var a=document.createElement('a'),u=URL.createObjectURL(b);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(u);},10000);showToast('تم تحميل '+(isV?'الفيديو':'الصورة'));
+    }).catch(function(){try{window.open(url,'_blank');}catch(_){showToast('تعذر التنزيل');}});
+  }
+  window.actionDownloadMsg=function(){
+    var id=window.selectedMsgId||(typeof selectedMsgId!=='undefined'?selectedMsgId:null);
+    var inf=id&&infoFor(id);
+    try{closeMsgModal();}catch(_){}
+    if(!inf){showToast('لا يوجد ملف لتحميله');return;}
+    if(inf.kind==='file') window.bbDownloadFile(inf.url,inf.name); else saveMedia(inf.kind,inf.url);
+  };
+  var prev=openMsgModal;
+  openMsgModal=function(msgId){
+    var r=prev.apply(this,arguments);
+    try{
+      var b=document.getElementById('btnDownloadMsg'), inf=infoFor(msgId);
+      if(b){
+        b.classList.toggle('hidden',!inf);
+        if(inf){var sp=b.querySelector('span');if(sp)sp.textContent=inf.kind==='file'?'تحميل الملف':inf.kind==='video'?'تحميل الفيديو':'تحميل الصورة';}
+      }
+    }catch(_){}
+    return r;
+  };
 })();
 </script>
 
