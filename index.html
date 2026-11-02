@@ -19136,6 +19136,7 @@ return R("index");})();
       box.appendChild(mv);
       var done=function(){box.classList.remove('bb-loading');img.classList.remove('bb-real');bubble.classList.remove('bb-ldg');if(mv.parentNode)mv.parentNode.removeChild(mv);};
       img.addEventListener('load',done,{once:true}); img.addEventListener('error',done,{once:true});
+      setTimeout(done,60000);
     }catch(_){}
   }
   function attachVideo(v){
@@ -19144,16 +19145,17 @@ return R("index");})();
       var bubble=v.closest('.msg-bubble'); if(!bubble||bubble.classList.contains('video-pending')) return;
       var box=v.closest('.msg-video'); if(!box||box.querySelector('.vp-cover')) return;
       var poster=v.getAttribute('poster')||'', probe=null, ready=false;
-      if(poster&&!/^data:/.test(poster)){ probe=new Image(); probe.src=poster; ready=probe.complete&&probe.naturalWidth>0; }
-      else ready=v.readyState>=2;
+      /* بدون بوستر: لا نغطّي الفيديو (يعرض إطاره الأول بنفسه) كي لا تبقى خلفية سوداء */
+      if(!poster||/^data:/.test(poster)) return;
+      probe=new Image(); probe.src=poster; ready=probe.complete&&probe.naturalWidth>0;
       if(ready) return;
       v.__bbL=true; bubble.classList.add('bb-ldg');
       var cv=document.createElement('div'); cv.className='vp-cover';
       cv.innerHTML='<div class="vp-logo">'+RING+mark()+'</div>'; box.appendChild(cv);
       var done=function(){bubble.classList.remove('bb-ldg');if(cv.parentNode)cv.parentNode.removeChild(cv);};
-      if(probe){probe.addEventListener('load',done,{once:true});probe.addEventListener('error',done,{once:true});}
-      else{v.addEventListener('loadeddata',done,{once:true});v.addEventListener('error',done,{once:true});}
-      setTimeout(done,45000);
+      probe.addEventListener('load',done,{once:true});probe.addEventListener('error',done,{once:true});
+      v.addEventListener('loadedmetadata',function(){setTimeout(done,1500);},{once:true});
+      setTimeout(done,15000);
     }catch(_){}
   }
   function scan(root){
