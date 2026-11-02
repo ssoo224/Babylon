@@ -8321,13 +8321,13 @@ function renderPickerChips(){
 function renderPickerList(){
   const box=document.getElementById('gpList');if(!box)return;
   const q=GP.q.trim().replace(/^@/,'').toLowerCase();
-  let ids=contactIds(GP.existing);
+  let ids=contactIds(GP.existing).filter(u=>!window.bbIsContact||window.bbIsContact(u));
   GP.extra.forEach(u=>{if(ids.indexOf(u)<0)ids.push(u);});
   if(q)ids=ids.filter(u=>{const g=GU[u]||{};return String(g.displayName||'').toLowerCase().indexOf(q)>=0||String(g.username||'').toLowerCase().indexOf(q)>=0;});
-  if(!ids.length){box.innerHTML='<div class="gx-empty">'+(q?'لا توجد نتائج. اكتب اليوزر كاملاً للبحث عن مستخدم جديد.':'ما عندك محادثات بعد. ابحث بيوزر الشخص حتى تضيفه.')+'</div>';return;}
+  if(!ids.length){box.innerHTML='<div class="gx-empty">'+(q?'لا توجد نتائج. اكتب اليوزر كاملاً للبحث عن مستخدم جديد.':'ما عندك جهات دردشة بعد. أضف شخصاً من بروفايله (⋮ ثم إضافة لجهات الدردشة) أو ابحث بيوزره.')+'</div>';return;}
   box.innerHTML=(q?'':'<div class="gx-sec">جهات الدردشة</div>')+ids.map(u=>{
     const g=GU[u]||{},on=GP.selected.indexOf(u)>=0;
-    return '<div class="gx-row'+(on?' on':'')+'" data-u="'+u+'">'+userAvHtml(u,'gx-av')+'<div class="gx-t"><b>'+esc(g.displayName||'مستخدم')+'</b><span>'+(g.username?'@'+esc(g.username):'')+'</span></div><div class="gx-check"></div></div>';
+    return '<div class="gx-row'+(on?' on':'')+'" data-u="'+u+'">'+userAvHtml(u,'gx-av')+'<div class="gx-t"><b>'+esc((window.bbCN?window.bbCN(u,g.displayName):g.displayName)||'مستخدم')+'</b><span>'+(g.username?'@'+esc(g.username):'')+'</span></div><div class="gx-check"></div></div>';
   }).join('');
   box.querySelectorAll('.gx-row').forEach(r=>r.onclick=()=>{pickToggle(r.dataset.u);renderPickerChips();r.classList.toggle('on',GP.selected.indexOf(r.dataset.u)>=0);});
 }
@@ -10981,16 +10981,17 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 .app-container[data-app-theme="light"] #otherUserProfileView>.pf-topbar .pf-round{background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-radius:0!important;filter:none!important;text-shadow:none!important;color:#fff!important}
 #otherUserProfileView>.pf-topbar .pf-round svg,#otherUserProfileView>.pf-topbar .pf-round i{color:#fff!important;filter:none!important}
 #otherUserProfileView>.pf-topbar .pf-round:active{opacity:.6}
-.bbc-ov{position:fixed;top:0;left:0;right:0;bottom:0;z-index:100001;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:calc(110px + env(safe-area-inset-top,0px)) 22px 22px;direction:rtl;overflow:hidden;overscroll-behavior:contain;touch-action:none;animation:bbcFade .15s ease}
+.bbc-ov{position:fixed;top:0;left:0;right:0;bottom:0;z-index:100001;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:22px;box-sizing:border-box;direction:rtl;overflow:hidden;overscroll-behavior:contain;touch-action:none;animation:bbcFade .15s ease}
 .bbc-box,.bbc-in{touch-action:manipulation}
 @keyframes bbcFade{from{opacity:0}to{opacity:1}}
-.bbc-box{width:min(340px,100%);border-radius:22px;padding:20px 18px 16px;background:var(--babylon-surface-card,#17212b);color:var(--text-main,#f5f7fa);border:1px solid var(--babylon-border,rgba(255,255,255,.08));box-shadow:0 18px 50px rgba(0,0,0,.45);font-family:inherit}
-.app-container[data-app-theme="light"] .bbc-box{background:#fff;color:#17212b;border-color:rgba(15,23,42,.1)}
+.bbc-box{width:min(340px,100%);border-radius:22px;padding:20px 18px 16px;background:var(--babylon-surface-card,#17212b);color:var(--text-main,#f5f7fa);border:1px solid rgba(148,163,184,.18)!important;outline:none!important;box-shadow:0 18px 50px rgba(0,0,0,.45);font-family:inherit}
+.app-container[data-app-theme="light"] .bbc-box{background:#fff;color:#17212b;border-color:rgba(15,23,42,.1)!important}
 .bbc-box h3{margin:0 0 6px;font-size:17px;font-weight:800;text-align:center}
 .bbc-sub{margin:0 0 14px;font-size:13px;line-height:1.7;text-align:center;opacity:.72}
 .bbc-sub b{font-weight:700;opacity:1}
-.bbc-in{width:100%;box-sizing:border-box;height:46px;border-radius:14px;border:1.5px solid rgba(148,163,184,.35);background:rgba(127,140,160,.12);color:inherit;font:inherit;font-size:15px;padding:0 14px;outline:none;text-align:right}
-.bbc-in:focus,.bbc-in:focus-visible{border-color:rgba(148,163,184,.35);outline:none;box-shadow:none}
+.bbc-in{-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent;box-shadow:none!important;outline:none!important;width:100%;box-sizing:border-box;height:46px;border-radius:14px;border:1.5px solid rgba(148,163,184,.35)!important;background:rgba(127,140,160,.12);color:inherit;font:inherit;font-size:15px;padding:0 14px;outline:none;text-align:right}
+.bbc-in:focus,.bbc-in:focus-visible,.bbc-in:active{border-color:rgba(148,163,184,.35)!important;outline:none!important;box-shadow:none!important}
+.bbc-box *{outline:none!important}
 .bbc-btns{display:flex;gap:10px;margin-top:16px}
 .bbc-btns button{flex:1;height:44px;border:0;border-radius:14px;font:inherit;font-size:14.5px;font-weight:700;cursor:pointer;background:rgba(127,140,160,.18);color:inherit}
 .bbc-btns button.ok{background:linear-gradient(135deg,#e4c45b,#c99a1c);color:#1a1305}
@@ -11000,11 +11001,12 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
 <script id="bb-contacts-js">
 /* جهات الدردشة: أسماء مخصصة يضيفها المستخدم لأشخاص (تُخزَّن في users/{أنا}.chatContacts) */
 (function(){
-  var contacts={}, myUid=null, unsub=null;
+  var contacts={}, myUid=null, unsub=null, loaded=false;
   function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function toast(t){ if(typeof showToast==='function') showToast(t); }
   function ckey(){return 'bbContacts_'+myUid;}
   window.bbCN=function(uid,fb){ return (uid&&contacts[uid])||fb; };
+  window.bbIsContact=function(uid){ return !!(uid&&contacts[uid]); };
 
   function setName(el,tn,uid){
     var cur=tn.textContent, cn=uid&&contacts[uid], trail=(cur.match(/\s*$/)||[''])[0];
@@ -11034,17 +11036,17 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
   }
   function start(uid){
     if(myUid===uid) return; stop(); myUid=uid;
-    try{ contacts=JSON.parse(localStorage.getItem(ckey())||'{}')||{}; }catch(e){ contacts={}; }
+    try{ var raw=localStorage.getItem(ckey()); contacts=JSON.parse(raw||'{}')||{}; loaded=(raw!==null); }catch(e){ contacts={}; }
     applyAll();
     try{
       unsub=db.collection('users').doc(uid).onSnapshot(function(d){
         var c=(d.exists&&d.data()&&d.data().chatContacts)||{};
-        contacts=c; try{ localStorage.setItem(ckey(),JSON.stringify(c)); }catch(e){}
+        contacts=c; loaded=true; try{ localStorage.setItem(ckey(),JSON.stringify(c)); }catch(e){}
         applyAll();
       },function(){});
     }catch(e){}
   }
-  function stop(){ if(unsub){ try{unsub();}catch(e){} unsub=null; } contacts={}; myUid=null; applyAll(); }
+  function stop(){ if(unsub){ try{unsub();}catch(e){} unsub=null; } contacts={}; myUid=null; loaded=false; try{ document.querySelectorAll('.bb-ct-hidden').forEach(function(e){e.classList.remove('bb-ct-hidden');}); var h=document.getElementById('bbCtEmpty'); if(h) h.style.display='none'; }catch(e){} applyAll(); }
 
   function originalName(uid){
     var u=window.__bbOtherU;
@@ -11061,9 +11063,21 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
       +(o.input?'<input class="bbc-in" type="text" maxlength="40" placeholder="الاسم" value="'+esc(o.value||'')+'">':'')
       +'<div class="bbc-btns"><button type="button" class="'+(o.danger?'dg':'ok')+'" data-r="ok">'+esc(o.okText)+'</button><button type="button" data-r="no">إلغاء</button></div></div>';
     host.appendChild(ov);
+    function fit(){
+      var vv=window.visualViewport;
+      if(vv){ ov.style.top=vv.offsetTop+'px'; ov.style.height=vv.height+'px'; ov.style.bottom='auto'; }
+      else { ov.style.height=window.innerHeight+'px'; ov.style.bottom='auto'; }
+    }
+    fit();
+    if(window.visualViewport){ window.visualViewport.addEventListener('resize',fit); window.visualViewport.addEventListener('scroll',fit); }
+    window.addEventListener('resize',fit);
     ov.addEventListener('touchmove',function(e){ e.preventDefault(); },{passive:false});
     var inp=ov.querySelector('.bbc-in');
-    function close(){ if(ov.isConnected) ov.remove(); }
+    function close(){
+      if(window.visualViewport){ window.visualViewport.removeEventListener('resize',fit); window.visualViewport.removeEventListener('scroll',fit); }
+      window.removeEventListener('resize',fit);
+      if(ov.isConnected) ov.remove();
+    }
     ov.addEventListener('click',function(e){
       if(e.target===ov){ close(); return; }
       var b=e.target.closest('button[data-r]'); if(!b) return;
