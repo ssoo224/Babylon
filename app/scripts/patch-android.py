@@ -23,7 +23,7 @@ else:
 # 2) AndroidManifest
 mf = app / "src" / "main" / "AndroidManifest.xml"
 m = rd(mf)
-perms = ["POST_NOTIFICATIONS", "RECORD_AUDIO", "CAMERA", "MODIFY_AUDIO_SETTINGS", "VIBRATE", "READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO", "READ_EXTERNAL_STORAGE", "REQUEST_INSTALL_PACKAGES", "ACCESS_NETWORK_STATE"]
+perms = ["POST_NOTIFICATIONS", "RECORD_AUDIO", "CAMERA", "MODIFY_AUDIO_SETTINGS", "VIBRATE", "READ_MEDIA_IMAGES", "READ_MEDIA_VIDEO", "READ_MEDIA_AUDIO", "READ_EXTERNAL_STORAGE", "REQUEST_INSTALL_PACKAGES", "ACCESS_NETWORK_STATE"]
 add = "".join('    <uses-permission android:name="android.permission.%s" />\n' % p
               for p in perms if 'android.permission.%s"' % p not in m)
 add += '    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />\n'
@@ -125,6 +125,8 @@ public class MainActivity extends BridgeActivity {
 
         // تسجيل واجهة الحفظ فوراً (قبل تحميل الصفحة) ليعمل التنزيل إلى المعرض.
         registerNativeBridge();
+        try { getBridge().setWebViewClient(new BabylonWebViewClient(getBridge(), getApplicationContext())); }
+        catch (Throwable t) { android.util.Log.e("BabylonChat", "media cache client failed", t); }
         applyOfflineCacheMode();
         BabylonCall.onIntent(this, getIntent());
 
@@ -261,6 +263,8 @@ public class MainActivity extends BridgeActivity {
                 needed.add(Manifest.permission.READ_MEDIA_IMAGES);
             if (checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED)
                 needed.add(Manifest.permission.READ_MEDIA_VIDEO);
+            if (checkSelfPermission("android.permission.READ_MEDIA_AUDIO") != PackageManager.PERMISSION_GRANTED)
+                needed.add("android.permission.READ_MEDIA_AUDIO");
             if (checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED)
                 needed.add("android.permission.POST_NOTIFICATIONS");
         } else if (Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT <= 28) {
@@ -309,6 +313,15 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void flushPending() {
             runOnUiThread(() -> BabylonNotifications.dispatchPending(getApplicationContext(), liveWebView));
+        }
+
+        /** مسح جميع البيانات المحلية: مجلد Download/.babylon + كاش التطبيق + الإشعارات. */
+        @JavascriptInterface
+        public void clearLocalData() {
+            mediaExecutor.execute(() -> {
+                try { BabylonMediaCache.clearAll(getApplicationContext()); } catch (Throwable ignored) { }
+                try { ((android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancelAll(); } catch (Throwable ignored) { }
+            });
         }
 
         @JavascriptInterface
@@ -520,17 +533,23 @@ public class MainActivity extends BridgeActivity {
                 ? "babylon-media-" + System.currentTimeMillis() : filename.replaceAll("[\\\\/]", "_");
             String mime = (mimeType == null || mimeType.isEmpty()) ? "application/octet-stream" : mimeType;
 
+            final boolean isVideo = mime.startsWith("video/");
+            final boolean isImage = mime.startsWith("image/");
+            final boolean isMedia = isVideo || isImage;
             if (Build.VERSION.SDK_INT >= 29) {
-                boolean video = mime.startsWith("video/");
+                // صور/فيديو → المعرض، أي ملف آخر → مجلد التنزيلات (MediaStore، بدون صلاحية إضافية)
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
                 values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
                 values.put(MediaStore.MediaColumns.RELATIVE_PATH,
-                    (video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES) + "/Babylon Chat");
+                    (isMedia ? (isVideo ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES)
+                             : Environment.DIRECTORY_DOWNLOADS) + "/Babylon Chat");
                 values.put(MediaStore.MediaColumns.IS_PENDING, 1);
-                Uri collection = video
-                    ? MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                    : MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+                Uri collection = !isMedia
+                    ? MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                    : isVideo
+                        ? MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                        : MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
                 Uri item = getContentResolver().insert(collection, values);
                 if (item == null) throw new Exception("MediaStore insert failed");
                 try (java.io.OutputStream out = getContentResolver().openOutputStream(item)) {
@@ -544,19 +563,19 @@ public class MainActivity extends BridgeActivity {
                 if (Build.VERSION.SDK_INT >= 23 &&
                     checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                     runOnUiThread(() -> Toast.makeText(this, "اسمح بصلاحية التخزين ثم أعد التنزيل", Toast.LENGTH_LONG).show());
+                    runOnUiThread(this::requestInitialPermissions);
                     return;
                 }
-                boolean video = mime.startsWith("video/");
                 File dir = new File(Environment.getExternalStoragePublicDirectory(
-                    video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES), "Babylon Chat");
+                    !isMedia ? Environment.DIRECTORY_DOWNLOADS : (isVideo ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES)), "Babylon Chat");
                 if (!dir.exists() && !dir.mkdirs()) throw new Exception("cannot create directory");
                 File file = new File(dir, name);
                 try (FileOutputStream out = new FileOutputStream(file)) { out.write(bytes); }
                 android.media.MediaScannerConnection.scanFile(this, new String[]{file.getAbsolutePath()}, new String[]{mime}, null);
             }
-            runOnUiThread(() -> Toast.makeText(this, "تم تحميل الصورة او الفيديو في المعرض", Toast.LENGTH_LONG).show());
+            runOnUiThread(() -> Toast.makeText(this, isMedia ? (isVideo ? "تم حفظ الفيديو في المعرض" : "تم حفظ الصورة في المعرض") : "تم حفظ الملف في مجلد التنزيلات", Toast.LENGTH_LONG).show());
         } catch (Exception e) {
-            runOnUiThread(() -> Toast.makeText(this, "تعذر تنزيل الصورة أو الفيديو", Toast.LENGTH_LONG).show());
+            runOnUiThread(() -> Toast.makeText(this, "تعذر تنزيل الملف", Toast.LENGTH_LONG).show());
         }
     }
 }
@@ -663,6 +682,8 @@ public class BabylonNotifications {
                 synchronized (chats) {
                     Chat c = chats.get(key);
                     if (c == null) { c = new Chat(); chats.put(key, c); }
+                    // إذا أُزيل الإشعار السابق (سحب/مسح/فتح) نبدأ من جديد: الإشعار الجديد يحوي الرسالة الجديدة فقط
+                    if (!c.msgs.isEmpty() && !isShowing(ctx, key.hashCode())) c.msgs.clear();
                     // منع تكرار نفس الرسالة (إشعار الخادم + إشعار الصفحة)
                     if (!c.msgs.isEmpty()) {
                         Msg last = c.msgs.get(c.msgs.size() - 1);
@@ -692,6 +713,19 @@ public class BabylonNotifications {
                 android.util.Log.e("BabylonNotif", "show failed", t);
             }
         }
+    }
+
+    /** هل الإشعار ما زال ظاهراً في شريط الإشعارات؟ */
+    private static boolean isShowing(Context ctx, int id) {
+        try {
+            if (Build.VERSION.SDK_INT < 23) return true;
+            android.app.NotificationManager nm =
+                (android.app.NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm == null) return true;
+            for (android.service.notification.StatusBarNotification n : nm.getActiveNotifications())
+                if (n.getId() == id && n.getPackageName().equals(ctx.getPackageName())) return true;
+            return false;
+        } catch (Throwable t) { return true; }
     }
 
     private static void post(Context ctx, String key, Chat c, boolean quiet) {
@@ -1028,6 +1062,371 @@ public class BabylonNotificationReceiver extends BroadcastReceiver {
 wr(ma.parent / "BabylonNotifications.java", NOTIF_JAVA.replace("__PKG__", NOTIF_PKG))
 wr(ma.parent / "BabylonNotificationReceiver.java", NOTIF_RECEIVER.replace("__PKG__", NOTIF_PKG))
 print("notification helpers written:", ma.parent)
+
+MEDIA_CACHE_JAVA = r"""package __PKG__;
+
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * كاش محلي للصور والفيديوهات: Download/.babylon (مجلد مخفي).
+ * كل صورة/فيديو من Cloudinary يُنزَّل أولاً إلى الهاتف ثم يُعرض/يُشغَّل من الملف المحلي (مع دعم التقديم Range).
+ */
+public class BabylonMediaCache {
+    static final String DIR = ".babylon";
+    static final long MAX_BYTES = 250L * 1024 * 1024;
+    private static final Map<String, Object> locks = new ConcurrentHashMap<>();
+
+    static final class Entry { Uri uri; File file; String ext; }
+
+    private static Object lockFor(String k) {
+        Object n = new Object();
+        Object o = locks.putIfAbsent(k, n);
+        return o == null ? n : o;
+    }
+
+    /** يحذف كل ما في Download/.babylon + مجلد الاحتياط + الملفات المؤقتة. */
+    public static void clearAll(Context ctx) {
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                Uri col = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+                ctx.getContentResolver().delete(col,
+                    MediaStore.MediaColumns.RELATIVE_PATH + " LIKE ?",
+                    new String[]{Environment.DIRECTORY_DOWNLOADS + "/" + DIR + "%"});
+            } else {
+                delTree(legacyDir());
+            }
+        } catch (Throwable ignored) { }
+        delTree(fallbackDir(ctx));
+        delTree(new File(ctx.getCacheDir(), "bbtmp"));
+        delTree(new File(ctx.getFilesDir(), "notif_avatars"));
+    }
+
+    private static void delTree(File f) {
+        try {
+            if (f == null || !f.exists()) return;
+            File[] kids = f.listFiles();
+            if (kids != null) for (File k : kids) delTree(k);
+            f.delete();
+        } catch (Throwable ignored) { }
+    }
+
+    // ---------- نقطة الدخول من WebView ----------
+    public static WebResourceResponse handle(Context ctx, WebResourceRequest req) {
+        try {
+            if (!"GET".equalsIgnoreCase(req.getMethod())) return null;
+            Uri u = req.getUrl();
+            if (u == null || !"https".equals(u.getScheme()) || !"res.cloudinary.com".equals(u.getHost())) return null;
+            String p = u.getPath();
+            if (p == null || !(p.contains("/image/upload/") || p.contains("/video/upload/"))) return null;
+            String url = u.toString();
+            String key = sha1(url);
+            Map<String, String> hd = req.getRequestHeaders();
+            String range = hd == null ? null : hd.get("Range");
+            Entry e = find(ctx, key);
+            if (e == null) {
+                synchronized (lockFor(key)) {
+                    e = find(ctx, key);
+                    if (e == null) e = fetchAndStore(ctx, url, key);
+                }
+            }
+            if (e == null) return null;
+            return serve(ctx, e, range);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    // ---------- البحث ----------
+    private static File fallbackDir(Context ctx) {
+        File d = new File(ctx.getFilesDir(), "bbmedia");
+        if (!d.exists()) d.mkdirs();
+        return d;
+    }
+
+    private static File legacyDir() {
+        return new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), DIR);
+    }
+
+    private static File firstWithPrefix(File dir, final String prefix) {
+        File[] fs = dir.listFiles((d, n) -> n.startsWith(prefix));
+        return (fs != null && fs.length > 0) ? fs[0] : null;
+    }
+
+    private static String extOf(String name) {
+        int i = name == null ? -1 : name.lastIndexOf('.');
+        return i < 0 ? "bin" : name.substring(i + 1).toLowerCase(Locale.US);
+    }
+
+    static Entry find(Context ctx, String key) {
+        try {
+            File f = firstWithPrefix(fallbackDir(ctx), key + ".");
+            if (f != null && f.length() > 0) { Entry e = new Entry(); e.file = f; e.ext = extOf(f.getName()); return e; }
+            if (Build.VERSION.SDK_INT >= 29) {
+                Uri col = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+                try (Cursor c = ctx.getContentResolver().query(col,
+                        new String[]{MediaStore.MediaColumns._ID, MediaStore.MediaColumns.DISPLAY_NAME},
+                        MediaStore.MediaColumns.DISPLAY_NAME + " LIKE ? AND " + MediaStore.MediaColumns.RELATIVE_PATH + "=?",
+                        new String[]{key + ".%", Environment.DIRECTORY_DOWNLOADS + "/" + DIR + "/"}, null)) {
+                    if (c != null && c.moveToFirst()) {
+                        Entry e = new Entry();
+                        e.uri = ContentUris.withAppendedId(col, c.getLong(0));
+                        e.ext = extOf(c.getString(1));
+                        return e;
+                    }
+                }
+            } else {
+                File lf = firstWithPrefix(legacyDir(), key + ".");
+                if (lf != null && lf.length() > 0) { Entry e = new Entry(); e.file = lf; e.ext = extOf(lf.getName()); return e; }
+            }
+        } catch (Throwable ignored) { }
+        return null;
+    }
+
+    // ---------- التنزيل والحفظ ----------
+    private static Entry fetchAndStore(Context ctx, String url, String key) {
+        File tmpDir = new File(ctx.getCacheDir(), "bbtmp");
+        if (!tmpDir.exists()) tmpDir.mkdirs();
+        File tmp = new File(tmpDir, key + "." + System.nanoTime() + ".part");
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL(url).openConnection();
+            c.setConnectTimeout(20000);
+            c.setReadTimeout(60000);
+            c.setInstanceFollowRedirects(true);
+            c.connect();
+            if (c.getResponseCode() != 200) return null;
+            long cl = c.getContentLengthLong();
+            if (cl > MAX_BYTES) return null;
+            String ct = c.getContentType();
+            long total = 0;
+            try (InputStream in = c.getInputStream(); FileOutputStream out = new FileOutputStream(tmp)) {
+                byte[] buf = new byte[32768];
+                int n;
+                while ((n = in.read(buf)) != -1) {
+                    total += n;
+                    if (total > MAX_BYTES) return null;
+                    out.write(buf, 0, n);
+                }
+            }
+            if (total == 0) return null;
+            String ext = extFromType(ct);
+            if (ext == null) {
+                java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("\\.(jpe?g|png|gif|webp|avif|mp4|webm|mov|m4v)(?:[?#]|$)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(url);
+                ext = m.find() ? m.group(1).toLowerCase(Locale.US).replace("jpeg", "jpg") : "bin";
+            }
+            if (!storePublic(ctx, key, ext, tmp)) storeFallback(ctx, key, ext, tmp);
+            return find(ctx, key);
+        } catch (Throwable t) {
+            return null;
+        } finally {
+            if (c != null) c.disconnect();
+            tmp.delete();
+        }
+    }
+
+    private static boolean storePublic(Context ctx, String key, String ext, File tmp) {
+        try {
+            String name = key + "." + ext;
+            if (Build.VERSION.SDK_INT >= 29) {
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+                v.put(MediaStore.MediaColumns.MIME_TYPE, mimeOf(ext));
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + DIR);
+                v.put(MediaStore.MediaColumns.IS_PENDING, 1);
+                Uri col = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+                Uri item = ctx.getContentResolver().insert(col, v);
+                if (item == null) return false;
+                try (OutputStream out = ctx.getContentResolver().openOutputStream(item)) {
+                    if (out == null) { ctx.getContentResolver().delete(item, null, null); return false; }
+                    copy(tmp, out);
+                } catch (Throwable t) {
+                    ctx.getContentResolver().delete(item, null, null);
+                    return false;
+                }
+                ContentValues done = new ContentValues();
+                done.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                ctx.getContentResolver().update(item, done, null, null);
+                return true;
+            }
+            if (Build.VERSION.SDK_INT >= 23 &&
+                ctx.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) return false;
+            File dir = legacyDir();
+            if (!dir.exists() && !dir.mkdirs()) return false;
+            try { new File(dir, ".nomedia").createNewFile(); } catch (Throwable ignored) { }
+            try (OutputStream out = new FileOutputStream(new File(dir, name))) { copy(tmp, out); }
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** إذا تعذّر الكتابة في Download (صلاحية/نظام) نحفظ داخل مساحة التطبيق كي يبقى العرض المحلي شغّالاً. */
+    private static void storeFallback(Context ctx, String key, String ext, File tmp) {
+        try (OutputStream out = new FileOutputStream(new File(fallbackDir(ctx), key + "." + ext))) { copy(tmp, out); }
+        catch (Throwable ignored) { }
+    }
+
+    private static void copy(File f, OutputStream out) throws IOException {
+        try (FileInputStream in = new FileInputStream(f)) {
+            byte[] buf = new byte[65536];
+            int n;
+            while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+        }
+    }
+
+    // ---------- التقديم من الملف المحلي (يدعم Range للفيديو) ----------
+    private static WebResourceResponse serve(Context ctx, Entry e, String range) throws IOException {
+        ParcelFileDescriptor pfd = e.uri != null
+            ? ctx.getContentResolver().openFileDescriptor(e.uri, "r")
+            : ParcelFileDescriptor.open(e.file, ParcelFileDescriptor.MODE_READ_ONLY);
+        if (pfd == null) return null;
+        long total = pfd.getStatSize();
+        if (total <= 0) { pfd.close(); return null; }
+        String mime = mimeOf(e.ext);
+        long start = 0, end = total - 1;
+        boolean partial = false;
+        if (range != null && range.startsWith("bytes=")) {
+            try {
+                String r = range.substring(6).split(",")[0].trim();
+                int dash = r.indexOf('-');
+                String a = r.substring(0, dash), b = r.substring(dash + 1);
+                if (a.isEmpty()) start = Math.max(0, total - Long.parseLong(b));
+                else { start = Long.parseLong(a); if (!b.isEmpty()) end = Math.min(end, Long.parseLong(b)); }
+                if (start > end || start >= total) {
+                    pfd.close();
+                    Map<String, String> h = new HashMap<>();
+                    h.put("Content-Range", "bytes */" + total);
+                    h.put("Access-Control-Allow-Origin", "*");
+                    return new WebResourceResponse(mime, null, 416, "Range Not Satisfiable", h, new ByteArrayInputStream(new byte[0]));
+                }
+                partial = true;
+            } catch (Throwable t) { start = 0; end = total - 1; partial = false; }
+        }
+        FileInputStream fis = new FileInputStream(pfd.getFileDescriptor());
+        fis.getChannel().position(start);
+        long len = end - start + 1;
+        Map<String, String> h = new HashMap<>();
+        h.put("Accept-Ranges", "bytes");
+        h.put("Content-Length", String.valueOf(len));
+        h.put("Access-Control-Allow-Origin", "*");
+        h.put("Cache-Control", "no-store");
+        if (partial) h.put("Content-Range", "bytes " + start + "-" + end + "/" + total);
+        return new WebResourceResponse(mime, null, partial ? 206 : 200, partial ? "Partial Content" : "OK", h,
+            new Bounded(fis, pfd, len));
+    }
+
+    private static final class Bounded extends InputStream {
+        private final FileInputStream in; private final ParcelFileDescriptor pfd; private long left;
+        Bounded(FileInputStream in, ParcelFileDescriptor pfd, long left) { this.in = in; this.pfd = pfd; this.left = left; }
+        @Override public int read() throws IOException {
+            if (left <= 0) return -1;
+            int b = in.read();
+            if (b >= 0) left--;
+            return b;
+        }
+        @Override public int read(byte[] b, int off, int len) throws IOException {
+            if (left <= 0) return -1;
+            int n = in.read(b, off, (int) Math.min(len, left));
+            if (n > 0) left -= n;
+            return n;
+        }
+        @Override public int available() { return (int) Math.min(left, 65536); }
+        @Override public void close() throws IOException {
+            try { in.close(); } finally { try { pfd.close(); } catch (Throwable ignored) { } }
+        }
+    }
+
+    // ---------- أدوات ----------
+    private static String extFromType(String ct) {
+        if (ct == null) return null;
+        ct = ct.toLowerCase(Locale.US);
+        if (ct.contains("jpeg") || ct.contains("jpg")) return "jpg";
+        if (ct.contains("png")) return "png";
+        if (ct.contains("gif")) return "gif";
+        if (ct.contains("webp")) return "webp";
+        if (ct.contains("avif")) return "avif";
+        if (ct.contains("mp4")) return "mp4";
+        if (ct.contains("webm")) return "webm";
+        if (ct.contains("quicktime")) return "mov";
+        return null;
+    }
+
+    static String mimeOf(String ext) {
+        switch (ext) {
+            case "jpg": case "jpeg": return "image/jpeg";
+            case "png": return "image/png";
+            case "gif": return "image/gif";
+            case "webp": return "image/webp";
+            case "avif": return "image/avif";
+            case "mp4": case "m4v": return "video/mp4";
+            case "webm": return "video/webm";
+            case "mov": return "video/quicktime";
+            default: return "application/octet-stream";
+        }
+    }
+
+    private static String sha1(String s) throws Exception {
+        byte[] d = MessageDigest.getInstance("SHA-1").digest(s.getBytes("UTF-8"));
+        StringBuilder sb = new StringBuilder();
+        for (byte b : d) sb.append(String.format("%02x", b));
+        return sb.toString();
+    }
+}
+"""
+MEDIA_CLIENT_JAVA = r"""package __PKG__;
+
+import android.content.Context;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebView;
+import com.getcapacitor.Bridge;
+import com.getcapacitor.BridgeWebViewClient;
+
+/** يعترض صور/فيديوهات Cloudinary ويقدّمها من Download/.babylon (يُنزّلها أولاً إن لم تكن محفوظة). */
+public class BabylonWebViewClient extends BridgeWebViewClient {
+    private final Context appCtx;
+
+    public BabylonWebViewClient(Bridge bridge, Context ctx) {
+        super(bridge);
+        this.appCtx = ctx.getApplicationContext();
+    }
+
+    @Override
+    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+        WebResourceResponse r = BabylonMediaCache.handle(appCtx, request);
+        return r != null ? r : super.shouldInterceptRequest(view, request);
+    }
+}
+"""
+wr(ma.parent / "BabylonMediaCache.java", MEDIA_CACHE_JAVA.replace("__PKG__", NOTIF_PKG))
+wr(ma.parent / "BabylonWebViewClient.java", MEDIA_CLIENT_JAVA.replace("__PKG__", NOTIF_PKG))
+print("local media cache (Download/.babylon) written")
 m2 = rd(mf)
 if "BabylonNotificationReceiver" not in m2:
     if "</application>" not in m2: die("ما لقيت application", mf)
