@@ -4922,9 +4922,10 @@ function renderMsgDoc(doc, box, existingTyping) {
         const b = document.createElement("div");
         b.className = "msg-bubble" + (isMine ? " mine" : "");
         b.id = "message_" + doc.id;
-        if (m.videoUrl) b.classList.add("video-msg");
-        if (m.caption && !m.audioUrl && m.type !== "sticker" && m.type !== "stars" && (m.videoUrl || m.imageUrl)) b.classList.add("has-cap");
-        if (m.imageUrl && !m.audioUrl && !m.videoUrl) b.classList.add("video-msg", "image-msg");
+        const _hasCap = !!(m.caption && !m.audioUrl && m.type !== "sticker" && m.type !== "stars" && (m.videoUrl || m.imageUrl));
+        if (m.videoUrl && !_hasCap) b.classList.add("video-msg");
+        if (_hasCap) b.classList.add("has-cap");
+        if (m.imageUrl && !m.audioUrl && !m.videoUrl && !_hasCap) b.classList.add("video-msg", "image-msg");
         if (m.type === 'sticker' && m.sticker) b.classList.add("sticker-msg");
         b.dataset.created = String(m.createdAt || 0);
         if (isPendingSend) b.dataset.pending = '1';
@@ -4954,7 +4955,7 @@ function renderMsgDoc(doc, box, existingTyping) {
           htmlContent += m.type === 'stars' && typeof starGiftHtml === 'function' ? starGiftHtml(m) : (m.type === 'sticker' && m.sticker && typeof stickerHtml === 'function') ? stickerHtml(m) : m.imageUrl ? `<div class="msg-image"><img src="${esc(m.imageUrl)}" alt="صورة"></div>` : `<div class="msg-text">${renderMsgText(m.text)}</div>`;
         }
 
-        if (m.caption && !m.audioUrl && m.type !== 'sticker' && m.type !== 'stars' && (m.videoUrl || m.imageUrl)) htmlContent += `<div class="media-cap" dir="auto">${esc(m.caption)}</div>`;
+        if (_hasCap) htmlContent += `<div class="media-cap" dir="auto">${esc(m.caption)}</div>`;
 
         if (_rl.length && !_isMediaMsg) {
           htmlContent += `<div class="reactions-row">${reactionBadgesHtml(_rl, 'reaction-badge')}</div>`;
@@ -17625,9 +17626,29 @@ return R("index");})();
 .bbmc-cap:focus{border-color:var(--gold)}
 .bbmc-send{width:48px;height:48px;border:0;border-radius:50%;background:var(--gold);color:#fff;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
 .bbmc-send:active{transform:scale(.93)}
-/* وصف الصورة/الفيديو داخل المحادثة */
-#chatView #messagesArea .msg-bubble.has-cap .media-cap{margin-top:4px;padding:7px 11px 3px;border-radius:12px;background:rgba(127,140,160,.18);font-size:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;text-align:start;line-height:1.55}
-#chatView #messagesArea .msg-bubble.has-cap.video-msg.video-msg .msg-meta{position:static!important;display:flex;justify-content:flex-start;margin:0;padding:0 10px 2px;background:none!important;color:var(--text-muted,#8696a7)!important;-webkit-text-fill-color:currentColor!important}
+/* ألوان القسم مطابقة لصفحة تسجيل الدخول */
+.bbmc{--bgimg:radial-gradient(circle at center,#1e293b 0%,#090d16 100%);--bg:#0f172a;--fg:#f8fafc;--field:#0f172a;--line:#2e3b4e;--muted:#8696a7;--sub:#cbd5e1;--label:#a8841f;--title:#c39a2a;--gold:#c99f2c;--goldg:linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%);--chipbg:#0f172a;--chipline:#2e3b4e;--ib:#0f172a;--rail:#2e3b4e;--btn:#0f172a;background:var(--bgimg)}
+.bbmc.light{--bgimg:radial-gradient(circle at center,#ffffff 0%,#edf2f8 100%);--bg:#edf2f8;--fg:#17212b;--field:#ffffff;--line:#dce4ee;--muted:#8b98a8;--sub:#3f4f63;--label:#6b4f08;--title:#8b680e;--chipbg:#ffffff;--chipline:#dce4ee;--ib:#ffffff;--rail:#dce4ee;--btn:#eaf0f7}
+.bbmc-title{color:var(--title)}
+.bbmc-ib{border:1px solid var(--line);background:var(--ib);color:var(--fg)}
+.bbmc-row>b{color:var(--label)}
+.bbmc-chip{border-radius:10px;color:var(--sub);font-weight:700}
+.bbmc-btn{border-radius:10px;border:1px solid var(--line);background:var(--field);color:var(--fg);font-weight:700}
+.bbmc-chip.on,.bbmc-btn.pri,.bbmc-send{background:var(--goldg)!important;border:0!important;color:#fff!important;-webkit-text-fill-color:#fff;text-shadow:0 1px 2px rgba(110,72,0,.5);font-weight:800;box-shadow:0 8px 20px rgba(190,150,40,.38)}
+.bbmc-send svg{filter:drop-shadow(0 1px 2px rgba(110,72,0,.45))}
+.bbmc-cap{border-radius:12px;background:var(--field);border:1px solid var(--line);color:var(--fg)}
+.bbmc-cap:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,159,44,.17)}
+.bbmc-sel{background:var(--goldg)}
+.bbmc-h{border-color:var(--gold)}
+.bbmc-wrap{border:1px solid var(--line)}
+/* وصف الصورة/الفيديو داخل المحادثة: فقاعة عادية بلون فقاعات المحادثة، والوسائط داخلها والوصف تحتها */
+#chatView #messagesArea .msg-bubble.has-cap{width:min(72%,280px);max-width:min(72%,280px)!important;box-sizing:border-box}
+#chatView #messagesArea .msg-bubble.has-cap .msg-video{position:relative;border-radius:12px;overflow:hidden;background:#000;line-height:0;min-height:120px}
+#chatView #messagesArea .msg-bubble.has-cap .msg-video video{display:block;width:100%;max-height:360px;object-fit:cover;pointer-events:none;background:#000}
+#chatView #messagesArea .msg-bubble.has-cap .msg-video-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;background:rgba(0,0,0,.5);color:#fff;cursor:pointer;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#chatView #messagesArea .msg-bubble.has-cap .msg-image{border-radius:12px;overflow:hidden;line-height:0;background:#000}
+#chatView #messagesArea .msg-bubble.has-cap .msg-image img{display:block;width:100%;max-width:none;border-radius:0}
+#chatView #messagesArea .msg-bubble.has-cap .media-cap{margin-top:7px;font-size:inherit;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;text-align:start;color:inherit}
 </style>
 
 <script id="babylon-media-composer">
