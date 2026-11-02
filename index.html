@@ -3001,9 +3001,9 @@ body:has(.app-container[data-app-theme]) #settingsView .bs-row .bs-star-svg{filt
         </div>
         <div id="blockBanner" class="block-banner hidden"></div>
         <div id="recordingBar" class="recording-bar hidden" aria-live="polite">
-          <button type="button" class="record-cancel-btn" onclick="cancelRecording()" title="إلغاء التسجيل" aria-label="إلغاء التسجيل">×</button>
+          <div class="rec-left"><button type="button" class="record-preview-play" id="recordPreviewPlay" onclick="togglePreviewPlay()" aria-label="تشغيل التسجيل" title="تشغيل التسجيل"><svg class="rp-play" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg><svg class="rp-pause" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.2"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.2"/></svg></button><button type="button" class="record-cancel-btn" onclick="cancelRecording()" title="إلغاء التسجيل" aria-label="إلغاء التسجيل">×</button></div>
           <div class="recording-live-area">
-            <div class="recording-live-label"><span class="recording-live-dot"></span><span class="rec-text">جاري التسجيل</span><button type="button" class="record-preview-play" id="recordPreviewPlay" onclick="togglePreviewPlay()" aria-label="تشغيل التسجيل" title="تشغيل التسجيل"><svg class="rp-play" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg><svg class="rp-pause" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.2"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.2"/></svg></button><span id="recordTimer" class="record-timer">00:00</span></div>
+            <div class="recording-live-label"><span class="recording-live-dot"></span><span class="rec-text">جاري التسجيل</span><span id="recordTimer" class="record-timer">00:00</span></div>
             <div class="recording-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             
           </div>
@@ -11309,6 +11309,14 @@ body:has(.app-container[data-app-theme="light"]) .cl-dlg.cl-del .cl-btns button.
 .recording-bar.rec-preview .record-preview-play{display:inline-flex}
 .recording-bar.rec-preview .recording-wave i{animation-play-state:paused;transform:scaleY(.8);opacity:.85}
 .recording-bar.rec-preview.rec-playing .recording-wave i{animation-play-state:running}
+</style>
+<style id="voice-preview-ui-2">
+.rec-left{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;flex:0 0 34px;width:34px}
+.recording-bar .rec-left .record-cancel-btn{width:34px!important;height:28px!important;flex:0 0 28px!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#facc15!important;font-size:26px;line-height:1;padding:0}
+.recording-bar .rec-left .record-preview-play{width:34px!important;height:28px!important;flex:0 0 28px!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:#facc15!important;padding:0}
+.recording-bar .rec-left .record-preview-play svg{width:20px;height:20px}
+.recording-bar .record-stop-btn{background:linear-gradient(145deg,#e8c85d,#c29d30)!important;color:#fff!important;box-shadow:0 4px 12px rgba(212,175,55,.24)}
+.recording-bar .record-stop-btn svg{fill:#fff}
 </style>
 </body>
 </html>
