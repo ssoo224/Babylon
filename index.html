@@ -2975,11 +2975,6 @@ html[data-app-theme="light"] .splash-title{color:#8b680e}
           <div class="sx-item" onclick="openPrivacySettings()"><span class="sx-ic" style="background:#10b981"><i data-ic="shield" data-size="19"></i></span><span class="sx-t">الخصوصية والأمان</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
         </div>
 
-        <div class="sx-label">عام</div>
-        <div class="sx-group">
-          <div class="sx-item" onclick="sxClearCache()"><span class="sx-ic" style="background:#8b5cf6"><i data-ic="trash" data-size="19"></i></span><span class="sx-t">مسح الذاكرة المؤقتة</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
-          <div class="sx-item" onclick="sxAbout()"><span class="sx-ic" style="background:#f59e0b"><i data-ic="info" data-size="19"></i></span><span class="sx-t">حول Babylon Chat</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
-        </div>
 
         <div class="sx-group sx-group-danger">
           <div class="sx-item sx-danger" onclick="logout()"><span class="sx-ic" style="background:#dc2626"><i data-ic="logout" data-size="19"></i></span><span class="sx-t">تسجيل الخروج</span></div>
@@ -3011,6 +3006,10 @@ html[data-app-theme="light"] .splash-title{color:#8b680e}
         <div class="sx-label">البيانات</div>
         <div class="sx-group sx-group-danger">
           <div class="sx-item sx-danger" onclick="sxWipeAllData()"><span class="sx-ic" style="background:#dc2626"><i data-ic="trash" data-size="19"></i></span><span class="sx-t">مسح جميع البيانات</span></div>
+        </div>
+        <div class="sx-group">
+          <div class="sx-item" onclick="sxClearCache()"><span class="sx-ic" style="background:#8b5cf6"><i data-ic="trash" data-size="19"></i></span><span class="sx-t">مسح الذاكرة المؤقتة</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
+          <div class="sx-item" onclick="sxAbout()"><span class="sx-ic" style="background:#f59e0b"><i data-ic="info" data-size="19"></i></span><span class="sx-t">حول Babylon Chat</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
         </div>
       </div>
     </div>
@@ -19073,6 +19072,53 @@ return R("index");})();
       if(el.tagName==='VIDEO'){ try{el.load();}catch(_){} }
     }catch(_){}
   },true);
+})();
+</script>
+
+
+<style id="bb-img-load-css">
+#chatView .msg-image.bb-loading{position:relative;min-height:calc(170px * var(--bb-s,1));min-width:calc(170px * var(--bb-s,1));background:#0b0f14}
+#chatView .msg-image.bb-loading>img{opacity:0}
+#chatView .bb-img-cover{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.22);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#chatView .bb-img-cover .vp-logo{position:relative;width:calc(76px * var(--bb-s,1));height:calc(76px * var(--bb-s,1));display:grid;place-items:center;color:#fff}
+#chatView .bb-img-cover .vp-ring{position:absolute;inset:0;width:100%;height:100%;animation:bbImgSpin 1s linear infinite}
+#chatView .bb-img-cover .vp-logo img{width:calc(28px * var(--bb-s,1));height:auto;display:block;transform:translateX(2px);filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+#chatView .bb-img-cover .vp-b{font-size:calc(30px * var(--bb-s,1));font-weight:900;line-height:1;transform:translateX(2px)}
+@keyframes bbImgSpin{to{transform:rotate(360deg)}}
+</style>
+<script id="bb-img-load">
+/* صور المحادثة: إذا لم تكن محمّلة/محفوظة محلياً يظهر الشعار مع الحلقة الدوّارة (مثل لحظة الإرسال) حتى تكتمل */
+(function(){
+  var RING='<svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>';
+  function mark(){var i=document.querySelector('img.bb-b-mark');return i&&i.src?'<img src="'+i.src+'" alt="" draggable="false">':'<b class="vp-b">B</b>';}
+  function attach(img){
+    try{
+      if(img.__bbL||!img.matches||!img.matches('.msg-image img')) return;
+      var src=img.getAttribute('src')||''; if(!src||/^data:/.test(src)) return;
+      if(img.complete&&img.naturalWidth) return;
+      var box=img.closest('.msg-image'); if(!box) return;
+      img.__bbL=true; box.classList.add('bb-loading');
+      var cv=document.createElement('div'); cv.className='bb-img-cover';
+      cv.innerHTML='<div class="vp-logo">'+RING+mark()+'</div>'; box.appendChild(cv);
+      var done=function(){box.classList.remove('bb-loading');if(cv.parentNode)cv.parentNode.removeChild(cv);};
+      img.addEventListener('load',done,{once:true}); img.addEventListener('error',done,{once:true});
+    }catch(_){}
+  }
+  function scan(root){
+    try{
+      if(root.nodeType!==1) return;
+      if(root.matches&&root.matches('.msg-image img')) attach(root);
+      var l=root.querySelectorAll?root.querySelectorAll('.msg-image img'):[];
+      for(var i=0;i<l.length;i++) attach(l[i]);
+    }catch(_){}
+  }
+  function start(){
+    scan(document.body);
+    new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++){var a=ms[i].addedNodes;for(var j=0;j<a.length;j++)scan(a[j]);}
+    }).observe(document.body,{childList:true,subtree:true});
+  }
+  if(document.body) start(); else document.addEventListener('DOMContentLoaded',start);
 })();
 </script>
 
