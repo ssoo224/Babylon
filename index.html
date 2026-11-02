@@ -6474,8 +6474,10 @@ function sendChatVideo(file, opts) {
   const needC = opts && typeof window.bbCompressVideo === 'function' && window.bbCompressNeeded(opts);
   if (!needC) { startUpload(file, opts); return; }
   { const cb = ph.querySelector('.vp-cancel'); if (cb) cb.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); ph.__cancelled = true; try { xhr && xhr.abort(); } catch (_) {} fin(); showToast('تم إلغاء الإرسال'); }); }
+  { const t0 = ph.querySelector('.vp-pct'); if (t0) t0.textContent = ''; }
   window.bbCompressVideo(file, opts, null, () => ph.__cancelled).then(out => {
     if (ph.__cancelled) return;
+    { const t1 = ph.querySelector('.vp-pct'); if (t1) t1.textContent = fmtVP((out && out.size) || file.size) + ' | 0 KB'; }
     if (out && out.size) { startUpload(out, Object.assign({}, opts, { res: 0, crop: null, start: 0, end: 1e9, dur: 0 })); }
     else { startUpload(file, opts); }
   }).catch(() => { if (ph.__cancelled) return; startUpload(file, opts); });
@@ -11227,6 +11229,8 @@ html body .app-container .bbc-ov .bbc-box input.bbc-in:active{outline:none!impor
 .app-container[data-app-theme="light"] #chatView #messageInput.msg-editable:focus,
 .app-container[data-app-theme="dark"] #chatView #messageInput.msg-editable:focus,
 html[data-chat-theme] .app-container #chatView #messageInput.msg-editable:focus{border-color:#c9cfd8!important;box-shadow:none!important;outline:none!important}
+html .app-container[data-app-theme="dark"] #chatView #messageInput.msg-editable:focus,
+.app-container[data-app-theme="dark"] #chatView #messageInput.msg-editable:focus{border-color:#8b94a1!important}
 </style>
 </body>
 </html>
