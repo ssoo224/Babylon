@@ -9610,7 +9610,7 @@ html,body{overscroll-behavior-y:none}
 <script id="pf-pull-expand-js">
 /* سحب الشاشة للأسفل في البروفايل: تكبر الصورة مع الإصبع حتى تصبح مربعًا فيه الاسم، ويختفي الغلاف (مثل تليجرام) */
 (function(){
-  var RANGE = 110;      // كم بكسل سحب لتكتمل الصورة
+  var RANGE = 90;      // كم بكسل سحب لتكتمل الصورة
   var THRESH = 0.45;    // بعد هذه النسبة تثبت مفتوحة عند ترك الإصبع
   // صور البروفايل مخزنة base64 (ميغابايتات). نحولها مرة وحدة إلى blob حتى ما نكرر نص ضخم بالـCSS كل سحبة
   var _lc={}, _sm={}, _smBusy={};
@@ -9837,9 +9837,9 @@ html,body{overscroll-behavior-y:none}
     }
     function animateTo(t){
       cancelAnimationFrame(raf);
-      var from=p, t0=performance.now(), dur=Math.max(260,Math.min(420,Math.abs(t-from)*420+140));
+      var from=p, t0=performance.now(), dur=Math.max(140,Math.min(250,Math.abs(t-from)*250+80));
       (function step(now){
-        var k=clamp((now-t0)/dur), e=1-Math.pow(1-k,4);
+        var k=clamp((now-t0)/dur), e=1-Math.pow(1-k,3);
         try { apply(from+(t-from)*e); } catch (err) { console.warn('profile pull animation stopped', err); pulling=false; track=false; try { reset(); } catch (_) {} return; }
         if(k<1) raf=requestAnimationFrame(step);
         else {
@@ -9870,8 +9870,8 @@ html,body{overscroll-behavior-y:none}
     function onMove(ev){
       var t=ev.touches[0], dy=t.clientY-sy, dx=t.clientX-sx;
       if(!pulling){
-        var wantPull = !expanded && dy>8 && Math.abs(dy)>Math.abs(dx);
-        var wantBack = expanded && dy<-8 && Math.abs(dy)>Math.abs(dx) && view.scrollTop<=1;
+        var wantPull = !expanded && dy>5 && Math.abs(dy)>Math.abs(dx);
+        var wantBack = expanded && dy<-5 && Math.abs(dy)>Math.abs(dx) && view.scrollTop<=1;
         if(!wantPull && !wantBack) return;
         cancelAnimationFrame(raf);
         if(!expanded){ hideRing(); reset(true); sync(); measure(); }
@@ -9892,7 +9892,7 @@ html,body{overscroll-behavior-y:none}
     function follow(now){
       followRaf=0;
       var dt=Math.min(40,now-(followLast||now-16)); followLast=now;
-      var a=1-Math.exp(-dt/22);
+      var a=1-Math.exp(-dt/6);
       var nv=p+(tv-p)*a;
       if(Math.abs(tv-nv)<0.0015) nv=tv;
       try { apply(nv); } catch (err) { console.warn('profile pull tracking stopped', err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try { reset(); } catch (_) {} return; }
@@ -9907,7 +9907,7 @@ html,body{overscroll-behavior-y:none}
       }
       pulling=false; track=false;
       cancelAnimationFrame(followRaf); followRaf=0; followLast=0;
-      var open = vel>0.7 ? true : vel<-0.7 ? false : (p>=THRESH && (p0===0 || p>=0.7));
+      var open = vel>0.45 ? true : vel<-0.45 ? false : (p>=THRESH && (p0===0 || p>=0.7));
       vel=0; lastT=0;
       animateTo(open ? 1 : 0);
     }
