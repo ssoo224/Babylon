@@ -9587,24 +9587,6 @@ async function avatarDownload(){
 }
 </script>
 
-<style id="pf-own-avatar-drag-performance">
-/* تحسين سحب صورة الملف الشخصي الخاص بالمستخدم: صورة عالية الجودة وتسريع طبقة الحركة */
-#profileView.pf-dragging .pf-hero,
-#profileView.pf-dragging .pf-hero img{
-  backface-visibility:hidden!important;
-  -webkit-backface-visibility:hidden!important;
-  transform:translateZ(0);
-}
-#profileView.pf-dragging .pf-hero img{
-  image-rendering:auto!important;
-  contain:paint;
-}
-#profileView.pf-dragging .pf-hero-ext,
-#profileView.pf-dragging .pf-hero-shade{
-  will-change:opacity,transform;
-}
-</style>
-
 <style id="pf-pull-expand-css">
 html,body{overscroll-behavior-y:none}
 #profileView,#otherUserProfileView{position:relative;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
@@ -9628,8 +9610,8 @@ html,body{overscroll-behavior-y:none}
 <script id="pf-pull-expand-js">
 /* سحب الشاشة للأسفل في البروفايل: تكبر الصورة مع الإصبع حتى تصبح مربعًا فيه الاسم، ويختفي الغلاف (مثل تليجرام) */
 (function(){
-  var RANGE = 72;      // سحب أقصر وأكثر استجابة (خاص بتكبير صورة الملف الشخصي)
-  var THRESH = 0.40;    // تثبيت أكثر سلاسة عند ترك الإصبع
+  var RANGE = 90;      // كم بكسل سحب لتكتمل الصورة
+  var THRESH = 0.45;    // بعد هذه النسبة تثبت مفتوحة عند ترك الإصبع
   // صور البروفايل مخزنة base64 (ميغابايتات). نحولها مرة وحدة إلى blob حتى ما نكرر نص ضخم بالـCSS كل سحبة
   var _lc={}, _sm={}, _smBusy={};
   function shrink(key,url){
@@ -9839,7 +9821,7 @@ html,body{overscroll-behavior-y:none}
       if(view.classList.contains('pf-dragging')) view.classList.remove('pf-dragging');
       restoreOriginalAvatar();
       p=0; expanded=false;
-      hero.style.display='none'; hero.style.pointerEvents='none'; hero.style.transform=''; hero.style.willChange='width,height,top,left'; hInfo.style.opacity=0;
+      hero.style.display='none'; hero.style.pointerEvents='none'; hInfo.style.opacity=0;
       cover.style.height=''; cover.style.opacity='';
       ring.style.opacity='';
       ring.style.visibility='';
@@ -9855,7 +9837,7 @@ html,body{overscroll-behavior-y:none}
     }
     function animateTo(t){
       cancelAnimationFrame(raf);
-      var from=p, t0=performance.now(), dur=own?Math.max(105,Math.min(190,Math.abs(t-from)*180+55)):Math.max(140,Math.min(250,Math.abs(t-from)*250+80));
+      var from=p, t0=performance.now(), dur=Math.max(140,Math.min(250,Math.abs(t-from)*250+80));
       (function step(now){
         var k=clamp((now-t0)/dur), e=1-Math.pow(1-k,3);
         try { apply(from+(t-from)*e); } catch (err) { console.warn('profile pull animation stopped', err); pulling=false; track=false; try { reset(); } catch (_) {} return; }
@@ -9895,7 +9877,6 @@ html,body{overscroll-behavior-y:none}
         cancelAnimationFrame(raf);
         if(!expanded){ hideRing(); reset(true); sync(); measure(); }
         view.classList.add('pf-dragging');
-        if(own){ hero.style.transform='translateZ(0)'; hero.style.willChange='transform,width,height,top,left'; }
         sysBars(true);   /* تركيب الصورة على شريط الإشعارات من أول إطار (مرة واحدة فقط، بلا تبديل أثناء السحب) */
         pulling=true; p0=expanded?1:0; sy=t.clientY; tv=p; vel=0; lastT=0;   // نبدأ من نقطة بدء السحب الفعلي
         // إخفاء الحلقة فور بدء السحب المقبول، ومنع ظهورها في إطارات التحديث الأولى.
@@ -9909,14 +9890,22 @@ html,body{overscroll-behavior-y:none}
       tv=clamp(p0+dy/RANGE);
       if(!followRaf) followRaf=requestAnimationFrame(follow);
     }
-    function follow(now){
+    /* Own-profile drag: follow the finger directly on the next frame.
+       The previous exponential smoothing introduced visible trailing/lag on fast swipes.
+       Keep updates frame-coalesced, but do not interpolate behind the touch position. */
+    function follow(){
       followRaf=0;
-      var dt=Math.min(40,now-(followLast||now-16)); followLast=now;
-      var a=1-Math.exp(-dt/(own?2.4:6));
-      var nv=p+(tv-p)*a;
-      if(Math.abs(tv-nv)<0.0015) nv=tv;
-      try { apply(nv); } catch (err) { console.warn('profile pull tracking stopped', err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try { reset(); } catch (_) {} return; }
-      if(pulling && nv!==tv){ followRaf=requestAnimationFrame(follow); } else followLast=0;
+      if(!pulling) return;
+      var target=tv;
+      try { apply(target); }
+      catch (err) {
+        console.warn('profile pull tracking stopped', err);
+        pulling=false; track=false;
+        cancelAnimationFrame(followRaf); followRaf=0;
+        try { reset(); } catch (_) {}
+        return;
+      }
+      followLast=0;
     }
 
     function finish(){
@@ -12683,6 +12672,7 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   var av=btn.querySelector('.avatar');
   function syncAv(){var src=bar.querySelector('.sb-item .avatar');if(!src)return;var h=src.innerHTML,c=src.className;if(av.__h===h&&av.__c===c)return;av.__h=h;av.__c=c;av.className=c;av.innerHTML=h;var p=av.querySelector('.sb-plus');if(p)p.remove();}
   function syncTop(){
+    if(bar.classList.contains('bb-anim'))return;
     var expanded=!bar.classList.contains('collapsed')&&!bar.classList.contains('hidden');
     if(top)top.classList.toggle('sb-off',!expanded);
     // The header avatar moves visually into the stories strip while it is expanded.
@@ -12706,6 +12696,18 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
 .app-container #homeView#homeView #storiesBar .sb-item,.app-container #homeView#homeView #storiesBar .sb-item:nth-child(n){animation-duration:.001s!important;animation-delay:0s!important}
 .app-container #homeView#homeView #storiesBar .sb-item span,.app-container #homeView#homeView #storiesBar .sb-item .avatar,.app-container #homeView#homeView #storiesBar .sb-plus{transition:none!important;animation:none!important}
 </style>
+<style id="bb-stories-fly-css">
+/* الخط الذهبي والمساحة الصغيرة تحته يتبعان تقدّم الطي إطاراً بإطار بدل أن يتأخرا حتى نهاية الحركة */
+.app-container #homeView#homeView .top-stories::after{opacity:var(--bb-lp,1)}
+.app-container #homeView#homeView .top-stories.sb-off::after{display:block!important;opacity:var(--bb-lp,0)}
+.app-container #homeView#homeView .top-stories.sb-off{padding-bottom:0}
+/* الصورة المصغّرة الطائرة */
+#hdrAvatarBtn.bb-hold{visibility:hidden!important}
+#hdrAvatarBtn .hdr-story-stack{transition:opacity .22s ease}
+#hdrAvatarBtn.bb-hold .hdr-story-stack{opacity:0}
+.app-container #homeView#homeView #storiesBar.bb-flying .sb-item:first-child .avatar{opacity:0!important}
+.bb-fly{contain:layout style}
+</style>
 <script id="bb-stories-smooth-js">
 /* القصص: الشريط يتبع إصبعك بكسلاً بكسلاً (1:1) أثناء السحب، وعند الإفلات يكمل بحركة ناعمة تراعي سرعة الإصبع.
    كل إطار (60/90/120Hz) يحدّث الارتفاع بدقة كسور البكسل. */
@@ -12713,9 +12715,10 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   var bar=document.getElementById('storiesBar'), home=document.getElementById('homeView'), orig=window.setStoriesCollapsed;
   if(!bar||!home||typeof orig!=='function') return;
   var H=0,PT=0,PB=0,drag=null,raf=0,anim=0,pend=null,locked=false,lockTop=0,savedOY='';
+  var tp=document.getElementById('topStories'), fl=null;
   var hbtn=document.getElementById('hdrAvatarBtn'), hd=document.getElementById('sbHandle'), HH=0,HMT=0,HMB=0,hmode='';
   /* صورة الهيدر المصغّرة تظهر/تختفي مع بداية الحركة لا بعد نهايتها */
-  function moved(on){ if(hbtn) hbtn.classList.toggle('story-avatar-moved',!!on); var tp=document.getElementById('topStories'); if(tp) tp.classList.toggle('sb-off',!on); }
+  function moved(on){ if(hbtn){ hbtn.classList.toggle('story-avatar-moved',!!on); if(!on&&fl){ hbtn.classList.add('bb-hold'); hbtn.setAttribute('aria-expanded','false'); } } var tp=document.getElementById('topStories'); if(tp) tp.classList.toggle('sb-off',!on); }
   /* قفل تمرير القائمة أثناء الطي حتى لا تتحرك المحادثات مرتين (تمرير + انكماش) فتختبئ أول محادثة */
   function lock(top){ if(locked) return; locked=true; savedOY=home.style.overflowY; lockTop=top; home.style.overflowY='hidden'; home.scrollTop=top; }
   function unlock(){ if(!locked) return; locked=false; home.style.overflowY=savedOY||''; }
@@ -12728,11 +12731,42 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
     bar.style.paddingTop=(PT*p).toFixed(2)+'px';
     bar.style.paddingBottom=(PB*p).toFixed(2)+'px';
     bar.style.setProperty('--bb-p',p.toFixed(4));
+    bar.style.borderBottomWidth=p>=1?'':'0px';
+    if(tp){ tp.style.paddingBottom=(2*p).toFixed(2)+'px'; tp.style.setProperty('--bb-lp',p.toFixed(3)); }
+    flyUpdate(p);
     bar.style.opacity=Math.min(1,p*1.5).toFixed(3);
     if(hd&&HH){ var hs=hd.style; hs.transition='none'; hs.overflow='hidden'; hs.height=(HH*p).toFixed(2)+'px'; hs.marginTop=(HMT*p).toFixed(2)+'px'; hs.marginBottom=(HMB*p).toFixed(2)+'px'; hs.opacity=hmode==='c'?'0':Math.min(1,p*1.5).toFixed(3); }
     return p;
   }
-  function clear(){ if(hd){ hd.style.height=hd.style.marginTop=hd.style.marginBottom=hd.style.opacity=hd.style.overflow=hd.style.transition=''; } bar.style.height=bar.style.paddingTop=bar.style.paddingBottom=bar.style.opacity=''; bar.style.removeProperty('--bb-p'); bar.classList.remove('bb-anim'); }
+  function clear(){ if(hd){ hd.style.height=hd.style.marginTop=hd.style.marginBottom=hd.style.opacity=hd.style.overflow=hd.style.transition=''; } bar.style.height=bar.style.paddingTop=bar.style.paddingBottom=bar.style.opacity=''; bar.style.removeProperty('--bb-p'); bar.style.borderBottomWidth=''; if(tp){ tp.style.paddingBottom=''; tp.style.removeProperty('--bb-lp'); } endFly(); bar.classList.remove('bb-anim'); }
+  /* الصورة المصغّرة: تنتقل فعلياً من الهيدر إلى الشريط وتكبر (والعكس عند الطي) بدل أن تختفي وتظهر أخرى */
+  function rectOf(el){ var r=el.getBoundingClientRect(); return r.width?{x:r.left,y:r.top,w:r.width,h:r.height}:null; }
+  function hdrRect(){ var a=hbtn&&hbtn.querySelector('.avatar'); return a?rectOf(a):null; }
+  function barRect(){ var a=bar.querySelector('.sb-item .avatar'); return a?rectOf(a):null; }
+  function holdHeader(){ if(!hbtn) return null; hbtn.setAttribute('aria-expanded','false'); hbtn.classList.add('bb-hold'); return hdrRect(); }
+  function flyStart(hr,br){
+    if(!hr||!br) return;
+    var src=bar.querySelector('.sb-item .avatar'); if(!src) return;
+    var host=bar.closest('.app-container')||document.body;
+    var wrap=document.createElement('div'); wrap.className='sb-item bb-fly'; wrap.setAttribute('aria-hidden','true');
+    var av=src.cloneNode(true); av.removeAttribute('id'); wrap.appendChild(av);
+    wrap.style.cssText='position:fixed;left:0;top:0;margin:0;padding:0;width:'+br.w+'px;height:'+br.h+'px;display:block;z-index:100;pointer-events:none;transform-origin:50% 50%;will-change:transform;animation:none;opacity:1';
+    av.style.setProperty('width',br.w+'px','important'); av.style.setProperty('height',br.h+'px','important');
+    av.style.setProperty('margin','0','important'); av.style.setProperty('transition','none','important'); av.style.setProperty('opacity','1','important');
+    fl={el:wrap,hr:hr,br:br,plus:av.querySelector('.sb-plus')};
+    host.appendChild(wrap); bar.classList.add('bb-flying');
+  }
+  function flyUpdate(p){
+    if(!fl) return; var h=fl.hr,b=fl.br;
+    var hx=h.x+h.w/2, hy=h.y+h.h/2, bx=b.x+b.w/2, by=b.y+b.h/2;
+    var cx=hx+(bx-hx)*p, cy=hy+(by-hy)*p, sc=(h.w+(b.w-h.w)*p)/b.w;
+    fl.el.style.transform='translate3d('+(cx-b.w/2).toFixed(2)+'px,'+(cy-b.h/2).toFixed(2)+'px,0) scale('+sc.toFixed(4)+')';
+    if(fl.plus) fl.plus.style.opacity=p.toFixed(3);
+  }
+  function endFly(){
+    if(fl&&fl.el.parentNode) fl.el.parentNode.removeChild(fl.el);
+    fl=null; bar.classList.remove('bb-flying'); if(hbtn) hbtn.classList.remove('bb-hold');
+  }
   function cancelAnim(){ if(anim){ cancelAnimationFrame(anim); anim=0; } }
   var ease=function(t){ return 1-Math.pow(1-t,3); };   /* easeOutQuart: ناعم جداً في النهاية */
   function run(from,to,vel,done){
@@ -12752,9 +12786,9 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
     if(isC===c||bar.classList.contains('hidden')) return orig(c);
     if(c){
       metrics(); if(H<4) return orig(true);
-      moved(false); hmode='c'; lock(home.scrollTop); bar.classList.add('bb-anim'); run(1,0,1.6,function(){ if(hd) hd.classList.add('hidden'); orig(true); clear(); unlock(); });
+      var br0=barRect(); moved(false); hmode='c'; var hr0=holdHeader(); lock(home.scrollTop); bar.classList.add('bb-anim'); flyStart(hr0,br0); run(1,0,1.6,function(){ if(hd) hd.classList.add('hidden'); orig(true); clear(); unlock(); });
     } else {
-      orig(false); moved(true); hmode='e'; if(hd) hd.classList.remove('hidden'); bar.classList.add('bb-anim'); metrics(); apply(0); run(0,1,1.6,clear);
+      var hr1=hdrRect(); orig(false); moved(true); hmode='e'; if(hd) hd.classList.remove('hidden'); bar.classList.add('bb-anim'); metrics(); flyStart(hr1,barRect()); apply(0); run(0,1,1.6,clear);
     }
   };
   function open(){ return !bar.classList.contains('collapsed')&&!bar.classList.contains('hidden'); }
@@ -12769,8 +12803,8 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
       if(!pend||bar.classList.contains('hidden')) return;
       var dy=t.clientY-pend.y, dx=Math.abs(t.clientX-pend.x);
       if(Math.abs(dy)<7||Math.abs(dy)<dx*1.2) return;
-      if(open()&&dy<0){ cancelAnim(); clear(); metrics(); if(H<4) return; bar.classList.add('bb-anim'); moved(false); hmode='c'; apply(1); lock(pend.st||0); drag={mode:'c',y0:t.clientY,p0:1}; }
-      else if(!open()&&dy>0&&home.scrollTop<=0){ cancelAnim(); clear(); orig(false); moved(true); hmode='e'; if(hd) hd.classList.remove('hidden'); bar.classList.add('bb-anim'); metrics(); if(H<4){ clear(); return; } apply(0); drag={mode:'e',y0:t.clientY,p0:0}; }
+      if(open()&&dy<0){ cancelAnim(); clear(); metrics(); if(H<4) return; var br2=barRect(); bar.classList.add('bb-anim'); moved(false); hmode='c'; flyStart(holdHeader(),br2); apply(1); lock(pend.st||0); drag={mode:'c',y0:t.clientY,p0:1}; }
+      else if(!open()&&dy>0&&home.scrollTop<=0){ cancelAnim(); clear(); var hr2=hdrRect(); orig(false); moved(true); hmode='e'; if(hd) hd.classList.remove('hidden'); bar.classList.add('bb-anim'); metrics(); if(H<4){ clear(); return; } flyStart(hr2,barRect()); apply(0); drag={mode:'e',y0:t.clientY,p0:0}; }
       else return;
       drag.v=0; drag.lt=performance.now(); drag.ly=t.clientY; drag.p=drag.p0;
     }
