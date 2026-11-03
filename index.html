@@ -4875,6 +4875,7 @@ function __bbFastApply(snap, box, existingTyping) {
     }
     if (messageSelectionMode) refreshMessageSelectionUI();
     if (tail.length && !__keep) box.scrollTop = box.scrollHeight;
+    try { if ((box.scrollHeight - box.scrollTop - box.clientHeight) < 160 && window.bbStickBottom) window.bbStickBottom(8000); } catch (e) {}
     window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
     return true;
   } catch (e) { return false; }
@@ -5019,6 +5020,7 @@ function openChatRoom(otherUserId, keepLimit) {
       else if (window.__bbSwapFar) { box.scrollTop = prevTop; window.__bbSwapFar = false; }   // أرسلتَ ثم ابتعدتَ للأعلى: لا نعيدك للأسفل
       else if (wasNearBottom || (hasAdded && !(((prevH - prevTop - box.clientHeight) > 200) && (() => { try { const ch = snap.docChanges().filter(c => c.type === 'added'); return ch.length > 0 && ch.every(c => c.doc.data().senderId !== currentUser.uid); } catch (e) { return false; } })()))) box.scrollTop = box.scrollHeight;   // رسالة جديدة أو كنت أسفل المحادثة
       else box.scrollTop = prevTop;                                            // تفاعل/تعديل: ابقَ في مكانك
+      try { if ((box.scrollHeight - box.scrollTop - box.clientHeight) < 160 && window.bbStickBottom) window.bbStickBottom(8000); } catch (e) {}
       window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
     });
   try { __bbInstantOpen(); } catch (e) {}
@@ -19249,6 +19251,33 @@ window.onKeyboardImage = async function (dataUrl, mime) {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
 </script>
+
+<script id="bb-stick-bottom">
+/* عند فتح المحادثة نبقى في أسفلها حتى لو كبر ارتفاع الصور/الفيديوهات بعد اكتمال تحميلها (إلا إذا حرّكتَ الشاشة بنفسك) */
+(function(){
+  function area(){return document.getElementById('messagesArea');}
+  function down(){
+    var a=area(); if(!a||window.__bbUserScrolled) return;
+    if(Date.now()>(window.__bbStickUntil||0)) return;
+    a.scrollTop=a.scrollHeight;
+  }
+  ['load','loadedmetadata','loadeddata','error'].forEach(function(ev){
+    document.addEventListener(ev,function(e){
+      var t=e.target,a=area();
+      if(a&&t&&t.nodeType===1&&a.contains(t)) down();
+    },true);
+  });
+  function userMove(e){var a=area(); if(a&&a.contains(e.target)) window.__bbUserScrolled=true;}
+  document.addEventListener('touchmove',userMove,{passive:true,capture:true});
+  document.addEventListener('wheel',userMove,{passive:true,capture:true});
+  window.bbStickBottom=function(ms){
+    window.__bbUserScrolled=false;
+    window.__bbStickUntil=Date.now()+(ms||8000);
+    [150,450,900,1600,3000].forEach(function(d){setTimeout(down,d);});
+  };
+})();
+</script>
+
 <style id="babylon-split-layout-fix">
 /* ============================================================
    إصلاح واجهة التابلت/الأفقي (شاشة مقسومة: قائمة + محادثة)
