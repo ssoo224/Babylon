@@ -9759,10 +9759,14 @@ html,body{overscroll-behavior-y:none}
       // هذا يمنع وميض الدائرة الرمادية في أول إطارات الحركة.
       if(v<=0.001){
         if(pulling){
-          hero.style.display='none'; hero.style.pointerEvents='none';
-          hideRing();
-        } else { reset(); }
-        return;
+          /* لا نُخفي الصورة والحلقة معاً (كان يسبب اختفاء ثم ظهور): إن كانت الصورة داخل العنصر المكبّر نبقيه بحجم الحلقة تماماً */
+          if(!originalAvatarMoved){
+            hero.style.display='none'; hero.style.pointerEvents='none';
+            showRing();
+            return;
+          }
+          v=0;
+        } else { reset(); return; }
       }
       moveOriginalAvatarIntoHero();
       var size=g.size+(g.S-g.size)*v;
@@ -9876,9 +9880,7 @@ html,body{overscroll-behavior-y:none}
       // Hide the source ring on the very first downward movement frame, before the
       // pull threshold is reached. Restore it if this turns out not to be a pull.
       var firstTouch=ev.touches[0], earlyDy=firstTouch.clientY-sy, earlyDx=firstTouch.clientX-sx;
-      if(!expanded && earlyDy>0 && Math.abs(earlyDy)>Math.abs(earlyDx)){
-        hideRing();
-      } else if(!pulling && !expanded){ showRing(); }
+      if(!pulling && !expanded){ showRing(); }
       try{ onMove(ev); }catch(err){ console.warn('profile pull move failed',err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try{ reset(); }catch(_){} }
     },{passive:false});
     function onMove(ev){
@@ -9888,12 +9890,10 @@ html,body{overscroll-behavior-y:none}
         var wantBack = expanded && dy<-5 && Math.abs(dy)>Math.abs(dx) && view.scrollTop<=1;
         if(!wantPull && !wantBack) return;
         cancelAnimationFrame(raf);
-        if(!expanded){ hideRing(); reset(true); sync(); measure(); }
+        if(!expanded){ reset(true); showRing(); sync(); measure(); }
         view.classList.add('pf-dragging');
         sysBars(true);   /* تركيب الصورة على شريط الإشعارات من أول إطار (مرة واحدة فقط، بلا تبديل أثناء السحب) */
         pulling=true; p0=expanded?1:0; sy=t.clientY; tv=p; vel=0; lastT=0;   // نبدأ من نقطة بدء السحب الفعلي
-        // إخفاء الحلقة فور بدء السحب المقبول، ومنع ظهورها في إطارات التحديث الأولى.
-        hideRing();
         dy=0;
       }
       if(ev.cancelable) ev.preventDefault();
@@ -12834,6 +12834,41 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   }
   home.addEventListener('touchend',release,{passive:true,capture:true});
   home.addEventListener('touchcancel',release,{passive:true,capture:true});
+})();
+</script>
+<style id="bb-stories-prewarm-css">
+/* تجهيز مسبق للطبقات حتى لا يحدث تأخر في أول رفع */
+.app-container #homeView#homeView #storiesBar:not(.collapsed):not(.hidden){will-change:height,opacity;transform:translateZ(0)}
+.app-container #homeView#homeView #storiesBar:not(.collapsed):not(.hidden) .sb-item{will-change:scale}
+#hdrAvatarBtn{will-change:opacity,transform}
+</style>
+<script id="bb-stories-prewarm-js">
+(function(){
+  var bar=document.getElementById('storiesBar'), home=document.getElementById('homeView');
+  if(!bar||!home) return;
+  var layerDone=false, t=0;
+  function decodeAll(){
+    var imgs=bar.querySelectorAll('img'), hb=document.querySelectorAll('#hdrAvatarBtn img');
+    [].slice.call(imgs).concat([].slice.call(hb)).forEach(function(im){ try{ if(im.decode) im.decode().catch(function(){}); }catch(e){} });
+  }
+  function warm(){
+    t=0;
+    if(bar.classList.contains('hidden')||bar.classList.contains('bb-anim')) return;
+    decodeAll();
+    try{ getComputedStyle(bar).paddingTop; bar.getBoundingClientRect(); }catch(e){}
+    if(layerDone) return;
+    var src=bar.querySelector('.sb-item .avatar'); if(!src) return;
+    layerDone=true;
+    var host=bar.closest('.app-container')||document.body;
+    var w=document.createElement('div'); w.className='sb-item bb-fly'; w.setAttribute('aria-hidden','true');
+    w.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;overflow:hidden;opacity:.01;pointer-events:none;will-change:transform;transform:translate3d(0,0,0) scale(.99)';
+    w.appendChild(src.cloneNode(true)); host.appendChild(w);
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ if(w.parentNode) w.parentNode.removeChild(w); }); });
+  }
+  function schedule(){ if(t) return; t=setTimeout(warm,120); }
+  new MutationObserver(schedule).observe(bar,{childList:true,subtree:true,attributes:true,attributeFilter:['class','src']});
+  home.addEventListener('touchstart',function(){ if(!layerDone) warm(); },{passive:true,capture:true});
+  schedule();
 })();
 </script>
 <style id="babylon-mentions">
