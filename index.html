@@ -19663,3 +19663,183 @@ window.bbTinyThumb = function (file) {
   #chatView #textInputBar>.bb-sticker-btn{flex:0 0 auto!important;position:static!important;transform:none!important;inset:auto!important;margin:0!important}
 }
 </style>
+
+<!-- ===== Babylon: أنيميشن الدخول (المحادثة + الأزرار + الأقسام) ===== -->
+<style id="bb-entrance-anim">
+/* دخول المحادثة: تكبر وتظهر */
+@keyframes bbChatGrow{
+  0%{opacity:0;transform:scale(.88) translateY(18px)}
+  60%{opacity:1}
+  100%{opacity:1;transform:scale(1) translateY(0)}
+}
+/* دخول بقية الشاشات: خفيف */
+@keyframes bbViewIn{
+  0%{opacity:0;transform:translateY(10px) scale(.985)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes bbBarDown{0%{opacity:0;transform:translateY(-14px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes bbBarUp{0%{opacity:0;transform:translateY(16px)}100%{opacity:1;transform:translateY(0)}}
+/* الأقسام والصفوف */
+@keyframes bbRise{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
+/* الأزرار */
+@keyframes bbPop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+/* الرسالة الجديدة */
+@keyframes bbMsgIn{0%{opacity:0;transform:translateY(10px) scale(.94)}100%{opacity:1;transform:translateY(0) scale(1)}}
+
+#chatView.bb-chat-grow{animation:bbChatGrow .42s cubic-bezier(.22,1,.36,1) backwards;transform-origin:50% 60%;will-change:transform,opacity}
+.bb-view-in{animation:bbViewIn .32s cubic-bezier(.22,1,.36,1) backwards}
+.bb-bar-down{animation:bbBarDown .34s cubic-bezier(.22,1,.36,1) backwards}
+.bb-bar-up{animation:bbBarUp .34s cubic-bezier(.22,1,.36,1) backwards}
+
+/* رأس المحادثة وشريط الكتابة يدخلان بعد النافذة بقليل */
+#chatView.bb-chat-grow .telegram-chat-header{animation:bbBarDown .36s cubic-bezier(.22,1,.36,1) .08s backwards}
+#chatView.bb-chat-grow .chat-input-container{animation:bbBarUp .36s cubic-bezier(.22,1,.36,1) .12s backwards}
+
+/* عناصر الدخول المتدرّج (تُعيَّن بالـ JS وتعمل فقط أثناء الدخول) */
+.bb-playing .bb-rise{animation:bbRise .38s cubic-bezier(.22,1,.36,1) calc(var(--bb-i,0) * 32ms + 70ms) backwards}
+.bb-playing .bb-pop{animation:bbPop .38s cubic-bezier(.34,1.4,.5,1) calc(var(--bb-i,0) * 32ms + 110ms) backwards}
+
+.bb-fab-in{animation:bbPop .4s cubic-bezier(.34,1.4,.5,1) .25s backwards}
+/* رسالة جديدة */
+.messages-area .bb-msg-in{animation:bbMsgIn .26s cubic-bezier(.22,1,.36,1) backwards}
+
+/* عناصر قائمة المحادثات التي تُضاف لاحقًا */
+.bb-item-in{animation:bbRise .34s cubic-bezier(.22,1,.36,1) calc(var(--bb-i,0) * 30ms) backwards}
+
+@media (prefers-reduced-motion:reduce){
+  #chatView.bb-chat-grow,.bb-view-in,.bb-bar-down,.bb-bar-up,
+  #chatView.bb-chat-grow .telegram-chat-header,#chatView.bb-chat-grow .chat-input-container,
+  .bb-playing .bb-rise,.bb-playing .bb-pop,.messages-area .bb-msg-in,.bb-item-in,.bb-fab-in{animation:none!important}
+}
+</style>
+<script id="bb-entrance-anim-js">
+(function(){
+  'use strict';
+  if (window.__bbEntranceAnim) return; window.__bbEntranceAnim = true;
+  var reduce = false;
+  try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){}
+  if (reduce) return;
+
+  var POP  = 'button,.icon-btn,.cl-chip,.pf-btn,.pf-q,.pf-tab,.nav-item,.hdr-avatar,.settings-theme-switch';
+  var RISE = '.chat-item,.sx-item,.sx-group,.sx-label,.sx-hero,.pf-hero,.pf-row,.search-field,.search-hint,.set-card,.set-row,.main-header-title';
+  var MAX_ITEMS = 16;
+
+  function visible(el){ return el.getClientRects().length > 0; }
+
+  function restart(el, cls, ms){
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    clearTimeout(el['__t_' + cls]);
+    el['__t_' + cls] = setTimeout(function(){ el.classList.remove(cls); }, ms || 1100);
+  }
+
+  /* يعيّن ترتيب الدخول لأزرار وأقسام الشاشة */
+  function stagger(root, extras){
+    var list = [];
+    try {
+      var nodes = root.querySelectorAll(POP + ',' + RISE);
+      for (var i = 0; i < nodes.length && list.length < MAX_ITEMS; i++){
+        var n = nodes[i];
+        if (n.closest('#messagesArea,#chatMoreMenu,#chatSearchPanel,.hidden,.avatar-story-ring')) continue;
+        if (!visible(n)) continue;
+        list.push(n);
+      }
+    } catch(e){}
+    (extras || []).forEach(function(x){ if (x && visible(x)) list.push(x); });
+    list.forEach(function(n, idx){
+      var isPop = n.matches(POP) && !n.matches(RISE);
+      n.classList.remove('bb-pop','bb-rise');
+      n.classList.add(isPop ? 'bb-pop' : 'bb-rise');
+      n.style.setProperty('--bb-i', Math.min(idx, 12));
+    });
+    root.classList.add('bb-playing');
+    clearTimeout(root.__tp);
+    root.__tp = setTimeout(function(){ root.classList.remove('bb-playing'); }, 1300);
+  }
+
+  function enterView(el){
+    if (!el) return;
+    var isChat = el.id === 'chatView';
+    var extras = el.id === 'homeView' ? [document.getElementById('newGroupFab')] : [];
+    stagger(el);
+    if (isChat) restart(el, 'bb-chat-grow', 900);
+    else restart(el, 'bb-view-in', 800);
+    if (extras[0]) restart(extras[0], 'bb-fab-in', 900);
+  }
+
+  function enterBar(el, cls){
+    if (!el) return;
+    stagger(el);
+    restart(el, cls, 900);
+  }
+
+  /* مراقبة ظهور العناصر (إزالة hidden) */
+  var state = new WeakMap();
+  function watch(el, onShow){
+    if (!el) return;
+    state.set(el, !el.classList.contains('hidden'));
+    new MutationObserver(function(){
+      var was = state.get(el), now = !el.classList.contains('hidden');
+      state.set(el, now);
+      if (!was && now) onShow(el);
+    }).observe(el, { attributes:true, attributeFilter:['class'] });
+  }
+
+  var VIEWS = ['homeView','searchView','profileView','otherUserProfileView','settingsView',
+               'chatSettingsView','notificationSettingsView','privacySettingsView','chatView','editProfileView'];
+
+  function init(){
+    VIEWS.forEach(function(id){ watch(document.getElementById(id), enterView); });
+    watch(document.getElementById('mainHeader'), function(el){ enterBar(el, 'bb-bar-down'); });
+    watch(document.getElementById('bottomNav'),  function(el){ enterBar(el, 'bb-bar-up'); });
+
+    /* أول دخول للتطبيق بعد تسجيل الدخول */
+    watch(document.getElementById('mainPage'), function(){
+      VIEWS.forEach(function(id){
+        var v = document.getElementById(id);
+        if (v && !v.classList.contains('hidden')) enterView(v);
+      });
+      var h = document.getElementById('mainHeader'); if (h && !h.classList.contains('hidden')) enterBar(h, 'bb-bar-down');
+      var n = document.getElementById('bottomNav');  if (n && !n.classList.contains('hidden')) enterBar(n, 'bb-bar-up');
+    });
+
+    /* محادثات تُضاف لاحقًا إلى القائمة */
+    var list = document.getElementById('chatList');
+    if (list) {
+      var seen = 0, t0 = Date.now();
+      new MutationObserver(function(muts){
+        muts.forEach(function(m){
+          m.addedNodes.forEach(function(n){
+            if (n.nodeType !== 1 || !n.classList.contains('chat-item')) return;
+            if (Date.now() - t0 < 600) return;         // التحميل الأول يغطيه أنيميشن الشاشة
+            if (seen++ > 40) return;
+            n.style.setProperty('--bb-i', 0);
+            n.classList.add('bb-item-in');
+            setTimeout(function(){ n.classList.remove('bb-item-in'); }, 700);
+          });
+        });
+      }).observe(list, { childList:true });
+    }
+
+    /* رسالة جديدة داخل المحادثة (وليس إعادة رسم كاملة) */
+    var box = document.getElementById('messagesArea');
+    if (box) {
+      new MutationObserver(function(muts){
+        var added = [];
+        muts.forEach(function(m){ m.addedNodes.forEach(function(n){
+          if (n.nodeType === 1 && n.classList.contains('msg-bubble')) added.push(n);
+        }); });
+        if (!added.length || added.length > 2) return;   // إعادة رسم/تحميل كامل: بدون أنيميشن
+        var chat = document.getElementById('chatView');
+        if (chat && chat.classList.contains('bb-chat-grow')) return;
+        added.forEach(function(n){
+          n.classList.add('bb-msg-in');
+          setTimeout(function(){ n.classList.remove('bb-msg-in'); }, 500);
+        });
+      }).observe(box, { childList:true });
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
