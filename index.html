@@ -10769,7 +10769,7 @@ button:focus, button:focus-visible, a:focus, a:focus-visible, [role="button"]:fo
    - داخل المحادثة: مسافة سفلية أقل، وتصغر أكثر عند ظهور الكيبورد
    ============================================================ */
 :root{
-  --sab-real:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px));
+  --sab-real:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px),var(--bb-nav-inset,0px));
 }
 /* شريط التنقل: أنحف بدرجة واحدة (66px -> 60px) */
 .app-container #bottomNav.telegram-bottom-nav{
@@ -12526,6 +12526,17 @@ function updateUnreadChip(){var n=document.querySelectorAll('#chatList .chat-ite
   home.addEventListener('touchstart',function(e){y0=home.scrollTop<=0?e.touches[0].clientY:null;done=false;},{passive:true});
   home.addEventListener('touchmove',function(e){if(y0==null||done)return;if(e.touches[0].clientY-y0>45&&bar.classList.contains('collapsed')){done=true;setStoriesCollapsed(false);}},{passive:true});
   home.addEventListener('touchend',function(){y0=null;},{passive:true});
+  // swipe up anywhere on the home screen to fold the open stories bar (opposite of pulling down)
+  var uy=null,ux=null,udone=false;
+  home.addEventListener('touchstart',function(e){uy=e.touches[0].clientY;ux=e.touches[0].clientX;udone=false;},{passive:true});
+  home.addEventListener('touchmove',function(e){
+    if(uy==null||udone)return;
+    if(bar.classList.contains('collapsed')||bar.classList.contains('hidden'))return;
+    var dy=uy-e.touches[0].clientY,dx=Math.abs(e.touches[0].clientX-ux);
+    if(dy>45&&dy>dx*1.3){udone=true;setStoriesCollapsed(true);}
+  },{passive:true});
+  home.addEventListener('touchend',function(){uy=null;},{passive:true});
+  home.addEventListener('touchcancel',function(){uy=null;y0=null;},{passive:true});
   // swipe up on the open bar to fold it
   var by=null;bar.addEventListener('touchstart',function(e){by=e.touches[0].clientY;},{passive:true});
   bar.addEventListener('touchend',function(e){if(by!=null&&by-e.changedTouches[0].clientY>40)setStoriesCollapsed(true);by=null;},{passive:true});
@@ -15784,7 +15795,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
   function apply(){
     try{
       if(window.innerWidth>=1100){root.style.removeProperty('--vv-h');root.style.removeProperty('--vv-top');return;}
-      var h=vv?vv.height:window.innerHeight,t=vv?vv.offsetTop:0;
+      var h=(vv?vv.height:window.innerHeight)-(window.__bbKbExtra||0),t=vv?vv.offsetTop:0;
       root.style.setProperty('--vv-h',Math.round(h)+'px');
       root.style.setProperty('--vv-top',Math.round(t)+'px');
       if(window.scrollX||window.scrollY)window.scrollTo(0,0);
@@ -15803,6 +15814,58 @@ html{overflow:hidden!important;overscroll-behavior:none}
   document.addEventListener('focusin',function(){track(1400);});
   document.addEventListener('focusout',function(){track(900);});
   apply();
+})();
+</script>
+<script id="bb-kb-universal">
+/* الكيبورد على كل الأجهزة: بعض الهواتف (هواوي/هونر وغيرها) لا تُصغّر الصفحة عند ظهور الكيبورد فيغطي حقل الكتابة.
+   الحل: نقيس ارتفاع الكيبورد بأكثر من طريقة ونُنقص الصفحة بمقداره فقط إذا لم ينقصه النظام. */
+(function(){
+  var root=document.documentElement, vv=window.visualViewport, vk=navigator.virtualKeyboard;
+  var ua=navigator.userAgent||'', hw=/HUAWEI|HONOR|HMSCore|HarmonyOS|EMUI|HMSBrowser|HuaweiBrowser/i.test(ua);
+  var base=window.innerHeight, extra=0, fbTimer=0, fbUsed=false;
+  function typing(){var a=document.activeElement;return !!(a&&(a.id==='messageInput'||a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable));}
+  function setExtra(px){
+    px=Math.max(0,Math.round(px)); if(px===extra) return;
+    extra=px; window.__bbKbExtra=px;
+    root.style.setProperty('--bb-kb-extra',px+'px');
+    root.classList.toggle('bb-kb-overlay',px>0);
+    if(px>0) root.classList.add('kb-open');
+    try{window.dispatchEvent(new Event('resize'));}catch(_){}
+  }
+  function update(){
+    if(!typing()){
+      clearTimeout(fbTimer); fbUsed=false; setExtra(0);
+      if(window.innerHeight>0) base=Math.max(window.innerHeight, vv?vv.height:0) || base;
+      return;
+    }
+    var cur=Math.min(window.innerHeight, vv?vv.height:window.innerHeight);
+    if(base-cur>120){ setExtra(0); return; }          /* النظام صغّر الصفحة بنفسه */
+    var h=0; try{ if(vk&&vk.boundingRect) h=vk.boundingRect.height; }catch(_){}
+    if(h>80){ setExtra(h); return; }                  /* قياس مباشر للكيبورد */
+    if(hw&&!window.__BB_NO_KB_FALLBACK){              /* هواوي بلا أي إشارة: تقدير احتياطي */
+      clearTimeout(fbTimer);
+      fbTimer=setTimeout(function(){
+        if(!typing()) return;
+        var c2=Math.min(window.innerHeight, vv?vv.height:window.innerHeight), h2=0;
+        try{ if(vk&&vk.boundingRect) h2=vk.boundingRect.height; }catch(_){}
+        if(base-c2>120||h2>80) return update();
+        fbUsed=true; setExtra(Math.round(window.innerHeight*0.38));
+      },450);
+    }
+  }
+  try{ if(vk){ vk.overlaysContent=true; vk.addEventListener('geometrychange',update); } }catch(_){}
+  if(vv) vv.addEventListener('resize',update);
+  window.addEventListener('resize',function(){ if(extra===0||!typing()) update(); });
+  document.addEventListener('focusin',function(){ update(); setTimeout(update,250); setTimeout(update,600); });
+  document.addEventListener('focusout',function(){ setTimeout(update,150); });
+  /* إبقاء حقل الكتابة ظاهراً دائماً فوق الكيبورد */
+  document.addEventListener('focusin',function(e){
+    if(!e.target||e.target.id!=='messageInput') return;
+    [300,700].forEach(function(t){ setTimeout(function(){
+      try{ var bar=document.getElementById('textInputBar'); if(bar&&bar.scrollIntoView) bar.scrollIntoView({block:'nearest'});
+           var a=document.getElementById('messagesArea'); if(a&&(a.scrollHeight-a.scrollTop-a.clientHeight)<260) a.scrollTop=a.scrollHeight; }catch(_){}
+    },t); });
+  });
 })();
 </script>
 <style id="babylon-scroll-down-btn">
