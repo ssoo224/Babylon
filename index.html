@@ -9726,12 +9726,12 @@ html,body{overscroll-behavior-y:none}
     function sync(){
       var hasImg = img && !img.classList.contains('hidden') && img.getAttribute('src');
       if(!own && hTop){ hTop.style.display=''; }
-      if(hasImg){ hero.style.background='transparent'; hImg.src = lite(img.getAttribute('src')); hImg.style.display='block'; hLet.style.display='none'; }
+      if(hasImg){ hero.style.background='transparent'; var _u=lite(img.getAttribute('src')); if(hImg.getAttribute('src')!==_u){ hImg.src=_u; try{ if(hImg.decode) hImg.decode().catch(function(){}); }catch(_){} } hImg.style.display='block'; hLet.style.display='none'; }
       else {
         hImg.style.display='none'; hLet.style.display='flex'; hLet.innerHTML = txt ? txt.innerHTML : '';
         if(txt){ var cs=getComputedStyle(txt); hero.style.background = cs.backgroundImage!=='none'? cs.backgroundImage : cs.backgroundColor; }
       }
-      if(hasImg){ hExt.style.background=''; hExt.style.backgroundImage='url("'+lite(img.getAttribute('src'))+'")'; hExt.style.backgroundSize='cover'; }
+      if(hasImg){ var _bg='url("'+lite(img.getAttribute('src'))+'")'; if(hExt.__bg!==_bg){ hExt.__bg=_bg; hExt.style.background=''; hExt.style.backgroundImage=_bg; hExt.style.backgroundSize='cover'; } }
       else { hExt.style.backgroundImage='none'; hExt.style.background=hero.style.background||'#16213a'; }
       if(own){ loadItems(); }
       hName.textContent = nameTxt ? nameTxt.textContent : '';
@@ -9855,6 +9855,7 @@ html,body{overscroll-behavior-y:none}
       if(ev.touches.length!==1){ track=false; return; }
       track = view.scrollTop<=1;
       pulling=false; sy=ev.touches[0].clientY; sx=ev.touches[0].clientX;
+      if(track && !expanded){ try{ sync(); }catch(_){} }
     },{passive:true});
 
     view.addEventListener('touchmove',function(ev){
@@ -12695,7 +12696,7 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   var H=0,PT=0,PB=0,drag=null,raf=0,anim=0,pend=null,locked=false,lockTop=0,savedOY='';
   var hbtn=document.getElementById('hdrAvatarBtn'), hd=document.getElementById('sbHandle'), HH=0,HMT=0,HMB=0,hmode='';
   /* صورة الهيدر المصغّرة تظهر/تختفي مع بداية الحركة لا بعد نهايتها */
-  function moved(on){ if(hbtn) hbtn.classList.toggle('story-avatar-moved',!!on); }
+  function moved(on){ if(hbtn) hbtn.classList.toggle('story-avatar-moved',!!on); var tp=document.getElementById('topStories'); if(tp) tp.classList.toggle('sb-off',!on); }
   /* قفل تمرير القائمة أثناء الطي حتى لا تتحرك المحادثات مرتين (تمرير + انكماش) فتختبئ أول محادثة */
   function lock(top){ if(locked) return; locked=true; savedOY=home.style.overflowY; lockTop=top; home.style.overflowY='hidden'; home.scrollTop=top; }
   function unlock(){ if(!locked) return; locked=false; home.style.overflowY=savedOY||''; }
