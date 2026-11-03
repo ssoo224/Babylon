@@ -1434,8 +1434,12 @@ print("local media cache (Download/.babylon) written")
 
 # 2.66) لوحة المفاتيح: تفعيل أزرار GIF/الملصقات/الصور (WebView يعلن أنه يقبل الصور)
 _lay_src = None
-for _c in [root / "node_modules" / "@capacitor" / "android" / "capacitor" / "src" / "main" / "res" / "layout" / "bridge_layout_main.xml"]:
-    if _c.exists(): _lay_src = _c
+_cands = [root / "node_modules" / "@capacitor" / "android" / "capacitor" / "src" / "main" / "res" / "layout" / "bridge_layout_main.xml"]
+_cands += list((root / "node_modules" / "@capacitor" / "android").rglob("bridge_layout_main.xml")) if (root / "node_modules" / "@capacitor" / "android").exists() else []
+_cands += list((root / "android").rglob("bridge_layout_main.xml")) if (root / "android").exists() else []
+for _c in _cands:
+    if _c.exists() and "src/main/res/layout" in str(_c).replace("\\", "/") and "/app/src/main/res/layout" not in str(_c).replace("\\", "/"):
+        _lay_src = _c; break
 if _lay_src is None:
     print("::warning::ما لقيت bridge_layout_main.xml — أزرار GIF/الملصقات في لوحة المفاتيح ما راح تتفعّل")
 else:
