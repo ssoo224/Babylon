@@ -333,7 +333,7 @@ public class MainActivity extends BridgeActivity {
             mediaExecutor.execute(() -> saveMediaInternal(source, filename, mimeType));
         }
 
-        /** يفتح الملف بقائمة «فتح بواسطة» (التطبيقات القادرة على فتحه). */
+        /** يشارك الملف إلى تطبيق آخر يقبل الملفات (قائمة المشاركة). */
         @JavascriptInterface
         public void openFileWith(String source, String filename, String mimeType) {
             if (source == null || source.isEmpty()) {
@@ -551,11 +551,14 @@ public class MainActivity extends BridgeActivity {
             final Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".updates", outFile);
             runOnUiThread(() -> {
                 try {
-                    Intent view = new Intent(Intent.ACTION_VIEW);
-                    view.setDataAndType(uri, mime);
-                    view.setClipData(android.content.ClipData.newRawUri(name, uri));
-                    view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(view);   /* نافذة النظام «فتح بواسطة» مع خيار «لا تسأل مرة أخرى» مثل تيليجرام */
+                    Intent send = new Intent(Intent.ACTION_SEND);
+                    send.setType(mime);
+                    send.putExtra(Intent.EXTRA_STREAM, uri);
+                    send.setClipData(android.content.ClipData.newRawUri(name, uri));
+                    send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    Intent chooser = Intent.createChooser(send, name);   /* قائمة المشاركة مع التطبيقات التي تقبل الملفات */
+                    chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(chooser);
                 } catch (android.content.ActivityNotFoundException nf) {
                     Toast.makeText(this, "لا يوجد تطبيق يفتح هذا الملف", Toast.LENGTH_LONG).show();
                 } catch (Throwable t) {
