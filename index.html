@@ -9649,7 +9649,7 @@ html,body{overscroll-behavior-y:none}
     view.appendChild(hero);
     var own = cfg.view==='profileView';
     var DRAG_STEP = 10; // كل 10px من الإصبع = حركة واحدة
-    var RANGE = own ? 400 : 150; // الملف الشخصي الخاص: 350px؛ ملف الشخص الآخر يبقى 150px
+    var RANGE = own ? 360 : 150; // الملف الشخصي الخاص: 350px؛ ملف الشخص الآخر يبقى 150px
     var TOUCH_SLOP = own ? 3 : 5; // حساسية بدء السحب للملف الشخصي الخاص: 3px
     if(own){
       hero.insertAdjacentHTML('beforeend',
@@ -12364,6 +12364,19 @@ function toggleFullEmojiPicker(ev){if(ev)ev.stopPropagation();var grid=document.
 /* كل الرسائل بخط عريض (النصوص والأرقام وزمن الصوتيات) */
 #messagesArea .msg-bubble, #messagesArea .msg-bubble *:not(svg):not(path) { font-weight:700 !important; }
 @media (prefers-reduced-motion: reduce) { .msg-bubble.voice-pop, .msg-bubble.pin-flash { animation:none !important; } .msg-bubble.pin-flash::after{animation:none!important;opacity:1} }
+</style>
+<style id="otp-btn-login-gold">
+/* زر تأكيد رمز التحقق: نفس لون وشكل أزرار صفحة تسجيل الدخول */
+#otpPage #otpOk.otp-btn{
+  background:linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%)!important;
+  border:none!important;
+  box-shadow:0 8px 20px rgba(190,150,40,.38)!important;
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+  text-shadow:0 1px 2px rgba(110,72,0,.5)!important;
+  font-weight:800!important;
+}
+#otpPage #otpOk.otp-btn:hover{filter:brightness(1.06)}
+#otpPage #otpOk.otp-btn:disabled{opacity:.6}
 </style>
 
 <style id="babylon-slim-reply-round-rec">
@@ -16147,12 +16160,17 @@ html{overflow:hidden!important;overscroll-behavior:none}
     var cr=cv.getBoundingClientRect(), ir=ic?ic.getBoundingClientRect():null;
     btn.style.bottom=Math.round(ir&&ir.height?(cr.bottom-ir.top+12):80)+'px';
   }
+  /* فترة هدوء عند فتح المحادثة: الرسائل تُرسم ثم تُمرَّر لآخرها، فلا نُظهر الزر خلالها (كان يومض ثم يختفي) */
+  var calmUntil=0, calmT=0, wasOpen=false, lastChat=null;
   function render(){
+    var open=chatOpen(), chat=(typeof activeChatId!=='undefined')?activeChatId:null;
+    if(open&&(!wasOpen||chat!==lastChat)){ calmUntil=Date.now()+1200; clearTimeout(calmT); calmT=setTimeout(render,1250); }
+    wasOpen=open; lastChat=chat;
     var far=dist()>200;
     if(!far) count=0;
     badge.textContent=count>99?'99+':String(count);
     badge.classList.toggle('on',count>0);
-    var show=chatOpen()&&(far||count>0);
+    var show=open&&(far||count>0)&&Date.now()>=calmUntil;
     if(show) place();
     btn.classList.toggle('show',show);
   }
@@ -16165,6 +16183,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
   btn.addEventListener('pointerdown',function(e){ e.preventDefault(); });
   area.addEventListener('scroll',render,{passive:true});
   window.addEventListener('resize',render);
+  try{ new MutationObserver(render).observe(cv,{attributes:true,attributeFilter:['class']}); }catch(_){}
   if(window.visualViewport) window.visualViewport.addEventListener('resize',render);
 
   /* ---------- أصوات المحادثة (داخل المحادثة فقط) ---------- */
