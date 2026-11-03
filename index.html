@@ -6059,12 +6059,12 @@ function loadChats() {
                 const m = msgSnap.docs[0].data();
                 const isMine = (m.senderId === currentUser.uid);
                 const prefix = isMine ? "أنت: " : ""; if (isMine) lastTick = (msgSnap.docs[0].metadata && msgSnap.docs[0].metadata.hasPendingWrites) ? 'wait' : (m.read ? 'read' : 'sent');
-                lastMsgText = prefix + (m.audioUrl ? "♬ بصمة صوتية" : (m.imageUrl ? "▧ صورة" : (m.videoUrl ? "▶ فيديو" : (m.text || ""))));
+                lastMsgText = prefix + (m.audioUrl ? "♬ بصمة صوتية" : (m.imageUrl ? "▧ صورة" : (m.videoUrl ? "▶ فيديو" : (m.fileUrl ? "📎 ملف" : (m.text || "")))));
                 const mediaIcon = m.imageUrl
                   ? '<svg class="chat-media-preview-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="9" r="1.5" fill="currentColor"/><path d="m21 15-5-5L5 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-                  : (m.videoUrl ? '<svg class="chat-media-preview-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 10 5-3v10l-5-3z" fill="currentColor"/></svg>' : '');
-                lastMsgHtml = (m.imageUrl || m.videoUrl)
-                  ? `${prefix ? '<span class="chat-media-preview-prefix">أنت:</span>' : ''}<span class="chat-media-preview">${mediaIcon}<span>${m.imageUrl ? 'صورة' : 'فيديو'}</span></span>`
+                  : (m.fileUrl ? '<svg class="chat-media-preview-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' : m.videoUrl ? '<svg class="chat-media-preview-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 10 5-3v10l-5-3z" fill="currentColor"/></svg>' : '');
+                lastMsgHtml = (m.imageUrl || m.videoUrl || m.fileUrl)
+                  ? `${prefix ? '<span class="chat-media-preview-prefix">أنت:</span>' : ''}<span class="chat-media-preview">${mediaIcon}<span>${m.imageUrl ? 'صورة' : (m.fileUrl ? 'ملف' : 'فيديو')}</span></span>`
                   : esc(lastMsgText);
                 
                 let tStr = new Date(m.createdAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
@@ -6081,7 +6081,7 @@ function loadChats() {
                     getNotificationOption('push', false) &&
                     !getLocalChatSet('babylon_muted_users').has(otherId)) {
                   nativeNotifiedMessageIds.add(messageDoc.id);
-                  const nativeBody = m.audioUrl ? '♬ رسالة صوتية' : (m.imageUrl ? '▧ صورة' : (m.videoUrl ? '▶ فيديو' : (m.text || 'رسالة جديدة')));
+                  const nativeBody = m.audioUrl ? '♬ رسالة صوتية' : (m.imageUrl ? '▧ صورة' : (m.videoUrl ? '▶ فيديو' : (m.fileUrl ? '📎 ملف' : (m.text || 'رسالة جديدة'))));
                   try {
                     if (window.BabylonAndroid && typeof window.BabylonAndroid.showMessageNotification === 'function') {
                       const nativeTitle = u.displayName || 'رسالة جديدة';
@@ -8415,7 +8415,7 @@ function renderGroupItem(chatId,d,container){
   el.innerHTML='<div class="cl-av">'+groupAvHtml(d,'avatar g-list-av')+'</div>'
     +'<div class="chat-item-info"><div class="chat-item-header-row"><div class="chat-item-name">'+'<span class="g-name-t">'+IC_USERS+esc(d.name||'مجموعة')+'</span></div>'
     +'<div class="chat-item-time"><span>'+esc(time)+'</span></div></div>'
-    +'<div class="chat-item-sub-row"><div class="chat-item-sub">'+esc(prev)+'</div><div class="g-badges"></div></div></div>';
+    +'<div class="chat-item-sub-row"><div class="chat-item-sub">'+((lm&&!lm.system&&/^📎 /.test(String(lm.text||'')))?(esc(prev.slice(0,prev.length-String(lm.text).length))+'<span class="chat-media-preview">'+'<svg class="chat-media-preview-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'+'<span>ملف</span></span>'):esc(prev))+'</div><div class="g-badges"></div></div></div>';
   // الصوت عند وصول رسالة جديدة
   if(lm&&lm.senderId!==me&&(lm.at||0)>sessionStartTime&&el.dataset.snd!==String(lm.at)){
     el.dataset.snd=String(lm.at);
@@ -19299,7 +19299,7 @@ return R("index");})();
 .file-card .fc-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .file-card .fc-name{font-size:calc(14px * var(--bb-s,1));font-weight:700;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:auto;unicode-bidi:plaintext}
 .file-card .fc-size{font-size:calc(11.5px * var(--bb-s,1));opacity:.7;direction:ltr;text-align:start}
-.msg-bubble.mine .file-card .fc-size{color:#fff!important;opacity:1!important;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.28)}
+.msg-bubble.mine .file-card .fc-size{color:#fff!important;opacity:1!important;font-weight:700}
 #chatView #messagesArea .msg-bubble.file-msg{min-width:230px}
 </style>
 <script id="babylon-media-menu">
@@ -19384,6 +19384,11 @@ return R("index");})();
     window.sendChatFile(f);
   };
 
+  function bbPendingMeta(){
+    var t=new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); if(t.charAt(0)==='0') t=t.substring(1);
+    var w=(typeof TICK_SVG!=='undefined'&&TICK_SVG&&TICK_SVG.wait)?TICK_SVG.wait:'';
+    return '<div class="msg-meta"><span>'+t+'</span> <span class="check-mark pending">'+w+'</span></div>';
+  }
   window.sendChatFile=function(file){
     var chatId=(typeof activeChatId!=='undefined')?activeChatId:null;
     if(!chatId||!currentUser) return;
@@ -19394,7 +19399,7 @@ return R("index");})();
     var area=$('messagesArea');
     var ph=document.createElement('div');
     ph.className='msg-bubble mine file-msg file-pending';
-    ph.innerHTML='<div class="file-card"><div class="fc-ico"><b>'+extOf(file.name)+'</b></div><div class="fc-body"><div class="fc-name"></div><div class="fc-size">0 B / '+fmtSize(file.size)+'</div></div></div>';
+    ph.innerHTML='<div class="file-card"><div class="fc-ico"><b>'+extOf(file.name)+'</b></div><div class="fc-body"><div class="fc-name"></div><div class="fc-size">0 B / '+fmtSize(file.size)+'</div></div></div>'+bbPendingMeta();
     ph.querySelector('.fc-name').textContent=file.name||'ملف';
     var place=function(){ if(area&&!ph.isConnected){area.appendChild(ph);area.scrollTop=area.scrollHeight;} };
     place();
@@ -19448,10 +19453,30 @@ return R("index");})();
     }).catch(function(){ try{window.open(url,'_blank');}catch(_){ location.href=url; } });
   }
   window.bbDownloadFile=download;
+  /* فتح الملف عبر قائمة التطبيقات القادرة على فتحه */
+  function openWith(url,name){
+    name=name||'file'; var mime=mimeOf(name), B=window.BabylonAndroid;
+    if(B){ var fns=['openFileWith','openFile','openWith','shareFile']; for(var i=0;i<fns.length;i++){ if(typeof B[fns[i]]==='function'){ try{B[fns[i]](String(url),String(name),mime);return;}catch(_){} } } }
+    var fallback=function(){
+      if(/Android/i.test(navigator.userAgent)){
+        try{ location.href='intent://'+String(url).replace(/^https?:\/\//,'')+'#Intent;scheme=https;action=android.intent.action.VIEW;type='+mime+';end'; return; }catch(_){}
+      }
+      try{window.open(url,'_blank');}catch(_){ location.href=url; }
+    };
+    toast('جارٍ تجهيز الملف…');
+    fetch(url).then(function(r){if(!r.ok)throw 0;return r.blob();}).then(function(bl){
+      var f=new File([bl],name,{type:mime});
+      if(navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share){
+        return navigator.share({files:[f]}).catch(function(err){ if(err&&err.name==='AbortError') return; fallback(); });
+      }
+      fallback();
+    }).catch(fallback);
+  }
+  window.bbOpenFileWith=openWith;
   document.addEventListener('click',function(e){
     var c=e.target.closest&&e.target.closest('.file-card[data-url]'); if(!c) return;
     var cv=document.getElementById('chatView'); if(cv&&cv.classList.contains('msg-selecting')) return;
-    download(c.getAttribute('data-url'),c.getAttribute('data-name'));
+    openWith(c.getAttribute('data-url'),c.getAttribute('data-name'));
   });
 
   /* لا تعديل لرسائل الملفات */
