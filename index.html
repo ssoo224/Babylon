@@ -9649,7 +9649,7 @@ html,body{overscroll-behavior-y:none}
     view.appendChild(hero);
     var own = cfg.view==='profileView';
     var DRAG_STEP = 10; // كل 10px من الإصبع = حركة واحدة
-    var RANGE = own ? 360 : 150; // الملف الشخصي الخاص: 350px؛ ملف الشخص الآخر يبقى 150px
+    var RANGE = own ? 320 : 150; // الملف الشخصي الخاص: 350px؛ ملف الشخص الآخر يبقى 150px
     var TOUCH_SLOP = own ? 3 : 5; // حساسية بدء السحب للملف الشخصي الخاص: 3px
     if(own){
       hero.insertAdjacentHTML('beforeend',
@@ -14089,6 +14089,18 @@ function bbMsgUser(u){
 })();
 </script>
 
+<style id="edit-profile-save-login-gold">
+/* زر حفظ التغييرات في تعديل الملف الشخصي: نفس ألوان أزرار تسجيل الدخول */
+.app-container #editProfileView .edit-profile-actions button.babylon-btn:not(.edit-profile-cancel){
+  background:linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%)!important;
+  border:none!important;
+  box-shadow:0 8px 20px rgba(190,150,40,.38)!important;
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+  text-shadow:0 1px 2px rgba(110,72,0,.5)!important;
+  font-weight:800!important;
+}
+.app-container #editProfileView .edit-profile-actions button.babylon-btn:not(.edit-profile-cancel):hover{filter:brightness(1.06)}
+</style>
 <style id="babylon-requested-final-fixes">
 /* اللون الأبيض يطبق على الأزرار الذهبية فقط */
 .app-container button.babylon-btn,
@@ -16161,16 +16173,16 @@ html{overflow:hidden!important;overscroll-behavior:none}
     btn.style.bottom=Math.round(ir&&ir.height?(cr.bottom-ir.top+12):80)+'px';
   }
   /* فترة هدوء عند فتح المحادثة: الرسائل تُرسم ثم تُمرَّر لآخرها، فلا نُظهر الزر خلالها (كان يومض ثم يختفي) */
-  var calmUntil=0, calmT=0, wasOpen=false, lastChat=null;
+  var calmUntil=0, calmT=0, wasOpen=false, lastChat=null, userMoved=false;
   function render(){
     var open=chatOpen(), chat=(typeof activeChatId!=='undefined')?activeChatId:null;
-    if(open&&(!wasOpen||chat!==lastChat)){ calmUntil=Date.now()+1200; clearTimeout(calmT); calmT=setTimeout(render,1250); }
+    if(open&&(!wasOpen||chat!==lastChat)){ userMoved=false; calmUntil=Date.now()+1200; clearTimeout(calmT); calmT=setTimeout(render,1250); }
     wasOpen=open; lastChat=chat;
     var far=dist()>200;
     if(!far) count=0;
     badge.textContent=count>99?'99+':String(count);
     badge.classList.toggle('on',count>0);
-    var show=open&&(far||count>0)&&Date.now()>=calmUntil;
+    var show=open&&userMoved&&(far||count>0)&&Date.now()>=calmUntil;   /* يظهر فقط بعد أن يسحب المستخدم بنفسه لأعلى المحادثة */
     if(show) place();
     btn.classList.toggle('show',show);
   }
@@ -16181,6 +16193,11 @@ html{overflow:hidden!important;overscroll-behavior:none}
     setTimeout(function(){ area.scrollTop=area.scrollHeight; render(); },450);
   });
   btn.addEventListener('pointerdown',function(e){ e.preventDefault(); });
+  /* لمس/عجلة/لوحة مفاتيح من المستخدم فقط (التمرير البرمجي عند فتح المحادثة لا يُحتسب) */
+  function markUser(){ if(!userMoved){ userMoved=true; } }
+  area.addEventListener('touchmove',markUser,{passive:true});
+  area.addEventListener('wheel',markUser,{passive:true});
+  area.addEventListener('keydown',markUser,{passive:true});
   area.addEventListener('scroll',render,{passive:true});
   window.addEventListener('resize',render);
   try{ new MutationObserver(render).observe(cv,{attributes:true,attributeFilter:['class']}); }catch(_){}
