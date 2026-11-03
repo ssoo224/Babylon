@@ -5011,10 +5011,12 @@ function openChatRoom(otherUserId, keepLimit) {
 
       { const _un = snap.docs.filter(d => { const dm = d.data(); return dm.senderId !== currentUser.uid && dm.read === false; }); if (_un.length) { const _b = db.batch(); _un.forEach(d => _b.update(d.ref, { read: true })); _b.commit().catch(() => {}); } }
 
+      window.__bbSwapFar = false;
       snap.docs.slice().reverse().forEach(doc => renderMsgDoc(doc, box, existingTyping));
       if (messageSelectionMode) refreshMessageSelectionUI();
       if (window.__pendingJump) setTimeout(runPendingJump, 30);
       if (loadingOlder) { box.scrollTop = Math.max(0, box.scrollHeight - prevH); loadingOlder = false; }
+      else if (window.__bbSwapFar) { box.scrollTop = prevTop; window.__bbSwapFar = false; }   // أرسلتَ ثم ابتعدتَ للأعلى: لا نعيدك للأسفل
       else if (wasNearBottom || (hasAdded && !(((prevH - prevTop - box.clientHeight) > 200) && (() => { try { const ch = snap.docChanges().filter(c => c.type === 'added'); return ch.length > 0 && ch.every(c => c.doc.data().senderId !== currentUser.uid); } catch (e) { return false; } })()))) box.scrollTop = box.scrollHeight;   // رسالة جديدة أو كنت أسفل المحادثة
       else box.scrollTop = prevTop;                                            // تفاعل/تعديل: ابقَ في مكانك
       window.__bbRendered = { chat: activeChatId, limit: msgLimit, snap: snap };
@@ -5061,6 +5063,13 @@ function reactionBadgesHtml(list, cls) {
   document.head.appendChild(st);
 })();
 
+/* الرسالة المعلّقة (قيد الإرسال) تُستبدل في مكانها بفقاعة الرسالة الحقيقية بدون اختفاء/ظهور في آخر القائمة */
+window.__bbSwap = window.__bbSwap || {};
+function bbAddSwap(ph, col, data) {
+  const ref = col.doc();
+  window.__bbSwap[ref.id] = ph; ph.__swapId = ref.id;
+  return ref.set(data).then(() => ref).catch(e => { delete window.__bbSwap[ref.id]; ph.__swapId = null; throw e; });
+}
 function renderMsgDoc(doc, box, existingTyping) {
         const hiddenLocalMessages = getLocalChatSet('babylon_hidden_messages_' + activeChatId);
         if (hiddenLocalMessages.has(doc.id)) return;
@@ -5252,7 +5261,20 @@ function renderMsgDoc(doc, box, existingTyping) {
           const av = target.querySelector('.g-av'); if (av) av.onclick = (ev) => { ev.stopPropagation(); memberAction(m.senderId); };
           const sn = b.querySelector('.g-sender'); if (sn) sn.onclick = (ev) => { ev.stopPropagation(); memberAction(m.senderId); };
         }
-        if (existingTyping) { box.insertBefore(target, existingTyping); } else { box.appendChild(target); }
+        const _swp = window.__bbSwap && window.__bbSwap[doc.id];
+        if (_swp && _swp.isConnected && _swp.parentNode) {
+          const _sb = _swp.parentNode;
+          const _far = (_sb.scrollHeight - _sb.scrollTop - _sb.clientHeight) > 200;   // المستخدم ابتعد عن أسفل المحادثة أثناء الرفع
+          _swp.replaceWith(target); delete window.__bbSwap[doc.id];
+          if (_far) window.__bbSwapFar = true;
+          else {
+            // ما زلت قريباً من الأسفل: ابقَ في الأسفل حتى لو تغيّر حجم الصورة/الفيديو عند اكتمال تحميله
+            const _down = () => { try { if ((_sb.scrollHeight - _sb.scrollTop - _sb.clientHeight) < 600) _sb.scrollTop = _sb.scrollHeight; } catch (e) {} };
+            target.querySelectorAll('img,video').forEach(el => { el.addEventListener('load', _down, { once: true }); el.addEventListener('loadedmetadata', _down, { once: true }); });
+            setTimeout(_down, 400); setTimeout(_down, 1500);
+          }
+        }
+        else if (existingTyping) { box.insertBefore(target, existingTyping); } else { box.appendChild(target); }
 }
 
 let messageSelectionMode = false;
@@ -6508,19 +6530,21 @@ function sendImage(e, opts) {
   };
   _prepImage(dataUrl => _wait.then(() => {
     if (_cancelled) return;
-    _fin();
-    if (!dataUrl) return showToast('تعذر تجهيز الصورة، جرب صورة أخرى (' + (file.type || 'نوع غير معروف') + ' ' + Math.round(file.size / 1024) + 'KB)');
+    clearInterval(_keep);
+    if (!dataUrl) { _fin(); return showToast('تعذر تجهيز الصورة، جرب صورة أخرى (' + (file.type || 'نوع غير معروف') + ' ' + Math.round(file.size / 1024) + 'KB)'); }
     const chatId = activeChatId;
-    db.collection('chats').doc(chatId).collection('messages').add({
+    bbAddSwap(_ph, db.collection('chats').doc(chatId).collection('messages'), {
       senderId: currentUser.uid, imageUrl: dataUrl, read: false, createdAt: Date.now(), ...((opts && opts.caption) ? { caption: opts.caption } : {}), ..._rf
     }).then(() => {
+      setTimeout(() => { if (_ph.isConnected) _ph.remove(); }, 8000);
+      if (_prev) setTimeout(() => URL.revokeObjectURL(_prev), 10000);
       db.collection('chats').doc(chatId).set({ 
         updatedAt: Date.now(),
         ...groupLastMsgFor(chatId, '▧ صورة'),
         [`typing_${currentUser.uid}`]: false
       }, { merge: true });
       notifyPeer(chatId, '▧ صورة');
-    }).catch(() => showToast('تعذر إرسال الصورة'));
+    }).catch(() => { _fin(); showToast('تعذر إرسال الصورة'); });
   }));
 }
 
@@ -6667,7 +6691,11 @@ function sendChatVideo(file, opts) {
   ph.innerHTML = '<div class="msg-video"><video src="' + poster + '#t=0.1" preload="metadata" muted playsinline></video><div class="vp-cover"><div class="vp-logo"><svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>' + (bMark ? '<img src="' + bMark + '" alt="" draggable="false">' : '<b class="vp-b">B</b>') + '</div><div class="vp-pct" dir="ltr">' + fmtVP(file.size) + ' | 0 KB</div></div></div><button type="button" class="vp-cancel" aria-label="إلغاء الإرسال"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div class="msg-meta"><span>' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '</span> <span class="check-mark">' + TICK_SVG.wait + '</span></div>';
   const place = () => { if (area && !ph.isConnected) { area.appendChild(ph); area.scrollTop = area.scrollHeight; } };
   place();
-  const fin = () => { ph.remove(); if (poster) setTimeout(() => URL.revokeObjectURL(poster), 3000); };
+  const fin = () => {
+    if (ph.__swapId && window.__bbSwap && window.__bbSwap[ph.__swapId] && ph.isConnected) setTimeout(() => { if (ph.isConnected) ph.remove(); }, 8000);
+    else ph.remove();
+    if (poster) setTimeout(() => URL.revokeObjectURL(poster), 10000);
+  };
   let xhr = null;
   const startUpload = (file, opts) => {
   xhr = new XMLHttpRequest(); const fd = new FormData();
@@ -6679,7 +6707,7 @@ function sendChatVideo(file, opts) {
   xhr.onload = () => {
     let r = {}; try { r = JSON.parse(xhr.responseText); } catch (e) {}
     if (!(xhr.status >= 200 && xhr.status < 300 && r.secure_url)) { fin(); return showToast('تعذر رفع الفيديو: ' + ((r.error && r.error.message) || ('رمز ' + xhr.status))); }
-    const finish = (videoUrl, posterUrl, durationSec) => ph.__cancelled ? Promise.resolve() : db.collection('chats').doc(chatId).collection('messages').add({
+    const finish = (videoUrl, posterUrl, durationSec) => ph.__cancelled ? Promise.resolve() : bbAddSwap(ph, db.collection('chats').doc(chatId).collection('messages'), {
       senderId: currentUser.uid, videoUrl: videoUrl, posterUrl: posterUrl, duration: durationSec, read: false, createdAt: Date.now(), ...((opts && opts.caption) ? { caption: opts.caption } : {}), ..._rf
     });
     const plainPoster = r.secure_url.replace('/video/upload/', '/video/upload/so_0,w_480,c_limit/').replace(/\.[^/.]+$/, '.jpg');
@@ -19182,6 +19210,21 @@ return R("index");})();
   }
   if(document.body) start(); else document.addEventListener('DOMContentLoaded',start);
 })();
+</script>
+
+
+<script id="bb-keyboard-image">
+/* صور/GIF/ملصقات من لوحة المفاتيح (Gboard وغيرها): تُرسل مباشرة إلى المحادثة المفتوحة */
+window.onKeyboardImage = async function (dataUrl, mime) {
+  try {
+    if (typeof activeChatId === 'undefined' || !activeChatId) { showToast('افتح محادثة أولاً'); return; }
+    const blob = await (await fetch(dataUrl)).blob();
+    const type = mime || blob.type || 'image/gif';
+    const ext = (type.split('/')[1] || 'gif').split('+')[0];
+    const f = new File([blob], 'keyboard-' + Date.now() + '.' + ext, { type: type });
+    sendImage({ target: { files: [f], value: '' } });
+  } catch (e) { showToast('تعذر إرسال الصورة من لوحة المفاتيح'); }
+};
 </script>
 
 <style id="babylon-split-layout-fix">
