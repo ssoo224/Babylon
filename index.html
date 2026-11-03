@@ -9890,22 +9890,14 @@ html,body{overscroll-behavior-y:none}
       tv=clamp(p0+dy/RANGE);
       if(!followRaf) followRaf=requestAnimationFrame(follow);
     }
-    /* Own-profile drag: follow the finger directly on the next frame.
-       The previous exponential smoothing introduced visible trailing/lag on fast swipes.
-       Keep updates frame-coalesced, but do not interpolate behind the touch position. */
-    function follow(){
+    function follow(now){
       followRaf=0;
-      if(!pulling) return;
-      var target=tv;
-      try { apply(target); }
-      catch (err) {
-        console.warn('profile pull tracking stopped', err);
-        pulling=false; track=false;
-        cancelAnimationFrame(followRaf); followRaf=0;
-        try { reset(); } catch (_) {}
-        return;
-      }
-      followLast=0;
+      var dt=Math.min(40,now-(followLast||now-16)); followLast=now;
+      var a=1-Math.exp(-dt/6);
+      var nv=p+(tv-p)*a;
+      if(Math.abs(tv-nv)<0.0015) nv=tv;
+      try { apply(nv); } catch (err) { console.warn('profile pull tracking stopped', err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try { reset(); } catch (_) {} return; }
+      if(pulling && nv!==tv){ followRaf=requestAnimationFrame(follow); } else followLast=0;
     }
 
     function finish(){
