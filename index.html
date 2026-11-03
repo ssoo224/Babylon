@@ -187,6 +187,13 @@ html,body{min-width:0}
 #chatView #messagesArea .msg-bubble.video-pending .msg-video video:not(.bb-frame){opacity:0}
 #chatView #messagesArea .msg-bubble.video-pending .vp-cover{background:rgba(255,255,255,.06)!important}
 </style>
+<style id="bb-stories-fast">
+/* طي/فتح القصص أسرع */
+.app-container #homeView#homeView #storiesBar{transition:max-height .16s cubic-bezier(.3,.7,.3,1),padding .16s ease,opacity .12s ease!important}
+.app-container #homeView#homeView #storiesBar .avatar,.app-container #homeView#homeView #storiesBar .sb-item span{transition-duration:.12s!important}
+.app-container #homeView#homeView #storiesBar .sb-item{animation-duration:.12s!important;animation-delay:0s!important}
+#hdrAvatarBtn.story-avatar-moved{transition:opacity .1s,transform .12s,width .12s,flex-basis .12s!important}
+</style>
 </head><body>' + BODY + '</body></html>');
       document.close();
     }
@@ -12533,7 +12540,7 @@ function updateUnreadChip(){var n=document.querySelectorAll('#chatList .chat-ite
     if(uy==null||udone)return;
     if(bar.classList.contains('collapsed')||bar.classList.contains('hidden'))return;
     var dy=uy-e.touches[0].clientY,dx=Math.abs(e.touches[0].clientX-ux);
-    if(dy>45&&dy>dx*1.3){udone=true;setStoriesCollapsed(true);}
+    if(dy>16&&dy>dx*1.2){udone=true;setStoriesCollapsed(true);}
   },{passive:true});
   home.addEventListener('touchend',function(){uy=null;},{passive:true});
   home.addEventListener('touchcancel',function(){uy=null;y0=null;},{passive:true});
