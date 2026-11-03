@@ -9587,11 +9587,29 @@ async function avatarDownload(){
 }
 </script>
 
+<style id="pf-own-avatar-drag-performance">
+/* تحسين سحب صورة الملف الشخصي الخاص بالمستخدم: صورة عالية الجودة وتسريع طبقة الحركة */
+#profileView.pf-dragging .pf-hero,
+#profileView.pf-dragging .pf-hero img{
+  backface-visibility:hidden!important;
+  -webkit-backface-visibility:hidden!important;
+  transform:translateZ(0);
+}
+#profileView.pf-dragging .pf-hero img{
+  image-rendering:auto!important;
+  contain:paint;
+}
+#profileView.pf-dragging .pf-hero-ext,
+#profileView.pf-dragging .pf-hero-shade{
+  will-change:opacity,transform;
+}
+</style>
+
 <style id="pf-pull-expand-css">
 html,body{overscroll-behavior-y:none}
 #profileView,#otherUserProfileView{position:relative;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
-.pf-hero{position:absolute;z-index:1;overflow:hidden;display:none;pointer-events:none;background:#16213a;contain:layout paint;transform:translateZ(0);backface-visibility:hidden;will-change:width,height,top,left,border-radius;-webkit-tap-highlight-color:transparent}
-.pf-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none;image-rendering:-webkit-optimize-contrast;transform:translateZ(0)}
+.pf-hero{position:absolute;z-index:1;overflow:hidden;display:none;pointer-events:none;background:#16213a;will-change:width,height,top,left,border-radius;-webkit-tap-highlight-color:transparent}
+.pf-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
 .pf-hero .pf-hero-letter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--babylon-gold);font-weight:800;font-size:clamp(48px,26vw,140px)}
 .pf-hero .pf-hero-letter svg{width:38%;height:38%}
 .pf-hero .pf-hero-shade{position:absolute;left:0;right:0;bottom:0;height:55%;background:linear-gradient(to bottom,rgba(0,0,0,0),rgba(0,0,0,.72));pointer-events:none}
@@ -9610,8 +9628,8 @@ html,body{overscroll-behavior-y:none}
 <script id="pf-pull-expand-js">
 /* سحب الشاشة للأسفل في البروفايل: تكبر الصورة مع الإصبع حتى تصبح مربعًا فيه الاسم، ويختفي الغلاف (مثل تليجرام) */
 (function(){
-  var RANGE = 90;      // كم بكسل سحب لتكتمل الصورة
-  var THRESH = 0.45;    // بعد هذه النسبة تثبت مفتوحة عند ترك الإصبع
+  var RANGE = 72;      // سحب أقصر وأكثر استجابة (خاص بتكبير صورة الملف الشخصي)
+  var THRESH = 0.40;    // تثبيت أكثر سلاسة عند ترك الإصبع
   // صور البروفايل مخزنة base64 (ميغابايتات). نحولها مرة وحدة إلى blob حتى ما نكرر نص ضخم بالـCSS كل سحبة
   var _lc={}, _sm={}, _smBusy={};
   function shrink(key,url){
@@ -9621,12 +9639,12 @@ html,body{overscroll-behavior-y:none}
         var im=new Image();
         im.onload=function(){
           try{
-            var w=im.naturalWidth,h=im.naturalHeight,M=1600;
+            var w=im.naturalWidth,h=im.naturalHeight,M=1080;
             if(!w||!h||Math.max(w,h)<=M) return;
             var k=M/Math.max(w,h), c=document.createElement('canvas');
             c.width=Math.round(w*k); c.height=Math.round(h*k);
             c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-            c.toBlob(function(b){ if(b){ _sm[key]=URL.createObjectURL(b); try{ var _w=new Image(); _w.src=_sm[key]; window.__pfWarm=(window.__pfWarm||[]); window.__pfWarm.push(_w); if(window.__pfWarm.length>6) window.__pfWarm.shift(); if(_w.decode) _w.decode().catch(function(){}); }catch(_){} } c.width=c.height=0; },'image/jpeg',0.95);
+            c.toBlob(function(b){ if(b) _sm[key]=URL.createObjectURL(b); c.width=c.height=0; },'image/jpeg',0.9);
           }catch(_){}
         };
         im.src=url;
@@ -9811,7 +9829,7 @@ html,body{overscroll-behavior-y:none}
         quick.style.transform='translateY('+((heroBottom-14-nat)*v)+'px)';
         quick.style.setProperty('margin-bottom',(12+((heroBottom+10-nat)-12)*v)+'px','important');
         var pvq=v>0.001?Math.max(0.125,Math.round(clamp(v*2)*8)/8):0;
-        if(g.pvq!==pvq){ g.pvq=pvq; quick.style.setProperty('--pv',pvq); }
+        if(g.pvq!==pvq){ g.pvq=pvq; view.style.setProperty('--pv',pvq); }
         hInfo.style.bottom=(16+e)+'px';
       }
     }
@@ -9821,7 +9839,7 @@ html,body{overscroll-behavior-y:none}
       if(view.classList.contains('pf-dragging')) view.classList.remove('pf-dragging');
       restoreOriginalAvatar();
       p=0; expanded=false;
-      hero.style.display='none'; hero.style.pointerEvents='none'; hInfo.style.opacity=0;
+      hero.style.display='none'; hero.style.pointerEvents='none'; hero.style.transform=''; hero.style.willChange='width,height,top,left'; hInfo.style.opacity=0;
       cover.style.height=''; cover.style.opacity='';
       ring.style.opacity='';
       ring.style.visibility='';
@@ -9833,11 +9851,11 @@ html,body{overscroll-behavior-y:none}
       if (typeof setProfileExpandedStatusBlur === 'function') setProfileExpandedStatusBlur(false);
       hImg.style.webkitMaskImage=hImg.style.maskImage=hLet.style.webkitMaskImage=hLet.style.maskImage='';
       ['width','height','border-radius','border','left','top','right','bottom'].forEach(function(k){hImg.style.removeProperty(k);});
-      hLet.style.height=hExt.style.height=hShade.style.top=hShade.style.height=''; hShade.style.bottom=''; if(quick){ quick.style.transform=''; quick.style.removeProperty('margin-bottom'); quick.style.removeProperty('--pv'); view.style.removeProperty('--pv'); hInfo.style.bottom=''; }
+      hLet.style.height=hExt.style.height=hShade.style.top=hShade.style.height=''; hShade.style.bottom=''; if(quick){ quick.style.transform=''; quick.style.removeProperty('margin-bottom'); view.style.removeProperty('--pv'); hInfo.style.bottom=''; }
     }
     function animateTo(t){
       cancelAnimationFrame(raf);
-      var from=p, t0=performance.now(), dur=Math.max(100,Math.min(180,Math.abs(t-from)*180+60));
+      var from=p, t0=performance.now(), dur=own?Math.max(105,Math.min(190,Math.abs(t-from)*180+55)):Math.max(140,Math.min(250,Math.abs(t-from)*250+80));
       (function step(now){
         var k=clamp((now-t0)/dur), e=1-Math.pow(1-k,3);
         try { apply(from+(t-from)*e); } catch (err) { console.warn('profile pull animation stopped', err); pulling=false; track=false; try { reset(); } catch (_) {} return; }
@@ -9855,7 +9873,7 @@ html,body{overscroll-behavior-y:none}
       if(ev.touches.length!==1){ track=false; return; }
       track = view.scrollTop<=1;
       pulling=false; sy=ev.touches[0].clientY; sx=ev.touches[0].clientX;
-      if(track && !expanded){ try{ sync(); if(hImg&&hImg.decode) hImg.decode().catch(function(){}); }catch(_){} }
+      if(track && !expanded){ try{ sync(); }catch(_){} }
     },{passive:true});
 
     view.addEventListener('touchmove',function(ev){
@@ -9877,6 +9895,7 @@ html,body{overscroll-behavior-y:none}
         cancelAnimationFrame(raf);
         if(!expanded){ hideRing(); reset(true); sync(); measure(); }
         view.classList.add('pf-dragging');
+        if(own){ hero.style.transform='translateZ(0)'; hero.style.willChange='transform,width,height,top,left'; }
         sysBars(true);   /* تركيب الصورة على شريط الإشعارات من أول إطار (مرة واحدة فقط، بلا تبديل أثناء السحب) */
         pulling=true; p0=expanded?1:0; sy=t.clientY; tv=p; vel=0; lastT=0;   // نبدأ من نقطة بدء السحب الفعلي
         // إخفاء الحلقة فور بدء السحب المقبول، ومنع ظهورها في إطارات التحديث الأولى.
@@ -9893,7 +9912,7 @@ html,body{overscroll-behavior-y:none}
     function follow(now){
       followRaf=0;
       var dt=Math.min(40,now-(followLast||now-16)); followLast=now;
-      var a=1-Math.exp(-dt/2.5);
+      var a=1-Math.exp(-dt/(own?2.4:6));
       var nv=p+(tv-p)*a;
       if(Math.abs(tv-nv)<0.0015) nv=tv;
       try { apply(nv); } catch (err) { console.warn('profile pull tracking stopped', err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try { reset(); } catch (_) {} return; }
@@ -12664,7 +12683,6 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   var av=btn.querySelector('.avatar');
   function syncAv(){var src=bar.querySelector('.sb-item .avatar');if(!src)return;var h=src.innerHTML,c=src.className;if(av.__h===h&&av.__c===c)return;av.__h=h;av.__c=c;av.className=c;av.innerHTML=h;var p=av.querySelector('.sb-plus');if(p)p.remove();}
   function syncTop(){
-    if(bar.classList.contains('bb-anim')) return;   /* أثناء الحركة السكربت الناعم هو المتحكم؛ كان هذا يعيد الحالة القديمة فيحدث تأخر */
     var expanded=!bar.classList.contains('collapsed')&&!bar.classList.contains('hidden');
     if(top)top.classList.toggle('sb-off',!expanded);
     // The header avatar moves visually into the stories strip while it is expanded.
@@ -12681,15 +12699,6 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   });
 })();
 </script>
-<style id="bb-story-fly-css">
-/* الحيّز في الهيدر يبقى ثابتاً (لا ينهار) فلا يتحرك العنوان ولا يحدث تأخر عند الطي/الفتح */
-#hdrAvatarBtn#hdrAvatarBtn.story-avatar-moved{opacity:1!important;visibility:visible!important;transform:none!important;width:auto!important;flex-basis:auto!important;margin:0!important;overflow:visible!important;transition:none!important;pointer-events:none}
-#hdrAvatarBtn.story-avatar-moved .avatar,#hdrAvatarBtn.story-avatar-moved .hdr-story-stack,#hdrAvatarBtn.bb-flying .avatar,#hdrAvatarBtn.bb-flying .hdr-story-stack{visibility:hidden!important}
-#hdrAvatarBtn#hdrAvatarBtn[aria-expanded="true"] .hdr-story-stack{display:flex!important}
-#bbFlyLayer{position:fixed;left:0;top:0;width:0;height:0;overflow:visible;pointer-events:none;z-index:80}
-#bbFlyLayer .bb-fly{position:absolute;left:0;top:0;margin:0!important;padding:0!important;gap:0!important;width:auto!important;transform-origin:0 0;will-change:transform;animation:none!important;pointer-events:none}
-#bbFlyLayer .bb-fly span:not(.sb-plus){display:none}
-</style>
 <style id="bb-stories-smooth-css">
 .app-container #homeView#homeView #storiesBar.bb-anim,.app-container #homeView#homeView #storiesBar.bb-anim.collapsed{max-height:none!important;overflow:visible!important;transition:none!important;pointer-events:none;will-change:height,opacity}
 /* المحتوى يصغر بنفس نسبة الشريط تماماً فيبقى داخله دائماً ولا يُقصّ من أي جهة */
@@ -12707,63 +12716,10 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   var hbtn=document.getElementById('hdrAvatarBtn'), hd=document.getElementById('sbHandle'), HH=0,HMT=0,HMB=0,hmode='';
   /* صورة الهيدر المصغّرة تظهر/تختفي مع بداية الحركة لا بعد نهايتها */
   function moved(on){ if(hbtn) hbtn.classList.toggle('story-avatar-moved',!!on); var tp=document.getElementById('topStories'); if(tp) tp.classList.toggle('sb-off',!on); }
-
-  /* ===== الصور المصغّرة تنزلق من الهيدر إلى شريط القصص وتكبر (والعكس عند الطي) بدل أن تختفي وتظهر غيرها ===== */
-  var fg=null, fl=null, fLayer=null;
-  function R(el){ var r=el.getBoundingClientRect(); return {x:r.left,y:r.top,w:r.width,h:r.height}; }
-  function flyMeasure(){
-    fg=null; if(!hbtn) return;
-    try{
-      var hav=hbtn.querySelector('.avatar'); if(!hav) return;
-      var base=R(hav); if(!base.w) return;
-      var items=Array.prototype.slice.call(bar.querySelectorAll('.sb-item')).filter(function(el){ return el.querySelector('.avatar'); });
-      var thumbs=Array.prototype.slice.call(hbtn.querySelectorAll('.hdr-story-thumb'));
-      var list=[];
-      items.slice(0,4).forEach(function(it,i){
-        var dst=it.querySelector('.avatar'), dr=R(dst); if(!dr.w) return;
-        var sr=(i>0&&thumbs[i-1])?R(thumbs[i-1]):base; if(!sr.w) sr=base;
-        list.push({it:it,dst:dst,s:sr,d:dr,own:i===0});
-      });
-      if(list.length) fg=list;
-    }catch(e){ fg=null; }
-  }
-  function flyBuild(){
-    if(fl||!fg) return;
-    var host=bar.closest('.app-container')||document.body;
-    fLayer=document.createElement('div'); fLayer.id='bbFlyLayer'; host.appendChild(fLayer);
-    var o=fLayer.getBoundingClientRect(), ox=o.left, oy=o.top;
-    fl=fg.map(function(g){
-      var shell=document.createElement('div'); shell.className='sb-item bb-fly';
-      var av=g.dst.cloneNode(true); shell.appendChild(av);
-      var plus=av.querySelector('.sb-plus'); if(plus) plus.style.opacity='0';
-      fLayer.appendChild(shell);
-      g.dst.style.visibility='hidden';
-      return {g:g,el:shell,plus:plus,ox:ox,oy:oy};
-    });
-    hbtn.classList.add('bb-flying');
-  }
-  function flyStep(p){
-    if(!fg) return;
-    if(p>=0.999){ flyEnd(); return; }
-    flyBuild(); if(!fl) return;
-    var q=p<0?0:p;
-    for(var i=0;i<fl.length;i++){
-      var f=fl[i], g=f.g;
-      var x=g.s.x+(g.d.x-g.s.x)*q-f.ox, y=g.s.y+(g.d.y-g.s.y)*q-f.oy;
-      var w=g.s.w+(g.d.w-g.s.w)*q, k=w/g.d.w;
-      f.el.style.transform='translate3d('+x.toFixed(2)+'px,'+y.toFixed(2)+'px,0) scale('+k.toFixed(4)+')';
-      if(f.plus) f.plus.style.opacity=(q*q*q).toFixed(3);
-    }
-  }
-  function flyEnd(){
-    if(fl){ fl.forEach(function(f){ try{ f.g.dst.style.visibility=''; }catch(_){} }); fl=null; }
-    if(fLayer){ if(fLayer.parentNode) fLayer.parentNode.removeChild(fLayer); fLayer=null; }
-    if(hbtn&&hbtn.classList.contains('bb-flying')) hbtn.classList.remove('bb-flying');
-  }
   /* قفل تمرير القائمة أثناء الطي حتى لا تتحرك المحادثات مرتين (تمرير + انكماش) فتختبئ أول محادثة */
   function lock(top){ if(locked) return; locked=true; savedOY=home.style.overflowY; lockTop=top; home.style.overflowY='hidden'; home.scrollTop=top; }
   function unlock(){ if(!locked) return; locked=false; home.style.overflowY=savedOY||''; }
-  function metrics(){ flyMeasure(); var cs=getComputedStyle(bar); H=bar.getBoundingClientRect().height; PT=parseFloat(cs.paddingTop)||0; PB=parseFloat(cs.paddingBottom)||0;
+  function metrics(){ var cs=getComputedStyle(bar); H=bar.getBoundingClientRect().height; PT=parseFloat(cs.paddingTop)||0; PB=parseFloat(cs.paddingBottom)||0;
     HH=0; if(hd&&!hd.classList.contains('hidden')){ var hs=getComputedStyle(hd); HH=hd.getBoundingClientRect().height; HMT=parseFloat(hs.marginTop)||0; HMB=parseFloat(hs.marginBottom)||0; } }
   function apply(p){
     p=p<0?0:p>1?1:p;
@@ -12773,11 +12729,10 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
     bar.style.paddingBottom=(PB*p).toFixed(2)+'px';
     bar.style.setProperty('--bb-p',p.toFixed(4));
     bar.style.opacity=Math.min(1,p*1.5).toFixed(3);
-    flyStep(p);
     if(hd&&HH){ var hs=hd.style; hs.transition='none'; hs.overflow='hidden'; hs.height=(HH*p).toFixed(2)+'px'; hs.marginTop=(HMT*p).toFixed(2)+'px'; hs.marginBottom=(HMB*p).toFixed(2)+'px'; hs.opacity=hmode==='c'?'0':Math.min(1,p*1.5).toFixed(3); }
     return p;
   }
-  function clear(){ flyEnd(); if(hd){ hd.style.height=hd.style.marginTop=hd.style.marginBottom=hd.style.opacity=hd.style.overflow=hd.style.transition=''; } bar.style.height=bar.style.paddingTop=bar.style.paddingBottom=bar.style.opacity=''; bar.style.removeProperty('--bb-p'); bar.classList.remove('bb-anim'); }
+  function clear(){ if(hd){ hd.style.height=hd.style.marginTop=hd.style.marginBottom=hd.style.opacity=hd.style.overflow=hd.style.transition=''; } bar.style.height=bar.style.paddingTop=bar.style.paddingBottom=bar.style.opacity=''; bar.style.removeProperty('--bb-p'); bar.classList.remove('bb-anim'); }
   function cancelAnim(){ if(anim){ cancelAnimationFrame(anim); anim=0; } }
   var ease=function(t){ return 1-Math.pow(1-t,3); };   /* easeOutQuart: ناعم جداً في النهاية */
   function run(from,to,vel,done){
