@@ -83,7 +83,6 @@ html,body{min-width:0}
   var APP_PKG = window.BB_APP_PACKAGE || 'com.babylon.chat';
   var DL = '/api/apk';
   var UN_RE = /^[A-Za-z0-9_.]{3,32}$/;
-  var EXEMPT = ['hamodeygame45@gmail.com'];
   var RING_C = 2 * Math.PI * 62;
   var ua = navigator.userAgent || '';
   var isAndroid = /Android/i.test(ua);
@@ -197,7 +196,11 @@ html,body{min-width:0}
 
   /* ---------- 1) فتح التطبيق من رابط حساب (?u=) ---------- */
   var linkName = param('u');
-  var canOpen = isAndroid && linkName && UN_RE.test(linkName) && param('noapp') !== '1';
+  /* رابط صفحة التحميل الخاص (يؤخذ من زر المشاركة في الإعدادات): /?download=1
+     الصفحة لا تظهر إلا عند فتح هذا الرابط (أو رابط حساب ?u= على أندرويد)، وبقية الدخول للموقع من المتصفح عادي. */
+  var WANT_DL = param('download') === '1';
+  var linkFlow = isAndroid && !!linkName && UN_RE.test(linkName);
+  var canOpen = linkFlow && param('noapp') !== '1' && !WANT_DL;
   var openUrl = '';
   if (canOpen) {
     var proto = location.protocol.replace(':', '');
@@ -228,7 +231,6 @@ html,body{min-width:0}
       '<button id="bbGo" class="u-go" type="button">تحميل الان</button>' +
       (canOpen ? '<button id="bbRetry" class="u-later" type="button">التطبيق مثبّت عندي؟ جرّب فتحه</button>' : '') + '</div>';
     page.querySelector('#bbGo').onclick = function () { showDownload(true); };
-    wireExemptTap();
     var r = page.querySelector('#bbRetry');
     if (r) r.onclick = function () { left = false; shownDone = false; showOpening(); };
   }
@@ -341,62 +343,10 @@ html,body{min-width:0}
   }
 
   /* ---------- تشغيل ---------- */
-  function idbExempt(cb) {
-    try {
-      var rq = indexedDB.open('firebaseLocalStorageDb');
-      rq.onerror = function () { cb(false); };
-      rq.onsuccess = function () {
-        try {
-          var db = rq.result;
-          if (!db.objectStoreNames.contains('firebaseLocalStorage')) { db.close(); return cb(false); }
-          var g = db.transaction('firebaseLocalStorage', 'readonly').objectStore('firebaseLocalStorage').getAll();
-          g.onsuccess = function () {
-            var ok = false;
-            (g.result || []).forEach(function (r) {
-              try { if (/^firebase:authUser:/.test(r.fbase_key) && r.value && EXEMPT.indexOf(String(r.value.email || '').trim().toLowerCase()) !== -1) ok = true; } catch (e) {}
-            });
-            db.close(); cb(ok);
-          };
-          g.onerror = function () { db.close(); cb(false); };
-        } catch (e) { cb(false); }
-      };
-    } catch (e) { cb(false); }
-  }
-  function askExempt() {
-    var m = page.querySelector('.u-msg'); if (!m) return;
-    m.style.whiteSpace = 'normal';
-    m.innerHTML = '<input id="bbExIn" type="email" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="email" ' +
-      'style="width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid rgba(232,200,93,.45);background:rgba(255,255,255,.07);color:#fff;font-size:calc(15px * var(--bb-s,1));text-align:center;outline:none;margin-bottom:10px">' +
-      '<button id="bbExGo" type="button" class="u-copy">متابعة</button><div id="bbExMsg" style="min-height:20px;margin-top:8px;font-size:calc(12.5px * var(--bb-s,1));color:#ff9a8f"></div>';
-    var inp = m.querySelector('#bbExIn'), msg = m.querySelector('#bbExMsg');
-    function go() {
-      var v = String(inp.value || '').trim().toLowerCase();
-      if (EXEMPT.indexOf(v) === -1) { msg.textContent = 'هذا الحساب غير مستثنى.'; return; }
-      try { localStorage.setItem('bb_exempt_try', '1'); } catch (e) {}
-      location.reload();
-    }
-    m.querySelector('#bbExGo').onclick = go;
-    inp.onkeydown = function (e) { if (e.key === 'Enter') go(); };
-    setTimeout(function () { try { inp.focus(); } catch (e) {} }, 50);
-  }
-  function wireExemptTap() {
-    var chip = page.querySelector('.u-chip'); if (!chip) return;
-    var taps = 0, tt = 0;
-    chip.onclick = function () {
-      taps++; clearTimeout(tt); tt = setTimeout(function () { taps = 0; }, 2500);
-      if (taps >= 5) { taps = 0; askExempt(); }
-    };
-  }
   function block() {
     mount();
     onReady(function () {
       try { if (window.__bbScale) { window.__bbScale(); window.addEventListener('resize', window.__bbScale); } } catch (e) {}
-      try {
-        if (sessionStorage.getItem('bb_idb_once') !== '1') {
-          sessionStorage.setItem('bb_idb_once', '1');
-          idbExempt(function (ok) { if (ok) { try { localStorage.setItem('bb_exempt', '1'); } catch (e) {} location.reload(); } });
-        }
-      } catch (e) {}
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden') { left = true; clearTimeout(timer); }
         else if (left && !busy && !shownDone) showBlock();      /* رجع للمتصفح بعد محاولة فتح التطبيق */
@@ -415,25 +365,17 @@ html,body{min-width:0}
   }
 
   if (hasBridge()) { window.__BB_APP = true; return; }   /* داخل التطبيق: لا شيء يتغيّر */
-  /* استثناء الحساب المسموح له بالموقع من المتصفح بدون تحميل التطبيق:
-     bb_exempt = تأكّد التطبيق (بعد تسجيل الدخول) أن الحساب مستثنى ، bb_exempt_try = السماح بفتح صفحة الدخول فقط */
-  try {
-    if (localStorage.getItem('bb_exempt') === '1' || localStorage.getItem('bb_exempt_try') === '1') { window.__BB_EXEMPT = true; return; }
-  } catch (e) {}
+
+  /* لا حجب إجباري: صفحة التحميل تظهر فقط عند فتح رابطها الخاص (?download=1)
+     أو رابط حساب ?u= على أندرويد (فتح التطبيق ثم التحميل). غير ذلك يعمل الموقع بشكل عادي في أي متصفح. */
+  if (!WANT_DL && !linkFlow) return;
+
   if (isWv) {
-    /* WebView لكن الجسر لم يُحقن بعد: مهلة قصيرة ثم الحجب */
+    /* WebView لكن الجسر لم يُحقن بعد: مهلة قصيرة ثم عرض الصفحة */
     var t0 = Date.now(), iv = setInterval(function () {
       if (hasBridge()) { clearInterval(iv); window.__BB_APP = true; }
       else if (Date.now() - t0 > 4000) { clearInterval(iv); block(); }
     }, 100);
-    return;
-  }
-  /* تعطيل مؤقت لشاشة التحميل الإجباري في متصفح Chrome فقط.
-     لإعادة تفعيلها لاحقاً غيّر القيمة إلى false؛ كود الحجب الأصلي باقٍ كما هو. */
-  var TEMP_DISABLE_CHROME_DOWNLOAD_GATE = true;
-  var isChromeBrowser = /Chrome\//i.test(ua) && !/(Edg|OPR|SamsungBrowser|Brave|Vivaldi|UCBrowser|MiuiBrowser)/i.test(ua);
-  if (TEMP_DISABLE_CHROME_DOWNLOAD_GATE && isChromeBrowser) {
-    window.__BB_CHROME_GATE_DISABLED = true;
     return;
   }
   block();
@@ -2995,6 +2937,11 @@ html[data-app-theme="light"] .splash-title{color:#8b680e}
         <div class="sx-group">
           <div class="sx-item bs-row" onclick="openStarsHistory()"><span class="sx-ic bs-ic"><svg class="bs-star-svg" viewBox="0 0 24 24" aria-hidden="true"><use href="#bbStar"/></svg></span><span class="sx-t">نجوم بابيلون</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
           <div class="sx-item" onclick="openGiftStore()"><span class="sx-ic" style="background:#ec4899;font-size:calc(19px * var(--bb-s,1))"><svg class="gift-svg-ico gift-svg-set" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18v11H3zM2 6.5h20V10H2zM12 6.5V21M12 6.5H7.4a2.4 2.4 0 1 1 2.4-2.4c0 1.3 2.2 2.4 2.2 2.4Zm0 0h4.6a2.4 2.4 0 1 0-2.4-2.4C14.2 5.4 12 6.5 12 6.5Z"/></svg></span><span class="sx-t">متجر الهدايا</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
+        </div>
+
+        <div class="sx-label">مشاركة التطبيق</div>
+        <div class="sx-group">
+          <div class="sx-item" id="sxShareDownload" role="button" tabindex="0" onclick="sxShareDownloadLink()"><span class="sx-ic" style="background:#0ea5e9"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="2.4"/><circle cx="17.5" cy="6" r="2.4"/><circle cx="17.5" cy="18" r="2.4"/><path d="m8.1 10.8 7.3-3.6M8.1 13.2l7.3 3.6"/></svg></span><span class="sx-t"><span class="appearance-title">مشاركة رابط التحميل</span><small class="appearance-description">رابط يفتح صفحة تحميل التطبيق في أي متصفح</small></span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
         </div>
 
         <div class="sx-label">الأمان</div>
@@ -9675,7 +9622,7 @@ html,body{overscroll-behavior-y:none}
       '<div class="pf-hero-info"><div class="pf-hero-name"></div><div class="pf-hero-status"></div></div>';
     view.appendChild(hero);
     var own = cfg.view==='profileView';
-    var RANGE = own ? 350 : 150; // الملف الشخصي الخاص: 350px؛ ملف الشخص الآخر يبقى 150px
+    var RANGE = own ? 400 : 150; // الملف الشخصي الخاص: 350px؛ ملف الشخص الآخر يبقى 150px
     var TOUCH_SLOP = own ? 3 : 5; // حساسية بدء السحب للملف الشخصي الخاص: 3px
     if(own){
       hero.insertAdjacentHTML('beforeend',
@@ -9808,7 +9755,8 @@ html,body{overscroll-behavior-y:none}
            وتسبب وميضًا/شاشة سوداء. يتم ذلك فقط بعد استقرار الحركة (animateTo). */
       }
       cover.style.height=(g.coverH+g.delta*v)+'px';
-      cover.style.opacity=clamp(1-v*1.5);
+      cover.style.opacity=1;   /* لون الغلاف يستمر كاملاً أثناء التكبير والتصغير: لا تلاشي يكشف الخلفية البيضاء */
+      cover.style.setProperty('--cv-fade',String(clamp(1-v*2)));   /* التدرج السفلي (نحو لون الخلفية) يختفي تدريجياً بدل أن يظهر كغشاوة */
       ring.style.opacity=0;
       nameBox.style.overflow='hidden'; nameBox.style.height=(g.nh*(1-v))+'px';
       nameBox.style.marginBottom=(6*(1-v))+'px'; nameBox.style.opacity=clamp(1-v*2);
@@ -9836,7 +9784,7 @@ html,body{overscroll-behavior-y:none}
       restoreOriginalAvatar();
       p=0; expanded=false;
       hero.style.display='none'; hero.style.pointerEvents='none'; hInfo.style.opacity=0;
-      cover.style.height=''; cover.style.opacity='';
+      cover.style.height=''; cover.style.opacity=''; cover.style.removeProperty('--cv-fade');
       ring.style.opacity='';
       ring.style.visibility='';
       if(!keepRingOff) showRing();
@@ -10951,7 +10899,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
   checkPending(); setTimeout(checkPending, 1500);
 
   /* ---- 2) المتصفح على أندرويد: فتح التطبيق مباشرة، وإلا صفحة تحميل إجبارية ---- */
-  if (window.__BB_EXEMPT || inApp() || !/Android/i.test(navigator.userAgent)) return;
+  if (inApp() || !/Android/i.test(navigator.userAgent)) return;
   var name = param('u');
   if (!name || !UN_RE.test(name)) return;
   try { if (sessionStorage.getItem('bb_applink_skip') === '1') return; } catch (e) {}
@@ -11657,25 +11605,60 @@ body:has(.app-container[data-app-theme="light"]) .cl-dlg.cl-del .cl-btns button.
   }, true);
 })();
 </script>
-<script id="bb-exempt-session">
-/* يثبّت/يلغي الاستثناء حسب الحساب المسجَّل فعلياً (يعمل فقط عند فتح الموقع من المتصفح بالاستثناء) */
-(function(){
-  if (!window.__BB_EXEMPT) return;
-  var EX = ['hamodeygame45@gmail.com'];
-  function isEx(e){ return EX.indexOf(String(e || '').trim().toLowerCase()) !== -1; }
-  function clr(){ try { localStorage.removeItem('bb_exempt'); localStorage.removeItem('bb_exempt_try'); } catch (e) {} }
-  try { var a = auth, so = a.signOut.bind(a); a.signOut = function(){ clr(); return so.apply(null, arguments); }; } catch (e) {}
-  try {
-    auth.onAuthStateChanged(function(u){
-      if (u) {
-        if (isEx(u.email)) { try { localStorage.setItem('bb_exempt', '1'); localStorage.removeItem('bb_exempt_try'); } catch (e) {} }
-        else { clr(); auth.signOut().catch(function(){}).then(function(){ location.reload(); }); }
-      } else {
-        var had = false; try { had = localStorage.getItem('bb_exempt') === '1'; } catch (e) {}
-        if (had) { clr(); location.reload(); }
+<script id="bb-share-download-link">
+/* رابط صفحة التحميل الخاص: يُبنى بنفس منطق روابط الحسابات (نطاق الموقع العام) + ?download=1 */
+(function () {
+  function baseUrl() {
+    var host = location.hostname;
+    var web = /^https?:$/.test(location.protocol) && host && host !== 'localhost' && host !== '127.0.0.1';
+    return (web ? location.origin : (window.BB_PUBLIC_URL || location.origin)).replace(/\/$/, '');
+  }
+  function downloadLink() { return baseUrl() + '/?download=1'; }
+  function toast(m) { try { showToast(m); } catch (e) {} }
+  function copy(text) {
+    function fb() {
+      try {
+        var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand('copy'); ta.remove();
+        toast(ok ? 'تم نسخ رابط التحميل' : 'تعذر النسخ، انسخ الرابط يدوياً: ' + text);
+      } catch (e) { toast('تعذر النسخ، انسخ الرابط يدوياً: ' + text); }
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { toast('تم نسخ رابط التحميل'); }, fb);
+      } else fb();
+    } catch (e) { fb(); }
+  }
+  window.sxShareDownloadLink = function () {
+    var url = downloadLink(), title = 'Babylon Chat', text = 'حمّل تطبيق بابيلون شات:';
+    /* 1) الجسر الأصلي (إن وُجدت الدالة) */
+    try {
+      var nb = window.BabylonAndroid;
+      if (nb && typeof nb.shareText === 'function') { nb.shareText(text + '\n' + url); return; }
+    } catch (e) {}
+    /* 2) إضافة Capacitor Share */
+    try {
+      var P = (window.Capacitor && Capacitor.Plugins) || {};
+      if (P.Share && typeof P.Share.share === 'function') {
+        P.Share.share({ title: title, text: text, url: url, dialogTitle: 'مشاركة رابط التحميل' })
+          .catch(function (err) { if (!(err && /cancel/i.test(String(err.message || err)))) copy(url); });
+        return;
       }
-    });
-  } catch (e) {}
+    } catch (e) {}
+    /* 3) مشاركة الويب */
+    if (navigator.share) {
+      navigator.share({ title: title, text: text, url: url })
+        .catch(function (err) { if (err && err.name === 'AbortError') return; copy(url); });
+      return;
+    }
+    /* 4) نسخ الرابط */
+    copy(url);
+  };
+  document.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.id === 'sxShareDownload') { e.preventDefault(); window.sxShareDownloadLink(); }
+  });
 })();
 </script>
 </body>
@@ -14513,6 +14496,10 @@ body.light #viewersModal .viewer-item {
   height:calc(176px * .55)!important}
 </style>
 
+<style id="pf-cover-keep-color">
+/* الغلاف يحافظ على لونه أثناء سحب الصورة وتصغيرها: لا غشاوة بيضاء من تدرج الخلفية */
+:is(#profileView,#otherUserProfileView) .pf-cover::after{opacity:var(--cv-fade,1)!important}
+</style>
 <script id="babylon-offline">
 /* العمل بدون إنترنت: الواجهة تفتح، لكن لا إرسال ولا استلام.
    ثلاث حالات للشبكة:
