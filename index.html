@@ -16167,6 +16167,15 @@ html{overflow:hidden!important;overscroll-behavior:none}
   var badge=btn.querySelector('.sd-badge'), count=0;
   function dist(){ return area.scrollHeight-area.scrollTop-area.clientHeight; }
   function chatOpen(){ return !cv.classList.contains('hidden'); }
+  /* عدد الرسائل الموجودة أسفل الجزء الظاهر من المحادثة */
+  var SHOW_AFTER=10;
+  function msgsBelow(){
+    if(dist()<=200) return 0;
+    var vb=area.getBoundingClientRect().bottom, n=0;
+    var bs=area.querySelectorAll('.msg-bubble');
+    for(var i=bs.length-1;i>=0;i--){ if(bs[i].getBoundingClientRect().top>=vb-4){ n++; if(n>=SHOW_AFTER) break; } else break; }
+    return n;
+  }
   function place(){
     var ic=cv.querySelector('.chat-input-container');
     var cr=cv.getBoundingClientRect(), ir=ic?ic.getBoundingClientRect():null;
@@ -16182,7 +16191,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
     if(!far) count=0;
     badge.textContent=count>99?'99+':String(count);
     badge.classList.toggle('on',count>0);
-    var show=open&&userMoved&&(far||count>0)&&Date.now()>=calmUntil;   /* يظهر فقط بعد أن يسحب المستخدم بنفسه لأعلى المحادثة */
+    var show=open&&userMoved&&far&&msgsBelow()>=SHOW_AFTER&&Date.now()>=calmUntil;   /* يظهر فقط بعد أن يسحب المستخدم بنفسه لأعلى المحادثة */
     if(show) place();
     btn.classList.toggle('show',show);
   }
@@ -19797,6 +19806,17 @@ window.bbTinyThumb = function (file) {
   .bb-playing .bb-rise,.bb-playing .bb-pop,.messages-area .bb-msg-in,.bb-item-in,.bb-fab-in{animation:none!important}
 }
 </style>
+<style id="bb-tabswitch-fade">
+/* خطوط الفصل بين الأقسام: شفافة لحظة الانتقال ثم تظهر تدريجيًا */
+.app-container #bottomNav.telegram-bottom-nav,
+.app-container .main-header,.app-container #mainHeader{transition:border-color .28s ease}
+.app-container #bottomNav.telegram-bottom-nav::before{transition:opacity .28s ease}
+.app-container.bb-tabswitch #bottomNav.telegram-bottom-nav,
+.app-container.bb-tabswitch #mainHeader,
+.app-container.bb-tabswitch .main-header{border-color:transparent!important;box-shadow:none!important;transition:none!important}
+.app-container.bb-tabswitch #bottomNav.telegram-bottom-nav::before{opacity:0;transition:none!important}
+.app-container.bb-tabswitch :is(#homeView,#profileView,#settingsView) *{animation:none!important}
+</style>
 <script id="bb-entrance-anim-js">
 (function(){
   'use strict';
@@ -19848,8 +19868,21 @@ window.bbTinyThumb = function (file) {
     return (a && !a.classList.contains('hidden')) || (b && !b.classList.contains('hidden'));
   }
 
+  /* التنقل بين أقسام الشريط السفلي (المحادثات / الإعدادات / الملف الشخصي): بدون أنيميشن */
+  var MAIN_TABS = { homeView:1, profileView:1, settingsView:1 };
+  var tabNavUntil = 0;
+  function tabNav(){ return Date.now() < tabNavUntil; }
+  document.addEventListener('click', function(e){
+    var b = e.target && e.target.closest && e.target.closest('#bottomNav .nav-item');
+    if (!b) return;
+    tabNavUntil = Date.now() + 700;
+    var app = document.querySelector('.app-container');
+    if (app){ app.classList.add('bb-tabswitch'); clearTimeout(app.__tsT); app.__tsT = setTimeout(function(){ app.classList.remove('bb-tabswitch'); }, 80); }
+  }, true);
+
   function enterView(el){
     if (!el || NO_ANIM[el.id]) return;
+    if (MAIN_TABS[el.id] && tabNav()) return;
     var isChat = el.id === 'chatView';
     var extras = el.id === 'homeView' ? [document.getElementById('newGroupFab')] : [];
     stagger(el);
@@ -19881,8 +19914,8 @@ window.bbTinyThumb = function (file) {
 
   function init(){
     VIEWS.forEach(function(id){ watch(document.getElementById(id), enterView); });
-    watch(document.getElementById('mainHeader'), function(el){ if (!profileOpen()) enterBar(el, 'bb-bar-down'); });
-    watch(document.getElementById('bottomNav'),  function(el){ if (!profileOpen()) enterBar(el, 'bb-bar-up'); });
+    watch(document.getElementById('mainHeader'), function(el){ if (!profileOpen() && !tabNav()) enterBar(el, 'bb-bar-down'); });
+    watch(document.getElementById('bottomNav'),  function(el){ if (!profileOpen() && !tabNav()) enterBar(el, 'bb-bar-up'); });
 
     /* أول دخول للتطبيق بعد تسجيل الدخول */
     watch(document.getElementById('mainPage'), function(){
