@@ -9610,7 +9610,6 @@ html,body{overscroll-behavior-y:none}
 <script id="pf-pull-expand-js">
 /* سحب الشاشة للأسفل في البروفايل: تكبر الصورة مع الإصبع حتى تصبح مربعًا فيه الاسم، ويختفي الغلاف (مثل تليجرام) */
 (function(){
-  var RANGE = 150;      // كم بكسل سحب لتكتمل الصورة
   var THRESH = 0.45;    // بعد هذه النسبة تثبت مفتوحة عند ترك الإصبع
   // صور البروفايل مخزنة base64 (ميغابايتات). نحولها مرة وحدة إلى blob حتى ما نكرر نص ضخم بالـCSS كل سحبة
   var _lc={}, _sm={}, _smBusy={};
@@ -9668,6 +9667,7 @@ html,body{overscroll-behavior-y:none}
       '<div class="pf-hero-info"><div class="pf-hero-name"></div><div class="pf-hero-status"></div></div>';
     view.appendChild(hero);
     var own = cfg.view==='profileView';
+    var RANGE = own ? 200 : 150; // الملف الشخصي الخاص: 200px؛ ملف الشخص الآخر يبقى 150px
     if(own){
       hero.insertAdjacentHTML('beforeend',
         '<div class="pf-hero-top"><div class="pf-hero-count">1/1</div>'+
