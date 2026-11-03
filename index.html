@@ -4151,7 +4151,8 @@ function goHome() {
   if (searchClearBtn) searchClearBtn.classList.add("hidden");
   setSearchHint("اكتب 3 أحرف على الأقل", "idle");
   showView("homeView");
-  if (!chatsListUnsubscribe) loadChats();   // الاستماع يبقى فعّالًا: لا إعادة تحميل/رسم للقائمة عند الرجوع
+  if (!chatsListUnsubscribe) loadChats();
+  else { try { reorderChatListItems(); } catch (e) {} document.querySelectorAll('#chatList .chat-item.is-active-chat').forEach(el => el.classList.remove('is-active-chat')); }   // الاستماع يبقى فعّالًا: لا إعادة تحميل/رسم للقائمة عند الرجوع
 }
 
 function openSearch() { 
