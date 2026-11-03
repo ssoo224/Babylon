@@ -179,22 +179,7 @@ html,body{min-width:0}
       document.write(HEAD + BODY + '<plaintext hidden style="display:none">');
     } else {
       document.open('text/html', 'replace');
-      document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">' + HEAD + '<style id="bb-pending-no-black">
-/* أثناء إرسال الفيديو: لا خلفية سوداء خلف الـ blur */
-#chatView #messagesArea .msg-bubble.video-pending .msg-video,
-#chatView #messagesArea .msg-bubble.video-pending .msg-video video{background:transparent!important}
-#chatView #messagesArea .msg-bubble.video-pending .msg-video{background:rgba(128,128,128,.16)!important}
-#chatView #messagesArea .msg-bubble.video-pending .msg-video video:not(.bb-frame){opacity:0}
-#chatView #messagesArea .msg-bubble.video-pending .vp-cover{background:rgba(255,255,255,.06)!important}
-</style>
-<style id="bb-stories-fast">
-/* طي/فتح القصص أسرع */
-.app-container #homeView#homeView #storiesBar{transition:max-height .16s cubic-bezier(.3,.7,.3,1),padding .16s ease,opacity .12s ease!important}
-.app-container #homeView#homeView #storiesBar .avatar,.app-container #homeView#homeView #storiesBar .sb-item span{transition-duration:.12s!important}
-.app-container #homeView#homeView #storiesBar .sb-item{animation-duration:.12s!important;animation-delay:0s!important}
-#hdrAvatarBtn.story-avatar-moved{transition:opacity .1s,transform .12s,width .12s,flex-basis .12s!important}
-</style>
-</head><body>' + BODY + '</body></html>');
+      document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">' + HEAD + '</head><body>' + BODY + '</body></html>');
       document.close();
     }
   }
@@ -2697,6 +2682,25 @@ body:has(.app-container[data-app-theme]) #settingsView .bs-row .bs-star-svg{filt
   transform:translateZ(0);will-change:opacity;backface-visibility:hidden;contain:layout paint}
 html[data-app-theme="light"] .splash-page{background:radial-gradient(circle at center,#ffffff 0%,#edf2f8 100%)}
 html[data-app-theme="light"] .splash-title{color:#8b680e}
+</style>
+<style id="bb-pending-no-black">
+/* أثناء إرسال الفيديو: لا خلفية سوداء خلف الـ blur */
+#chatView #messagesArea .msg-bubble.video-pending .msg-video,
+#chatView #messagesArea .msg-bubble.video-pending .msg-video video{background:transparent!important}
+#chatView #messagesArea .msg-bubble.video-pending .msg-video{background:rgba(128,128,128,.16)!important}
+#chatView #messagesArea .msg-bubble.video-pending .msg-video video:not(.bb-frame){opacity:0}
+#chatView #messagesArea .msg-bubble.video-pending .vp-cover{background:rgba(255,255,255,.06)!important}
+</style>
+<style id="bb-stories-fast">
+/* طي/فتح القصص أسرع */
+.app-container #homeView#homeView #storiesBar{transition:max-height .16s cubic-bezier(.3,.7,.3,1),padding .16s ease,opacity .12s ease!important}
+.app-container #homeView#homeView #storiesBar .avatar,.app-container #homeView#homeView #storiesBar .sb-item span{transition-duration:.12s!important}
+.app-container #homeView#homeView #storiesBar .sb-item{animation-duration:.12s!important;animation-delay:0s!important}
+#hdrAvatarBtn.story-avatar-moved{transition:opacity .1s,transform .12s,width .12s,flex-basis .12s!important}
+</style>
+<style id="bb-chat-header-up3">
+/* رفع هيدر المحادثة (الاسم، الصورة، الاتصال، النقاط الثلاث، رجوع) 3 بكسل للأعلى مع بقاء الارتفاع نفسه */
+.app-container #chatView#chatView header.telegram-chat-header{padding-top:max(0px,calc(4px + var(--sat,0px) - 3px))!important;padding-bottom:6px!important}
 </style>
 </head>
 
