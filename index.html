@@ -12679,6 +12679,40 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   });
 })();
 </script>
+<style id="bb-stories-smooth-css">
+.app-container #homeView#homeView #storiesBar.bb-anim,.app-container #homeView#homeView #storiesBar.bb-anim.collapsed{max-height:none!important;overflow:hidden!important;transition:none!important;pointer-events:none;will-change:height,opacity;contain:layout paint}
+</style>
+<script id="bb-stories-smooth-js">
+/* طي/فتح القصص بحركة سلسة: نحرّك الارتفاع الفعلي بالبكسل (من القياس الحقيقي) بدل max-height الذي كان يسبب تأخراً وتقطيعاً */
+(function(){
+  var bar=document.getElementById('storiesBar'), orig=window.setStoriesCollapsed;
+  if(!bar||typeof orig!=='function'||!bar.animate) return;
+  var anim=null, DUR=280, EASE='cubic-bezier(.22,.8,.2,1)';
+  function stop(){ if(anim){ try{anim.cancel();}catch(_){} anim=null; } bar.classList.remove('bb-anim'); }
+  window.setStoriesCollapsed=function(c){
+    c=!!c;
+    stop();
+    var isC=bar.classList.contains('collapsed');
+    if(isC===c||bar.classList.contains('hidden')||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)) return orig(c);
+    var cs,h,pt,pb;
+    if(c){
+      cs=getComputedStyle(bar); h=bar.getBoundingClientRect().height; pt=cs.paddingTop; pb=cs.paddingBottom;
+      if(h<4) return orig(true);
+      bar.classList.add('bb-anim');
+      anim=bar.animate([{height:h+'px',paddingTop:pt,paddingBottom:pb,opacity:1},{height:'0px',paddingTop:'0px',paddingBottom:'0px',opacity:0}],{duration:DUR,easing:EASE,fill:'forwards'});
+      var a=anim;
+      a.onfinish=function(){ if(anim!==a) return; orig(true); stop(); };
+    } else {
+      orig(false);
+      bar.classList.add('bb-anim');
+      cs=getComputedStyle(bar); h=bar.getBoundingClientRect().height; pt=cs.paddingTop; pb=cs.paddingBottom;
+      anim=bar.animate([{height:'0px',paddingTop:'0px',paddingBottom:'0px',opacity:0},{height:h+'px',paddingTop:pt,paddingBottom:pb,opacity:1}],{duration:DUR,easing:EASE});
+      var b=anim;
+      b.onfinish=function(){ if(anim===b) stop(); };
+    }
+  };
+})();
+</script>
 <style id="babylon-mentions">
 .app-container .msg-bubble .msg-text span.mention{color:#0b5fd6!important;-webkit-text-fill-color:#0b5fd6!important;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .app-container[data-app-theme="dark"] .msg-bubble .msg-text span.mention{color:#6cb6ff!important;-webkit-text-fill-color:#6cb6ff!important}
