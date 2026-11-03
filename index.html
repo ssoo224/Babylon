@@ -4864,8 +4864,18 @@ function __bbInstantOpen() {
   if (meta && Number(meta.updatedAt) && newest < Number(meta.updatedAt) - 3000) return;   /* قديمة: ننتظر الحقيقية */
   window.__bbMsgH(mem.snap);
 }
+/* يمسح محتوى المحادثة السابقة فورًا قبل إظهار الجديدة (لا ومضة للمحادثة القديمة) */
+function bbResetChatView() {
+  try {
+    const box = document.getElementById('messagesArea'); if (box) box.innerHTML = '';
+    const t = document.getElementById('chatTitleText'); if (t) t.textContent = '';
+    const a = document.getElementById('chatAvatar'); if (a) { a.innerHTML = ''; a.textContent = ''; }
+    const sb = document.getElementById('chatSub'); if (sb) sb.textContent = '';
+  } catch (e) {}
+}
 function openChatRoom(otherUserId, keepLimit) {
   window.__bbMsgSig = null; window.__bbRendered = null;
+  if (!keepLimit) bbResetChatView();
   reorderChatListItems();
   document.getElementById('chatGroupInfoAction')?.classList.add('hidden'); { const _av = document.getElementById('chatAvatar'); if (_av) _av.style.background = ''; } try { hideMentionPop(); resetGroupUI(); } catch (e) {}
   if (!keepLimit) msgLimit = 50;
@@ -8458,6 +8468,7 @@ function markGroupRead(chatId,newest){
 }
 function openGroupRoom(chatId,keepLimit){
   window.__bbMsgSig=null;window.__bbRendered=null;
+  if(!keepLimit)bbResetChatView();
   const meta=chatMetaCache[chatId];
   if(!meta){db.collection('chats').doc(chatId).get().then(d=>{if(d.exists){chatMetaCache[chatId]=d.data();openGroupRoom(chatId,keepLimit);}});return;}
   activeChatId=chatId;currentChatOtherUserId=null;
