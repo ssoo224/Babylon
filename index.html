@@ -12681,8 +12681,8 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
 </script>
 <style id="bb-stories-smooth-css">
 .app-container #homeView#homeView #storiesBar.bb-anim,.app-container #homeView#homeView #storiesBar.bb-anim.collapsed{max-height:none!important;overflow:visible!important;transition:none!important;pointer-events:none;will-change:height,opacity}
-/* المحتوى يصعد ويصغر تدريجياً مع الشريط بدل أن يُقصّ من الأسفل */
-.app-container #homeView#homeView #storiesBar.bb-anim .sb-item,.app-container #homeView#homeView #storiesBar.bb-anim.collapsed .sb-item{transform-origin:50% 0;translate:0 calc((1 - var(--bb-p,1)) * -34px);scale:calc(.78 + .22 * var(--bb-p,1));transition:none!important}
+/* المحتوى يصغر بنفس نسبة الشريط تماماً فيبقى داخله دائماً ولا يُقصّ من أي جهة */
+.app-container #homeView#homeView #storiesBar.bb-anim .sb-item,.app-container #homeView#homeView #storiesBar.bb-anim.collapsed .sb-item{transform-origin:50% 0;translate:none;scale:var(--bb-p,1);transition:none!important}
 </style>
 <script id="bb-stories-smooth-js">
 /* القصص: الشريط يتبع إصبعك بكسلاً بكسلاً (1:1) أثناء السحب، وعند الإفلات يكمل بحركة ناعمة تراعي سرعة الإصبع.
