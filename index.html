@@ -428,6 +428,14 @@ html,body{min-width:0}
     }, 100);
     return;
   }
+  /* تعطيل مؤقت لشاشة التحميل الإجباري في متصفح Chrome فقط.
+     لإعادة تفعيلها لاحقاً غيّر القيمة إلى false؛ كود الحجب الأصلي باقٍ كما هو. */
+  var TEMP_DISABLE_CHROME_DOWNLOAD_GATE = true;
+  var isChromeBrowser = /Chrome\//i.test(ua) && !/(Edg|OPR|SamsungBrowser|Brave|Vivaldi|UCBrowser|MiuiBrowser)/i.test(ua);
+  if (TEMP_DISABLE_CHROME_DOWNLOAD_GATE && isChromeBrowser) {
+    window.__BB_CHROME_GATE_DISABLED = true;
+    return;
+  }
   block();
 })();
 </script>
