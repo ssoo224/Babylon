@@ -1431,6 +1431,101 @@ public class BabylonWebViewClient extends BridgeWebViewClient {
 wr(ma.parent / "BabylonMediaCache.java", MEDIA_CACHE_JAVA.replace("__PKG__", NOTIF_PKG))
 wr(ma.parent / "BabylonWebViewClient.java", MEDIA_CLIENT_JAVA.replace("__PKG__", NOTIF_PKG))
 print("local media cache (Download/.babylon) written")
+
+# 2.66) لوحة المفاتيح: تفعيل أزرار GIF/الملصقات/الصور (WebView يعلن أنه يقبل الصور)
+_lay_src = None
+for _c in [root / "node_modules" / "@capacitor" / "android" / "capacitor" / "src" / "main" / "res" / "layout" / "bridge_layout_main.xml"]:
+    if _c.exists(): _lay_src = _c
+if _lay_src is None:
+    print("::warning::ما لقيت bridge_layout_main.xml — أزرار GIF/الملصقات في لوحة المفاتيح ما راح تتفعّل")
+else:
+    _lay = rd(_lay_src)
+    if "com.getcapacitor.CapacitorWebView" in _lay:
+        _super = "com.getcapacitor.CapacitorWebView"
+        _lay2 = _lay.replace("<com.getcapacitor.CapacitorWebView", "<" + NOTIF_PKG + ".BabylonWebView", 1)
+    elif "<WebView" in _lay:
+        _super = "android.webkit.WebView"
+        _lay2 = _lay.replace("<WebView", "<" + NOTIF_PKG + ".BabylonWebView", 1)
+    else:
+        _lay2 = None
+    if _lay2 is None or _lay2 == _lay:
+        print("::warning::شكل bridge_layout_main.xml غير متوقع — تخطّيت تفعيل صور لوحة المفاتيح")
+    else:
+        BABYLON_WEBVIEW_JAVA = r"""package __PKG__;
+
+import android.content.Context;
+import android.os.Build;
+import android.util.AttributeSet;
+import android.util.Base64;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
+import androidx.core.view.inputmethod.EditorInfoCompat;
+import androidx.core.view.inputmethod.InputConnectionCompat;
+import androidx.core.view.inputmethod.InputContentInfoCompat;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import org.json.JSONObject;
+
+/** WebView يقبل الصور/GIF/الملصقات من لوحة المفاتيح (أزرار GIF والملصقات في Gboard وغيرها). */
+public class BabylonWebView extends __SUPER__ {
+    private static final String[] MIMES = {"image/gif", "image/png", "image/jpeg", "image/webp"};
+    private static final int MAX_BYTES = 8 * 1024 * 1024;
+
+    public BabylonWebView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    @Override
+    public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+        InputConnection ic = super.onCreateInputConnection(outAttrs);
+        if (ic == null || outAttrs == null) return ic;
+        try {
+            EditorInfoCompat.setContentMimeTypes(outAttrs, MIMES);
+            return InputConnectionCompat.createWrapper(ic, outAttrs, (info, flags, opts) -> {
+                handle(info, flags);
+                return true;
+            });
+        } catch (Throwable t) {
+            return ic;
+        }
+    }
+
+    private void handle(final InputContentInfoCompat info, int flags) {
+        try {
+            if (Build.VERSION.SDK_INT >= 25
+                && (flags & InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION) != 0) info.requestPermission();
+        } catch (Throwable ignored) { }
+        final Context app = getContext().getApplicationContext();
+        new Thread(() -> {
+            try {
+                String mime = info.getDescription().getMimeTypeCount() > 0 ? info.getDescription().getMimeType(0) : "image/gif";
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                try (InputStream in = app.getContentResolver().openInputStream(info.getContentUri())) {
+                    if (in == null) return;
+                    byte[] buf = new byte[16384];
+                    int n;
+                    while ((n = in.read(buf)) != -1) {
+                        out.write(buf, 0, n);
+                        if (out.size() > MAX_BYTES) return;
+                    }
+                }
+                if (out.size() == 0) return;
+                final String data = "data:" + mime + ";base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP);
+                final String js = "try{if(window.onKeyboardImage)window.onKeyboardImage(" + JSONObject.quote(data) + "," + JSONObject.quote(mime) + ");}catch(e){}";
+                post(() -> evaluateJavascript(js, null));
+            } catch (Throwable ignored) {
+            } finally {
+                try { if (Build.VERSION.SDK_INT >= 25) info.releasePermission(); } catch (Throwable ignored) { }
+            }
+        }).start();
+    }
+}
+"""
+        wr(ma.parent / "BabylonWebView.java", BABYLON_WEBVIEW_JAVA.replace("__PKG__", NOTIF_PKG).replace("__SUPER__", _super))
+        _ld = app / "src" / "main" / "res" / "layout"
+        _ld.mkdir(parents=True, exist_ok=True)
+        wr(_ld / "bridge_layout_main.xml", _lay2)
+        print("keyboard image support enabled (BabylonWebView, super=%s)" % _super)
 m2 = rd(mf)
 if "BabylonNotificationReceiver" not in m2:
     if "</application>" not in m2: die("ما لقيت application", mf)
