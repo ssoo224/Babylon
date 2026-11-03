@@ -12710,10 +12710,10 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
   }
   function clear(){ bar.style.height=bar.style.paddingTop=bar.style.paddingBottom=bar.style.opacity=''; bar.style.removeProperty('--bb-p'); bar.classList.remove('bb-anim'); }
   function cancelAnim(){ if(anim){ cancelAnimationFrame(anim); anim=0; } }
-  var ease=function(t){ return 1-Math.pow(1-t,4); };   /* easeOutQuart: ناعم جداً في النهاية */
+  var ease=function(t){ return 1-Math.pow(1-t,3); };   /* easeOutQuart: ناعم جداً في النهاية */
   function run(from,to,vel,done){
     cancelAnim();
-    var dist=Math.abs(to-from)*H, dur=Math.max(180,Math.min(420,dist/Math.max(.35,Math.abs(vel))*1.6+120)), t0=performance.now();
+    var dist=Math.abs(to-from)*H, dur=Math.max(110,Math.min(210,dist/Math.max(.6,Math.abs(vel))*1.1+70)), t0=performance.now();
     (function step(now){
       var t=Math.min(1,(now-t0)/dur);
       apply(from+(to-from)*ease(t));
@@ -12728,9 +12728,9 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
     if(isC===c||bar.classList.contains('hidden')) return orig(c);
     if(c){
       metrics(); if(H<4) return orig(true);
-      moved(false); lock(home.scrollTop); bar.classList.add('bb-anim'); run(1,0,.9,function(){ orig(true); clear(); unlock(); });
+      moved(false); lock(home.scrollTop); bar.classList.add('bb-anim'); run(1,0,1.6,function(){ orig(true); clear(); unlock(); });
     } else {
-      orig(false); moved(true); bar.classList.add('bb-anim'); metrics(); apply(0); run(0,1,.9,clear);
+      orig(false); moved(true); bar.classList.add('bb-anim'); metrics(); apply(0); run(0,1,1.6,clear);
     }
   };
   function open(){ return !bar.classList.contains('collapsed')&&!bar.classList.contains('hidden'); }
