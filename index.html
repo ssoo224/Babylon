@@ -9587,6 +9587,32 @@ html,body{overscroll-behavior-y:none}
       }catch(_){}
     },700);
   }
+  /* خلفية مموّهة تُحسب مرة واحدة على Canvas (بدل filter:blur الحي أثناء كل إطار سحب) */
+  var _bl={};
+  function prepBlur(url,cb){
+    if(_bl[url]){ cb(_bl[url]); return; }
+    try{
+      var im=new Image();
+      im.onload=function(){
+        try{
+          var w=im.naturalWidth,h=im.naturalHeight; if(!w||!h) return;
+          var c1=document.createElement('canvas'); c1.width=128; c1.height=Math.max(1,Math.round(128*h/w));
+          var x1=c1.getContext('2d'); x1.imageSmoothingQuality='high'; x1.drawImage(im,0,0,c1.width,c1.height);
+          var c2=document.createElement('canvas'); c2.width=32; c2.height=Math.max(1,Math.round(32*h/w));
+          var x2=c2.getContext('2d'); x2.imageSmoothingQuality='high'; x2.drawImage(c1,0,0,c2.width,c2.height);
+          var c3=document.createElement('canvas'); c3.width=96; c3.height=c2.height*3;
+          var x3=c3.getContext('2d'); x3.imageSmoothingQuality='high'; x3.drawImage(c2,0,0,c3.width,c3.height);
+          x3.fillStyle='rgba(0,0,0,.1)'; x3.fillRect(0,0,c3.width,c3.height);   /* بديل brightness(.9) */
+          c3.toBlob(function(b){
+            if(!b) return;
+            var ks=Object.keys(_bl); if(ks.length>8){ try{URL.revokeObjectURL(_bl[ks[0]]);}catch(_){} delete _bl[ks[0]]; }
+            var u=URL.createObjectURL(b); _bl[url]=u; cb(u);
+          },'image/jpeg',0.8);
+        }catch(_){}
+      };
+      im.src=url;
+    }catch(_){}
+  }
   function lite(u){
     if(!u||String(u).slice(0,5)!=='data:') return u;
     if(_sm[u]) return _sm[u];
@@ -9688,8 +9714,9 @@ html,body{overscroll-behavior-y:none}
         hImg.style.display='none'; hLet.style.display='flex'; hLet.innerHTML = txt ? txt.innerHTML : '';
         if(txt){ var cs=getComputedStyle(txt); hero.style.background = cs.backgroundImage!=='none'? cs.backgroundImage : cs.backgroundColor; }
       }
-      if(hasImg){ var _bg='url("'+lite(img.getAttribute('src'))+'")'; if(hExt.__bg!==_bg){ hExt.__bg=_bg; hExt.style.background=''; hExt.style.backgroundImage=_bg; hExt.style.backgroundSize='cover'; } }
-      else { hExt.style.backgroundImage='none'; hExt.style.background=hero.style.background||'#16213a'; }
+      if(hasImg){ var _lu=lite(img.getAttribute('src')), _bg='url("'+_lu+'")'; if(hExt.__bg!==_bg){ hExt.__bg=_bg; hExt.style.background=''; hExt.style.backgroundImage=_bg; hExt.style.backgroundSize='cover'; if(hero.classList.contains('pf-blur-ready')) hero.classList.remove('pf-blur-ready');
+          prepBlur(_lu,function(t){ if(hExt.__bg===_bg){ hExt.style.backgroundImage='url("'+t+'")'; if(!hero.classList.contains('pf-blur-ready')) hero.classList.add('pf-blur-ready'); } }); } }
+      else { hExt.__bg=null; if(hero.classList.contains('pf-blur-ready')) hero.classList.remove('pf-blur-ready'); hExt.style.backgroundImage='none'; hExt.style.background=hero.style.background||'#16213a'; }
       if(own){ loadItems(); }
       hName.textContent = nameTxt ? nameTxt.textContent : '';
       var st = status.querySelector('span:last-child');
@@ -9728,7 +9755,7 @@ html,body{overscroll-behavior-y:none}
       moveOriginalAvatarIntoHero();
       hideRing();   /* إخفاء فوري للحلقة البيضاء (بلا transition) في نفس إطار ظهور الصورة المكبّرة */
       var size=g.size+(g.S-g.size)*v;
-      hero.style.display='block'; hero.style.willChange='width,height,top,left';
+      hero.style.display='block'; hero.style.willChange='transform,width,height'; hero.style.left='0px'; hero.style.top='0px';
       var e=g.ext*clamp(v*2);
       hero.style.width=size+'px'; hero.style.height=(size+e)+'px';
       hImg.style.setProperty('width',size+'px','important');
@@ -9744,7 +9771,7 @@ html,body{overscroll-behavior-y:none}
       var mk=e>0?'linear-gradient(to bottom,#000 calc(100% - '+Math.round(e*1.15)+'px),transparent)':'none';
       hImg.style.webkitMaskImage=hImg.style.maskImage=mk; hLet.style.webkitMaskImage=hLet.style.maskImage=mk;
       hShade.style.top=(size*0.35)+'px'; hShade.style.height=(size*0.65+e)+'px'; hShade.style.bottom='auto';
-      hero.style.top=(g.top*(1-v))+'px'; hero.style.left=((g.W-size)/2)+'px';
+      hero.style.transform='translate3d('+((g.W-size)/2)+'px,'+(g.top*(1-v))+'px,0)';
       hero.style.borderRadius=(50*(1-v))+'%';
       hero.style.pointerEvents = v>=0.99 ? 'auto' : 'none';
       hInfo.style.opacity = clamp((v-0.55)/0.4);
@@ -15943,6 +15970,9 @@ mark.cs-mark{background:rgba(201,154,28,.30);color:inherit;border-radius:5px;pad
 .pf-dragging .pf-hero .pf-hero-ext::before,
 .pf-hero .pf-hero-ext::before{filter:blur(14px) brightness(.9)!important;transform:scale(1.1)!important;inset:-30px!important}
 .pf-hero .pf-hero-ext{transition:none!important}
+/* الصورة صارت مموّهة مسبقًا (Canvas) فلا حاجة لطبقة filter الحية */
+#profileView .pf-hero.pf-blur-ready .pf-hero-ext::before,
+#otherUserProfileView .pf-hero.pf-blur-ready .pf-hero-ext::before{display:none!important}
 </style>
 <script id="babylon-keyboard-scroll-last">
 (function(){
@@ -19756,8 +19786,15 @@ window.bbTinyThumb = function (file) {
     root.__tp = setTimeout(function(){ root.classList.remove('bb-playing'); }, 1300);
   }
 
+  /* صفحات الملف الشخصي: بدون أنيميشن تنقل (لا دخول ولا ظهور متدرّج) */
+  var NO_ANIM = { profileView:1, otherUserProfileView:1 };
+  function profileOpen(){
+    var a = document.getElementById('profileView'), b = document.getElementById('otherUserProfileView');
+    return (a && !a.classList.contains('hidden')) || (b && !b.classList.contains('hidden'));
+  }
+
   function enterView(el){
-    if (!el) return;
+    if (!el || NO_ANIM[el.id]) return;
     var isChat = el.id === 'chatView';
     var extras = el.id === 'homeView' ? [document.getElementById('newGroupFab')] : [];
     stagger(el);
@@ -19789,8 +19826,8 @@ window.bbTinyThumb = function (file) {
 
   function init(){
     VIEWS.forEach(function(id){ watch(document.getElementById(id), enterView); });
-    watch(document.getElementById('mainHeader'), function(el){ enterBar(el, 'bb-bar-down'); });
-    watch(document.getElementById('bottomNav'),  function(el){ enterBar(el, 'bb-bar-up'); });
+    watch(document.getElementById('mainHeader'), function(el){ if (!profileOpen()) enterBar(el, 'bb-bar-down'); });
+    watch(document.getElementById('bottomNav'),  function(el){ if (!profileOpen()) enterBar(el, 'bb-bar-up'); });
 
     /* أول دخول للتطبيق بعد تسجيل الدخول */
     watch(document.getElementById('mainPage'), function(){
