@@ -332,6 +332,16 @@ public class MainActivity extends BridgeActivity {
             }
             mediaExecutor.execute(() -> saveMediaInternal(source, filename, mimeType));
         }
+
+        /** يفتح الملف بقائمة «فتح بواسطة» (التطبيقات القادرة على فتحه). */
+        @JavascriptInterface
+        public void openFileWith(String source, String filename, String mimeType) {
+            if (source == null || source.isEmpty()) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "تعذر فتح الملف", Toast.LENGTH_SHORT).show());
+                return;
+            }
+            mediaExecutor.execute(() -> openFileWithInternal(source, filename, mimeType));
+        }
     }
 
     // BABYLON-UPD-BEGIN
@@ -499,6 +509,57 @@ public class MainActivity extends BridgeActivity {
         });
     }
     // BABYLON-UPD-END
+
+    private void openFileWithInternal(String source, String filename, String mimeType) {
+        try {
+            if (!source.startsWith("https://")) throw new Exception("bad url");
+            String nm = (filename == null || filename.trim().isEmpty()) ? "file" : filename.replaceAll("[\\\\/]", "_");
+            final String name = nm.startsWith(".") ? "_" + nm : nm;
+            final String mime = (mimeType == null || mimeType.isEmpty()) ? "application/octet-stream" : mimeType;
+            runOnUiThread(() -> Toast.makeText(MainActivity.this, "جارٍ تجهيز الملف…", Toast.LENGTH_SHORT).show());
+            File dir = new File(getCacheDir(), "openfiles");
+            if (!dir.exists() && !dir.mkdirs()) throw new Exception("cache dir");
+            File[] olds = dir.listFiles();
+            if (olds != null) for (File f : olds) { if (System.currentTimeMillis() - f.lastModified() > 86400000L) f.delete(); }
+            File outFile = new File(dir, name);
+            HttpURLConnection c = (HttpURLConnection) new URL(source).openConnection();
+            c.setConnectTimeout(20000);
+            c.setReadTimeout(60000);
+            c.setInstanceFollowRedirects(true);
+            c.connect();
+            long done = 0L;
+            try (InputStream in = c.getInputStream(); FileOutputStream fo = new FileOutputStream(outFile)) {
+                byte[] buf = new byte[16384];
+                int n;
+                while ((n = in.read(buf)) != -1) {
+                    fo.write(buf, 0, n);
+                    done += n;
+                    if (done > 60L * 1024L * 1024L) throw new Exception("too big");
+                }
+            } finally {
+                c.disconnect();
+            }
+            if (outFile.length() == 0L) throw new Exception("empty");
+            final Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".updates", outFile);
+            runOnUiThread(() -> {
+                try {
+                    Intent view = new Intent(Intent.ACTION_VIEW);
+                    view.setDataAndType(uri, mime);
+                    view.setClipData(android.content.ClipData.newRawUri(name, uri));
+                    view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    Intent chooser = Intent.createChooser(view, "فتح بواسطة");
+                    chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(chooser);
+                } catch (android.content.ActivityNotFoundException nf) {
+                    Toast.makeText(this, "لا يوجد تطبيق يفتح هذا الملف", Toast.LENGTH_LONG).show();
+                } catch (Throwable t) {
+                    Toast.makeText(this, "تعذر فتح الملف", Toast.LENGTH_LONG).show();
+                }
+            });
+        } catch (Exception e) {
+            runOnUiThread(() -> Toast.makeText(this, "تعذر فتح الملف", Toast.LENGTH_LONG).show());
+        }
+    }
 
     private void saveMediaInternal(String source, String filename, String mimeType) {
         try {
@@ -1558,7 +1619,7 @@ wr(ma.parent / "BabylonUpdateProvider.java",
    "package %s;\n\nimport androidx.core.content.FileProvider;\n\npublic class BabylonUpdateProvider extends FileProvider {}\n" % NOTIF_PKG)
 (res / "xml").mkdir(parents=True, exist_ok=True)
 wr(res / "xml" / "babylon_update_paths.xml",
-   '<?xml version="1.0" encoding="utf-8"?>\n<paths>\n    <cache-path name="updates" path="updates/" />\n</paths>\n')
+   '<?xml version="1.0" encoding="utf-8"?>\n<paths>\n    <cache-path name="updates" path="updates/" />\n    <cache-path name="openfiles" path="openfiles/" />\n</paths>\n')
 m3 = rd(mf)
 if "BabylonUpdateProvider" not in m3:
     prov = ('        <provider android:name="%s.BabylonUpdateProvider" android:authorities="${applicationId}.updates" android:exported="false" android:grantUriPermissions="true">\n'
@@ -2084,6 +2145,24 @@ for html_file in candidates:
     if changed:
         wr(html_file, hs)
         print("index.html patched: message notifications (avatar + reply/read):", html_file)
+
+# 2.9) ربط «فتح الملف بواسطة…» في index.html بالجسر الأصلي
+OPEN_SIG = "openFileWith: function"
+OPEN_JS = """
+     openFileWith: function (source, filename, mimeType) {
+       var nb = window.BabylonAndroidNative;
+       if (!nb || typeof nb.openFileWith !== 'function') throw new Error('Android openFileWith unavailable');
+       nb.openFileWith(String(source || ''), String(filename || ''), String(mimeType || 'application/octet-stream'));
+     },"""
+for html_file in candidates:
+    if not html_file.exists():
+        continue
+    hs = rd(html_file)
+    if OPEN_SIG in hs:
+        print("index.html already has openFileWith:", html_file)
+    elif marker in hs:
+        wr(html_file, hs.replace(marker, marker + OPEN_JS, 1))
+        print("index.html patched: open file with chooser:", html_file)
 
 # 3) build.gradle: رقم النسخة + التوقيع
 bg = app / "build.gradle"
