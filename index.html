@@ -5140,11 +5140,11 @@ function renderMsgDoc(doc, box, existingTyping) {
         if (m.audioUrl) {
           htmlContent += `<div class="audio-player-card custom-voice-card" aria-label="رسالة صوتية" data-dur="${Number(m.duration)||0}"><audio class="voice-audio" preload="metadata" src="${esc(m.audioUrl)}"></audio><button type="button" class="voice-play-btn" onclick="toggleVoicePlayback(this)" aria-label="تشغيل الرسالة الصوتية"><svg class="voice-play-icon" viewBox="0 0 24 24" width="23" height="23" fill="currentColor" aria-hidden="true"><path d="M8 5.8c0-.8.9-1.3 1.6-.8l9.2 6.2a1 1 0 0 1 0 1.6l-9.2 6.2c-.7.5-1.6 0-1.6-.8z"/></svg></button><div class="audio-player-content"><div class="audio-player-title">رسالة صوتية</div><div class="voice-progress-row"><input class="voice-progress" type="range" min="0" max="100" value="0" step="0.1" aria-label="تقدم الصوت" oninput="seekVoicePlayback(this)"><span class="voice-time">${m.duration?formatVoiceTime(m.duration):'0:00'}</span></div><div class="voice-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>`;
         } else if (m.videoUrl) {
-          htmlContent += `<div class="msg-video"><video src="${esc(m.videoUrl)}#t=0.1" ${m.posterUrl ? `poster="${esc(m.posterUrl)}"` : ''} preload="metadata" muted playsinline></video><button type="button" class="msg-video-play" aria-label="تشغيل الفيديو"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>`;
+          htmlContent += `<div class="msg-video"><video data-bb-thumb="${esc(m.thumb || '')}" src="${esc(m.videoUrl)}#t=0.1" ${m.posterUrl ? `poster="${esc(m.posterUrl)}"` : ''} preload="metadata" muted playsinline></video><button type="button" class="msg-video-play" aria-label="تشغيل الفيديو"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>`;
         } else if (m.fileUrl) {
           htmlContent += bbFileCardHtml(m);
         } else {
-          htmlContent += m.type === 'stars' && typeof starGiftHtml === 'function' ? starGiftHtml(m) : (m.type === 'sticker' && m.sticker && typeof stickerHtml === 'function') ? stickerHtml(m) : m.imageUrl ? `<div class="msg-image"><img src="${esc(m.imageUrl)}" alt="صورة"></div>` : `<div class="msg-text">${renderMsgText(m.text)}</div>`;
+          htmlContent += m.type === 'stars' && typeof starGiftHtml === 'function' ? starGiftHtml(m) : (m.type === 'sticker' && m.sticker && typeof stickerHtml === 'function') ? stickerHtml(m) : m.imageUrl ? `<div class="msg-image"><img src="${esc(m.imageUrl)}" alt="صورة" data-bb-thumb="${esc(m.thumb || '')}"></div>` : `<div class="msg-text">${renderMsgText(m.text)}</div>`;
         }
 
         if (_hasCap) htmlContent += `<div class="media-cap" dir="auto">${esc(m.caption)}</div>`;
@@ -6530,13 +6530,15 @@ function sendImage(e, opts) {
     _ph.querySelector('.vp-cancel').addEventListener('click', () => { done = true; try { x.abort(); } catch (e) {} });
     x.send(fd);
   };
-  _prepImage(dataUrl => _wait.then(() => {
+  const _thumbP = window.bbTinyThumb ? window.bbTinyThumb(file) : Promise.resolve('');
+  _prepImage(dataUrl => _wait.then(async () => {
     if (_cancelled) return;
     clearInterval(_keep);
     if (!dataUrl) { _fin(); return showToast('تعذر تجهيز الصورة، جرب صورة أخرى (' + (file.type || 'نوع غير معروف') + ' ' + Math.round(file.size / 1024) + 'KB)'); }
     const chatId = activeChatId;
+    const _th = await _thumbP.catch(() => '');
     bbAddSwap(_ph, db.collection('chats').doc(chatId).collection('messages'), {
-      senderId: currentUser.uid, imageUrl: dataUrl, read: false, createdAt: Date.now(), ...((opts && opts.caption) ? { caption: opts.caption } : {}), ..._rf
+      senderId: currentUser.uid, imageUrl: dataUrl, ...((_th && /^https:/.test(dataUrl)) ? { thumb: _th } : {}), read: false, createdAt: Date.now(), ...((opts && opts.caption) ? { caption: opts.caption } : {}), ..._rf
     }).then(() => {
       setTimeout(() => { if (_ph.isConnected) _ph.remove(); }, 8000);
       if (_prev) setTimeout(() => URL.revokeObjectURL(_prev), 10000);
@@ -6693,6 +6695,7 @@ function sendChatVideo(file, opts) {
   ph.innerHTML = '<div class="msg-video"><video src="' + poster + '#t=0.1" preload="metadata" muted playsinline></video><div class="vp-cover"><div class="vp-logo"><svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>' + (bMark ? '<img src="' + bMark + '" alt="" draggable="false">' : '<b class="vp-b">B</b>') + '</div><div class="vp-pct" dir="ltr">' + fmtVP(file.size) + ' | 0 KB</div></div></div><button type="button" class="vp-cancel" aria-label="إلغاء الإرسال"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div class="msg-meta"><span>' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '</span> <span class="check-mark">' + TICK_SVG.wait + '</span></div>';
   const place = () => { if (area && !ph.isConnected) { area.appendChild(ph); area.scrollTop = area.scrollHeight; } };
   place();
+  try { if (window.bbTinyThumb) window.bbTinyThumb(file).then(t => { ph.__thumb = t; const vv = ph.querySelector('video'); if (t && vv) vv.poster = t; }); } catch (e) {}
   const fin = () => {
     if (ph.__swapId && window.__bbSwap && window.__bbSwap[ph.__swapId] && ph.isConnected) setTimeout(() => { if (ph.isConnected) ph.remove(); }, 8000);
     else ph.remove();
@@ -6710,7 +6713,7 @@ function sendChatVideo(file, opts) {
     let r = {}; try { r = JSON.parse(xhr.responseText); } catch (e) {}
     if (!(xhr.status >= 200 && xhr.status < 300 && r.secure_url)) { fin(); return showToast('تعذر رفع الفيديو: ' + ((r.error && r.error.message) || ('رمز ' + xhr.status))); }
     const finish = (videoUrl, posterUrl, durationSec) => ph.__cancelled ? Promise.resolve() : bbAddSwap(ph, db.collection('chats').doc(chatId).collection('messages'), {
-      senderId: currentUser.uid, videoUrl: videoUrl, posterUrl: posterUrl, duration: durationSec, read: false, createdAt: Date.now(), ...((opts && opts.caption) ? { caption: opts.caption } : {}), ..._rf
+      senderId: currentUser.uid, videoUrl: videoUrl, posterUrl: posterUrl, duration: durationSec, ...(ph.__thumb ? { thumb: ph.__thumb } : {}), read: false, createdAt: Date.now(), ...((opts && opts.caption) ? { caption: opts.caption } : {}), ..._rf
     });
     const plainPoster = r.secure_url.replace('/video/upload/', '/video/upload/so_0,w_480,c_limit/').replace(/\.[^/.]+$/, '.jpg');
     let job;
@@ -13409,7 +13412,7 @@ function bbMsgUser(u){
       var tcol=db.collection('chats').doc(targetId).collection('messages'),now=Date.now(),last='';
       for(var i=0;i<msgs.length;i++){
         var m=msgs[i],n={senderId:currentUser.uid,forwarded:true,read:false,createdAt:now+i};
-        if(m.text)n.text=m.text;if(m.type==='sticker'&&m.sticker){n.type='sticker';n.sticker=m.sticker;}if(m.imageUrl)n.imageUrl=m.imageUrl;if(m.videoUrl){n.videoUrl=m.videoUrl;if(m.posterUrl)n.posterUrl=m.posterUrl;if(m.duration)n.duration=m.duration;}if(m.audioUrl){n.audioUrl=m.audioUrl;if(m.duration)n.duration=m.duration;}
+        if(m.text)n.text=m.text;if(m.type==='sticker'&&m.sticker){n.type='sticker';n.sticker=m.sticker;}if(m.thumb)n.thumb=m.thumb;if(m.imageUrl)n.imageUrl=m.imageUrl;if(m.videoUrl){n.videoUrl=m.videoUrl;if(m.posterUrl)n.posterUrl=m.posterUrl;if(m.duration)n.duration=m.duration;}if(m.audioUrl){n.audioUrl=m.audioUrl;if(m.duration)n.duration=m.duration;}
         await tcol.add(n);last=m.text||(m.imageUrl?'▧ صورة':(m.videoUrl?'▶ فيديو':'بصمة صوتية'));
       }
       var upd={updatedAt:Date.now()};
@@ -19161,9 +19164,9 @@ return R("index");})();
       var box=img.closest('.msg-image'); if(!box) return;
       var bubble=img.closest('.msg-bubble'); if(!bubble) return;
       img.__bbL=true; img.classList.add('bb-real'); box.classList.add('bb-loading'); bubble.classList.add('bb-ldg');
-      var thumb=BLANK;
+      var thumb=img.getAttribute('data-bb-thumb')||BLANK;
       var m=/^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.+)$/.exec(src.split('#')[0].split('?')[0]);
-      if(m&&!/^[a-z]{1,3}_/.test(m[2])) thumb=m[1]+'w_64,q_auto:low/'+m[2]+'?bbnc=1';
+      if(thumb===BLANK&&m&&!/^[a-z]{1,3}_/.test(m[2])) thumb=m[1]+'w_64,q_auto:low/'+m[2]+'?bbnc=1';
       var mv=document.createElement('div'); mv.className='msg-video bb-ldg-v';
       mv.style.cssText='position:relative;overflow:hidden;line-height:0;width:100%';
       mv.innerHTML='<img class="vp-img" alt="" src="'+thumb+'" style="display:block;width:100%;max-width:none;max-height:360px;min-height:150px;object-fit:cover;border-radius:0;filter:blur(14px) brightness(.8);transform:scale(1.15)"><div class="vp-cover" style="'+COVER+'">'+logoHtml()+'</div>';
@@ -19180,15 +19183,20 @@ return R("index");})();
       var bubble=v.closest('.msg-bubble'); if(!bubble||bubble.classList.contains('video-pending')) return;
       var box=v.closest('.msg-video'); if(!box||box.querySelector('.vp-cover')) return;
       var poster=v.getAttribute('poster')||'', probe=null, ready=false;
-      /* بدون بوستر: لا نغطّي الفيديو (يعرض إطاره الأول بنفسه) كي لا تبقى خلفية سوداء */
+      var thumb=v.getAttribute('data-bb-thumb')||'';
+      /* بدون بوستر وبدون مصغّرة: لا نغطّي الفيديو (يعرض إطاره الأول بنفسه) */
       if(!poster||/^data:/.test(poster)) return;
       probe=new Image(); probe.src=poster; ready=probe.complete&&probe.naturalWidth>0;
       if(ready) return;
+      /* نعرض المصغّرة المموّهة بدل الإطار الأسود الافتراضي إلى أن يكتمل تحميل البوستر الحقيقي */
+      if(!thumb){ var mm=/\/video\/upload\/(.*?)w_\d+/.exec(poster); if(mm) thumb=poster.replace(/w_\d+/,'w_48')+(poster.indexOf('?')>=0?'&':'?')+'bbnc=1'; }
+      if(thumb) v.setAttribute('poster',thumb);
+      var realPoster=poster;
       v.__bbL=true; bubble.classList.add('bb-ldg');
       var cv=document.createElement('div'); cv.className='vp-cover'; cv.style.cssText=COVER+';z-index:3';
       cv.innerHTML=logoHtml(); box.appendChild(cv);
       var done=function(){bubble.classList.remove('bb-ldg');if(cv.parentNode)cv.parentNode.removeChild(cv);};
-      probe.addEventListener('load',done,{once:true});probe.addEventListener('error',done,{once:true});
+      probe.addEventListener('load',function(){try{v.setAttribute('poster',realPoster);}catch(_){}done();},{once:true});probe.addEventListener('error',done,{once:true});
       v.addEventListener('loadedmetadata',function(){setTimeout(done,1500);},{once:true});
       setTimeout(done,15000);
     }catch(_){}
@@ -19276,6 +19284,43 @@ window.onKeyboardImage = async function (dataUrl, mime) {
     [150,450,900,1600,3000].forEach(function(d){setTimeout(down,d);});
   };
 })();
+</script>
+
+
+<script id="bb-tiny-thumb">
+/* مصغّرة صغيرة جداً (~40px) للصورة/الفيديو تُرسل مع الرسالة، ليعرضها المستلم مموّهة فوراً أثناء التحميل (بدل خلفية سوداء) */
+window.bbTinyThumb = function (file) {
+  return new Promise(function (res) {
+    var fin = false, url = '';
+    function done(u) { if (fin) return; fin = true; try { if (url) URL.revokeObjectURL(url); } catch (e) {} res(u || ''); }
+    try {
+      url = URL.createObjectURL(file);
+      var isV = /^video\//.test(file.type || '');
+      var draw = function (el, w, h) {
+        try {
+          if (!w || !h) return done('');
+          var k = Math.min(1, 40 / Math.max(w, h)), c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+          c.getContext('2d').drawImage(el, 0, 0, c.width, c.height);
+          done(c.toDataURL('image/jpeg', 0.5));
+        } catch (e) { done(''); }
+      };
+      setTimeout(function () { done(''); }, 5000);
+      if (isV) {
+        var v = document.createElement('video'); v.muted = true; v.preload = 'auto'; v.playsInline = true;
+        v.onloadeddata = function () { try { v.currentTime = Math.min(0.1, (v.duration || 1) / 2); } catch (e) { draw(v, v.videoWidth, v.videoHeight); } };
+        v.onseeked = function () { draw(v, v.videoWidth, v.videoHeight); };
+        v.onerror = function () { done(''); };
+        v.src = url;
+      } else {
+        var im = new Image();
+        im.onload = function () { draw(im, im.naturalWidth, im.naturalHeight); };
+        im.onerror = function () { done(''); };
+        im.src = url;
+      }
+    } catch (e) { done(''); }
+  });
+};
 </script>
 
 <style id="babylon-split-layout-fix">
