@@ -327,7 +327,7 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void saveMedia(String source, String filename, String mimeType) {
             if (source == null || source.isEmpty()) {
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "تعذر تنزيل الملف", Toast.LENGTH_SHORT).show());
+                bbEvt("download_fail");
                 return;
             }
             mediaExecutor.execute(() -> saveMediaInternal(source, filename, mimeType));
@@ -337,7 +337,7 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void openFileWith(String source, String filename, String mimeType) {
             if (source == null || source.isEmpty()) {
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "تعذر فتح الملف", Toast.LENGTH_SHORT).show());
+                bbEvt("open_fail");
                 return;
             }
             mediaExecutor.execute(() -> openFileWithInternal(source, filename, mimeType));
@@ -346,6 +346,44 @@ public class MainActivity extends BridgeActivity {
 
     // BABYLON-UPD-BEGIN
     private volatile boolean updating = false;
+
+    /** نصوص احتياطية تُستعمل فقط إن كانت الصفحة المحمّلة قديمة ولا تحتوي __bbNativeEvt. */
+    private String bbEvtText(String code) {
+        switch (code) {
+            case "prepare": return "جارٍ تجهيز الملف…";
+            case "saving": return "جارٍ تحميل الملف…";
+            case "open_fail": return "تعذر فتح الملف";
+            case "no_app": return "لا يوجد تطبيق يفتح هذا الملف";
+            case "download_fail": return "تعذر تنزيل الملف";
+            case "need_perm": return "اسمح بصلاحية التخزين ثم أعد التنزيل";
+            case "saved_image": return "تم حفظ الصورة في المعرض";
+            case "saved_video": return "تم حفظ الفيديو في المعرض";
+            case "saved_file": return "تم حفظ الملف في مجلد التنزيلات";
+            default: return null;
+        }
+    }
+
+    /** يرسل حالة العملية إلى الصفحة (window.__bbNativeEvt): الإشعارات ونصوصها داخل الـ HTML. */
+    private void bbEvt(final String code) {
+        runOnUiThread(() -> {
+            try {
+                WebView w = liveWebView;
+                if (w != null) {
+                    w.evaluateJavascript("(function(){try{if(typeof window.__bbNativeEvt==='function'){window.__bbNativeEvt('" + code + "');return 1;}}catch(e){}return 0;})()", v -> {
+                        if (!"1".equals(v)) {
+                            String t = bbEvtText(code);
+                            if (t != null) Toast.makeText(MainActivity.this, t, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    return;
+                }
+            } catch (Throwable ignored) { }
+            try {
+                String t = bbEvtText(code);
+                if (t != null) Toast.makeText(MainActivity.this, t, Toast.LENGTH_SHORT).show();
+            } catch (Throwable ignored) { }
+        });
+    }
 
     private void updJs(String state, int pct) { updJs(state, pct, ""); }
 
@@ -524,7 +562,7 @@ public class MainActivity extends BridgeActivity {
                 }
             }
             final String mime = mm.isEmpty() ? "application/octet-stream" : mm;
-            runOnUiThread(() -> Toast.makeText(MainActivity.this, "جارٍ تجهيز الملف…", Toast.LENGTH_SHORT).show());
+            bbEvt("prepare");
             File dir = new File(getCacheDir(), "openfiles");
             if (!dir.exists() && !dir.mkdirs()) throw new Exception("cache dir");
             File[] olds = dir.listFiles();
@@ -556,19 +594,21 @@ public class MainActivity extends BridgeActivity {
                     view.setClipData(android.content.ClipData.newRawUri(name, uri));
                     view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                     startActivity(view);   /* نافذة النظام «فتح بواسطة» للقراءة والتحرير مع خيار «لا تسأل مرة أخرى» مثل تيليجرام */
+                    bbEvt("opened");
                 } catch (android.content.ActivityNotFoundException nf) {
-                    Toast.makeText(this, "لا يوجد تطبيق يفتح هذا الملف", Toast.LENGTH_LONG).show();
+                    bbEvt("no_app");
                 } catch (Throwable t) {
-                    Toast.makeText(this, "تعذر فتح الملف", Toast.LENGTH_LONG).show();
+                    bbEvt("open_fail");
                 }
             });
         } catch (Exception e) {
-            runOnUiThread(() -> Toast.makeText(this, "تعذر فتح الملف", Toast.LENGTH_LONG).show());
+            bbEvt("open_fail");
         }
     }
 
     private void saveMediaInternal(String source, String filename, String mimeType) {
         try {
+            bbEvt("saving");
             byte[] bytes;
             if (source.startsWith("data:")) {
                 int comma = source.indexOf(',');
@@ -629,7 +669,7 @@ public class MainActivity extends BridgeActivity {
             } else {
                 if (Build.VERSION.SDK_INT >= 23 &&
                     checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    runOnUiThread(() -> Toast.makeText(this, "اسمح بصلاحية التخزين ثم أعد التنزيل", Toast.LENGTH_LONG).show());
+                    bbEvt("need_perm");
                     runOnUiThread(this::requestInitialPermissions);
                     return;
                 }
@@ -640,9 +680,9 @@ public class MainActivity extends BridgeActivity {
                 try (FileOutputStream out = new FileOutputStream(file)) { out.write(bytes); }
                 android.media.MediaScannerConnection.scanFile(this, new String[]{file.getAbsolutePath()}, new String[]{mime}, null);
             }
-            runOnUiThread(() -> Toast.makeText(this, isMedia ? (isVideo ? "تم حفظ الفيديو في المعرض" : "تم حفظ الصورة في المعرض") : "تم حفظ الملف في مجلد التنزيلات", Toast.LENGTH_LONG).show());
+            bbEvt(isMedia ? (isVideo ? "saved_video" : "saved_image") : "saved_file");
         } catch (Exception e) {
-            runOnUiThread(() -> Toast.makeText(this, "تعذر تنزيل الملف", Toast.LENGTH_LONG).show());
+            bbEvt("download_fail");
         }
     }
 }
