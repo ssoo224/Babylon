@@ -5257,6 +5257,7 @@ function renderMsgDoc(doc, box, existingTyping) {
           if (suppressNextMessageClick) { suppressNextMessageClick = false; return; }
           { const rc = e.target.closest && e.target.closest('.reactions-row,.media-react'); if (rc && !messageSelectionMode) { e.preventDefault(); e.stopPropagation(); openReactorsSheet(doc.id); return; } }
           { const rq = e.target.closest && e.target.closest('.reply-quote'); if (rq && !messageSelectionMode) { e.preventDefault(); e.stopPropagation(); goToReplied(rq.dataset.replyId, rq.textContent, doc.id); return; } }
+          { const fc = (e.target.closest && e.target.closest('.file-card[data-url] .fc-ico, .file-card[data-url] .fc-name')) ? e.target.closest('.file-card[data-url]') : null; if (fc && !messageSelectionMode) { e.preventDefault(); e.stopPropagation(); if (typeof window.bbOpenFileWith === 'function') window.bbOpenFileWith(fc.getAttribute('data-url'), fc.getAttribute('data-name')); return; } }
           // Keep media controls interactive; a normal tap on the message opens its actions,
           // while a long press enters multi-select mode.
           // The play button swaps its own icon while handling the click, which detaches e.target; check the original event path too.
@@ -19479,7 +19480,8 @@ return R("index");})();
   }
   window.bbOpenFileWith=openWith;
   document.addEventListener('click',function(e){
-    var c=e.target.closest&&e.target.closest('.file-card[data-url]'); if(!c) return;
+    var hit=e.target.closest&&e.target.closest('.file-card[data-url] .fc-ico, .file-card[data-url] .fc-name'); if(!hit) return;
+    var c=hit.closest('.file-card[data-url]'); if(!c) return;
     var cv=document.getElementById('chatView'); if(cv&&cv.classList.contains('msg-selecting')) return;
     openWith(c.getAttribute('data-url'),c.getAttribute('data-name'));
   });
