@@ -9667,7 +9667,7 @@ html,body{overscroll-behavior-y:none}
       '<div class="pf-hero-info"><div class="pf-hero-name"></div><div class="pf-hero-status"></div></div>';
     view.appendChild(hero);
     var own = cfg.view==='profileView';
-    var RANGE = own ? 300 : 150; // الملف الشخصي الخاص: 300px؛ ملف الشخص الآخر يبقى 150px
+    var RANGE = own ? 350 : 150; // الملف الشخصي الخاص: 350px؛ ملف الشخص الآخر يبقى 150px
     var TOUCH_SLOP = own ? 7 : 5; // تقليل حساسية بدء السحب بمقدار 2px للملف الشخصي الخاص فقط
     if(own){
       hero.insertAdjacentHTML('beforeend',
@@ -9858,7 +9858,7 @@ html,body{overscroll-behavior-y:none}
       cancelAnimationFrame(raf);
       var from=p, t0=performance.now();
       /* المدة من سرعة الإصبع: سحبة سريعة تكمل بسرعة وبسلاسة، وسحبة بطيئة تكمل بهدوء */
-      var dur=Math.max(140,Math.min(250,Math.abs(t-from)*250+80));
+      var dur=Math.max(90,Math.min(160,Math.abs(t-from)*150+40));
       (function step(now){
         var k=clamp((now-t0)/dur), e=1-Math.pow(1-k,3);
         try { apply(from+(t-from)*e); } catch (err) { console.warn('profile pull animation stopped', err); pulling=false; track=false; try { reset(); } catch (_) {} return; }
