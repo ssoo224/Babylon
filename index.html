@@ -19479,6 +19479,36 @@ return R("index");})();
     }).catch(fallback);
   }
   window.bbOpenFileWith=openWith;
+  /* إشعارات عمليات الملفات القادمة من تطبيق الأندرويد: نصوصها هنا، ويُبدَّل إشعار «جارٍ…» بإشعار الاكتمال تلقائياً */
+  var NATIVE_EVT={
+    prepare:['جارٍ تجهيز الملف…','loading'],
+    saving:['جارٍ تحميل الملف…','loading'],
+    opened:null,
+    open_fail:['تعذر فتح الملف','error'],
+    no_app:['لا يوجد تطبيق يفتح هذا الملف','error'],
+    download_fail:['تعذر تنزيل الملف','error'],
+    need_perm:['اسمح بصلاحية التخزين ثم أعد التنزيل','error'],
+    saved_image:['تم حفظ الصورة في المعرض','success'],
+    saved_video:['تم حفظ الفيديو في المعرض','success'],
+    saved_file:['تم حفظ الملف في مجلد التنزيلات','success']
+  };
+  var nativeBusy=null;
+  function stopNativeBusy(){ if(nativeBusy){ clearInterval(nativeBusy); nativeBusy=null; } }
+  window.__bbNativeEvt=function(code){
+    stopNativeBusy();
+    var d=NATIVE_EVT[code];
+    if(d===undefined) return;
+    if(d===null){
+      var t=document.getElementById('toast');
+      if(t&&t.classList.contains('bt-loading')){ t.classList.remove('bt-show'); setTimeout(function(){ if(!t.classList.contains('bt-show')) t.classList.add('hidden'); },320); }
+      return;
+    }
+    try{ showToast(d[0],d[1]); }catch(_){}
+    if(d[1]==='loading'){
+      var n=0;
+      nativeBusy=setInterval(function(){ if(++n>24){ stopNativeBusy(); return; } try{ showToast(d[0],'loading'); }catch(_){} },5000);
+    }
+  };
   document.addEventListener('click',function(e){
     var hit=e.target.closest&&e.target.closest('.file-card[data-url] .fc-ico, .file-card[data-url] .fc-name'); if(!hit) return;
     var c=hit.closest('.file-card[data-url]'); if(!c) return;
