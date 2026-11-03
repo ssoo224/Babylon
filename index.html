@@ -179,7 +179,15 @@ html,body{min-width:0}
       document.write(HEAD + BODY + '<plaintext hidden style="display:none">');
     } else {
       document.open('text/html', 'replace');
-      document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">' + HEAD + '</head><body>' + BODY + '</body></html>');
+      document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">' + HEAD + '<style id="bb-pending-no-black">
+/* أثناء إرسال الفيديو: لا خلفية سوداء خلف الـ blur */
+#chatView #messagesArea .msg-bubble.video-pending .msg-video,
+#chatView #messagesArea .msg-bubble.video-pending .msg-video video{background:transparent!important}
+#chatView #messagesArea .msg-bubble.video-pending .msg-video{background:rgba(128,128,128,.16)!important}
+#chatView #messagesArea .msg-bubble.video-pending .msg-video video:not(.bb-frame){opacity:0}
+#chatView #messagesArea .msg-bubble.video-pending .vp-cover{background:rgba(255,255,255,.06)!important}
+</style>
+</head><body>' + BODY + '</body></html>');
       document.close();
     }
   }
@@ -6695,7 +6703,11 @@ function sendChatVideo(file, opts) {
   ph.innerHTML = '<div class="msg-video"><video src="' + poster + '#t=0.1" preload="metadata" muted playsinline></video><div class="vp-cover"><div class="vp-logo"><svg class="vp-ring" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="35" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="3"/><path d="M38 3a35 35 0 0 1 35 35" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>' + (bMark ? '<img src="' + bMark + '" alt="" draggable="false">' : '<b class="vp-b">B</b>') + '</div><div class="vp-pct" dir="ltr">' + fmtVP(file.size) + ' | 0 KB</div></div></div><button type="button" class="vp-cancel" aria-label="إلغاء الإرسال"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div class="msg-meta"><span>' + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + '</span> <span class="check-mark">' + TICK_SVG.wait + '</span></div>';
   const place = () => { if (area && !ph.isConnected) { area.appendChild(ph); area.scrollTop = area.scrollHeight; } };
   place();
-  try { if (window.bbTinyThumb) window.bbTinyThumb(file).then(t => { ph.__thumb = t; const vv = ph.querySelector('video'); if (t && vv) vv.poster = t; }); } catch (e) {}
+  try { const _tv = document.createElement('video'); _tv.muted = true; _tv.playsInline = true; _tv.preload = 'auto'; _tv.src = poster;
+    _tv.addEventListener('loadeddata', () => { try { _tv.currentTime = Math.min(0.1, (_tv.duration || 1) / 2); } catch (e) {} }, { once: true });
+    _tv.addEventListener('seeked', () => { try { const w = _tv.videoWidth, h = _tv.videoHeight; if (w && h) { const c = document.createElement('canvas'); const k = Math.min(1, 320 / w); c.width = Math.round(w * k); c.height = Math.round(h * k); c.getContext('2d').drawImage(_tv, 0, 0, c.width, c.height); const vv = ph.querySelector('video'); if (vv && ph.isConnected) { vv.poster = c.toDataURL('image/jpeg', .7); vv.classList.add('bb-frame'); } } } catch (e) {} }, { once: true });
+  } catch (e) {}
+  try { if (window.bbTinyThumb) window.bbTinyThumb(file).then(t => { ph.__thumb = t; const vv = ph.querySelector('video'); if (t && vv && !vv.classList.contains('bb-frame')) { vv.poster = t; vv.classList.add('bb-frame'); } }); } catch (e) {}
   const fin = () => {
     if (ph.__swapId && window.__bbSwap && window.__bbSwap[ph.__swapId] && ph.isConnected) setTimeout(() => { if (ph.isConnected) ph.remove(); }, 8000);
     else ph.remove();
