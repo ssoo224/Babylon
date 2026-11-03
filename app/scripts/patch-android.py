@@ -1433,28 +1433,43 @@ wr(ma.parent / "BabylonWebViewClient.java", MEDIA_CLIENT_JAVA.replace("__PKG__",
 print("local media cache (Download/.babylon) written")
 
 # 2.66) لوحة المفاتيح: تفعيل أزرار GIF/الملصقات/الصور (WebView يعلن أنه يقبل الصور)
-_lay_src = None
-_cands = [root / "node_modules" / "@capacitor" / "android" / "capacitor" / "src" / "main" / "res" / "layout" / "bridge_layout_main.xml"]
-_cands += list((root / "node_modules" / "@capacitor" / "android").rglob("bridge_layout_main.xml")) if (root / "node_modules" / "@capacitor" / "android").exists() else []
-_cands += list((root / "android").rglob("bridge_layout_main.xml")) if (root / "android").exists() else []
-for _c in _cands:
-    if _c.exists() and "src/main/res/layout" in str(_c).replace("\\", "/") and "/app/src/main/res/layout" not in str(_c).replace("\\", "/"):
-        _lay_src = _c; break
-if _lay_src is None:
-    print("::warning::ما لقيت bridge_layout_main.xml — أزرار GIF/الملصقات في لوحة المفاتيح ما راح تتفعّل")
-else:
-    _lay = rd(_lay_src)
+_lay_srcs = []
+_capdir = root / "node_modules" / "@capacitor" / "android"
+if _capdir.exists():
+    for _c in _capdir.rglob("*bridge_layout_main*.xml"):
+        if "/res/layout/" in str(_c).replace("\\", "/"): _lay_srcs.append(_c)
+_applay = app / "src" / "main" / "res" / "layout"
+if _applay.exists():
+    for _c in _applay.glob("*.xml"):
+        if "@+id/webview" in rd(_c) or "@id/webview" in rd(_c): _lay_srcs.append(_c)
+_pairs = []   # (اسم الملف, المحتوى الجديد)
+_super = None
+for _c in _lay_srcs:
+    _lay = rd(_c)
     if "com.getcapacitor.CapacitorWebView" in _lay:
         _super = "com.getcapacitor.CapacitorWebView"
         _lay2 = _lay.replace("<com.getcapacitor.CapacitorWebView", "<" + NOTIF_PKG + ".BabylonWebView", 1)
     elif "<WebView" in _lay:
-        _super = "android.webkit.WebView"
+        _super = _super or "android.webkit.WebView"
         _lay2 = _lay.replace("<WebView", "<" + NOTIF_PKG + ".BabylonWebView", 1)
     else:
-        _lay2 = None
-    if _lay2 is None or _lay2 == _lay:
-        print("::warning::شكل bridge_layout_main.xml غير متوقع — تخطّيت تفعيل صور لوحة المفاتيح")
-    else:
+        continue
+    if _lay2 != _lay: _pairs.append((_c.name, _lay2))
+print("keyboard-image layouts found:", [n for n, _ in _pairs])
+if not _pairs:
+    # احتياط: ما لقينا ملف التخطيط الأصلي → نكتب قالباً مطابقاً بالاسمين المعروفين (موارد التطبيق تتقدّم على موارد المكتبة)
+    _super = "com.getcapacitor.CapacitorWebView"
+    _tpl = ('<?xml version="1.0" encoding="utf-8"?>\n'
+            '<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"\n'
+            '    android:layout_width="match_parent" android:layout_height="match_parent">\n'
+            '    <' + NOTIF_PKG + '.BabylonWebView android:id="@+id/webview" android:layout_width="match_parent" android:layout_height="match_parent" />\n'
+            '</androidx.coordinatorlayout.widget.CoordinatorLayout>\n')
+    _pairs = [("bridge_layout_main.xml", _tpl), ("capacitor_bridge_layout_main.xml", _tpl)]
+    print("::warning::ما لقيت ملف التخطيط الأصلي — استخدمت قالباً احتياطياً لتفعيل صور لوحة المفاتيح")
+if not _pairs:
+    print("::warning::ما لقيت bridge_layout_main.xml مناسب — أزرار GIF/الملصقات في لوحة المفاتيح ما راح تتفعّل")
+else:
+    if True:
         BABYLON_WEBVIEW_JAVA = r"""package __PKG__;
 
 import android.content.Context;
@@ -1528,7 +1543,8 @@ public class BabylonWebView extends __SUPER__ {
         wr(ma.parent / "BabylonWebView.java", BABYLON_WEBVIEW_JAVA.replace("__PKG__", NOTIF_PKG).replace("__SUPER__", _super))
         _ld = app / "src" / "main" / "res" / "layout"
         _ld.mkdir(parents=True, exist_ok=True)
-        wr(_ld / "bridge_layout_main.xml", _lay2)
+        for _n, _t in _pairs:
+            wr(_ld / _n, _t)
         print("keyboard image support enabled (BabylonWebView, super=%s)" % _super)
 m2 = rd(mf)
 if "BabylonNotificationReceiver" not in m2:
