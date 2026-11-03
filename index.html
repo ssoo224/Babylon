@@ -1212,13 +1212,13 @@ body {
 .recording-live-label { display: flex; align-items: center; gap: 7px; color: #f87171; font-size: calc(12px * var(--bb-s,1)); font-weight: 700; }
 .recording-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #f87171; animation: recordingPulse 1s infinite; }
 .record-timer { margin-inline-start: auto; color: var(--text-muted); font-variant-numeric: tabular-nums; font-size: calc(12px * var(--bb-s,1)); }
-.recording-wave { height: calc(20px * var(--bb-s,1)); display: flex; align-items: center; justify-content: space-between; gap: 3px; overflow: hidden; }
-.recording-wave i { display: block; width: 3px; height: 5px; border-radius: 4px; background: var(--babylon-gold); animation: recordingWave .72s ease-in-out infinite alternate; }
+.recording-wave { height: calc(22px * var(--bb-s,1)); display: flex; align-items: center; justify-content: space-between; gap: 3px; overflow: hidden; }
+.recording-wave i { display: block; width: 3px; height: 7px; border-radius: 4px; background: var(--babylon-gold); animation: recordingWave .72s ease-in-out infinite alternate; }
 .recording-wave i:nth-child(4n+1) { animation-delay: -.2s; }
 .recording-wave i:nth-child(4n+2) { animation-delay: -.5s; }
 .recording-wave i:nth-child(4n+3) { animation-delay: -.35s; }
-.recording-wave i:nth-child(3n) { height: calc(14px * var(--bb-s,1)); }
-.recording-wave i:nth-child(5n) { height: calc(18px * var(--bb-s,1)); }
+.recording-wave i:nth-child(3n) { height: calc(16px * var(--bb-s,1)); }
+.recording-wave i:nth-child(5n) { height: calc(20px * var(--bb-s,1)); }
 .recording-hint { color: var(--text-muted); font-size: calc(10px * var(--bb-s,1)); }
 .mic-button svg { display: block; }
 @keyframes recordingWave { from { transform: scaleY(.45); opacity: .6; } to { transform: scaleY(1); opacity: 1; } }
@@ -19227,6 +19227,13 @@ window.onKeyboardImage = async function (dataUrl, mime) {
 };
 </script>
 
+<style id="rec-done-label">
+/* عند اكتمال التسجيل: «تم التسجيل» مكان «جاري التسجيل» والنقطة الحمراء تصبح زرقاء سمائية */
+.recording-bar.rec-preview .recording-live-label{color:#38bdf8!important}
+.recording-bar.rec-preview .rec-text{display:inline!important;font-size:0!important}
+.recording-bar.rec-preview .rec-text::after{content:"تم التسجيل";font-size:calc(12px * var(--bb-s,1))}
+.recording-bar.rec-preview .recording-live-dot{display:block!important;background:#38bdf8!important;animation:none!important;transform:none!important;opacity:1!important}
+</style>
 <style id="babylon-split-layout-fix">
 /* ============================================================
    إصلاح واجهة التابلت/الأفقي (شاشة مقسومة: قائمة + محادثة)
