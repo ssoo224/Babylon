@@ -4873,6 +4873,33 @@ function bbResetChatView() {
     const sb = document.getElementById('chatSub'); if (sb) sb.textContent = '';
   } catch (e) {}
 }
+/* يملأ هيدر المحادثة فورًا (الاسم والصورة والشارة) من بيانات معروفة مسبقًا قبل وصول Firestore، حتى لا تظهر دائرة فارغة */
+function bbPaintChatHeaderInstant(otherUserId) {
+  try {
+    const t = document.getElementById('chatTitleText'), av = document.getElementById('chatAvatar'), bx = document.getElementById('chatBadgeBox'), sb = document.getElementById('chatSub');
+    if (!t || !av) return;
+    let name = '', imgUrl = '', letter = '', verified = false, tone = '', found = false;
+    const u = (window.__bbChatU && window.__bbChatU.id === otherUserId) ? window.__bbChatU : ((typeof userCache !== 'undefined' && userCache[otherUserId]) || null);
+    if (u && (u.displayName || u.avatarUrl)) {
+      found = true; name = u.displayName || 'مستخدم'; imgUrl = pvUrl(u); letter = (name || '?').charAt(0).toUpperCase();
+      verified = !!(u.isVerified || u.isDev || (u.username && u.username.toLowerCase() === 'ali'));
+      tone = toneCls({id: otherUserId, avatarTone: u.avatarTone});
+    } else {
+      const it = document.getElementById('chat_item_' + activeChatId);
+      if (it) {
+        const n = it.querySelector('.chat-item-name'), a = it.querySelector('.cl-av .avatar');
+        if (n) { found = true; const tn = n.childNodes[0]; name = ((tn && tn.textContent) || n.textContent || '').trim(); verified = !!n.querySelector('.verified-badge'); }
+        if (a) { const im = a.querySelector('img'); imgUrl = im ? im.getAttribute('src') : ''; letter = (a.textContent || '').trim(); tone = (a.className || '').split(/\s+/).filter(c => c && c !== 'avatar' && c !== 'sring' && c !== 'seen' && c !== 'has-story').join(' '); }
+      }
+    }
+    if (!found || !name) return;
+    t.textContent = name;
+    if (bx) bx.classList.toggle('hidden', !verified);
+    av.className = 'telegram-avatar ' + tone;
+    if (imgUrl) av.innerHTML = '<img src="' + esc(imgUrl) + '">'; else { av.innerHTML = ''; av.textContent = letter || name.charAt(0).toUpperCase(); }
+    if (sb && window.__bbChatU && window.__bbChatU.id === otherUserId && sb.dataset.real) sb.textContent = sb.dataset.real;
+  } catch (e) {}
+}
 function openChatRoom(otherUserId, keepLimit) {
   window.__bbMsgSig = null; window.__bbRendered = null;
   if (!keepLimit) bbResetChatView();
@@ -4883,7 +4910,7 @@ function openChatRoom(otherUserId, keepLimit) {
   if (messagesUnsubscribe) { messagesUnsubscribe(); messagesUnsubscribe = null; }
   if (userUnsubscribe) { userUnsubscribe(); userUnsubscribe = null; }
   if (chatDocUnsubscribe) { chatDocUnsubscribe(); chatDocUnsubscribe = null; }
-  
+  if (!keepLimit) bbPaintChatHeaderInstant(otherUserId);
   showView("chatView");
   applyChatBlockState();
   try { const _it = document.getElementById("chat_item_" + activeChatId); if (_it) { _it.querySelectorAll(".unread-badge").forEach(b => b.remove()); _it.classList.remove("has-unread"); if (typeof updateUnreadChip === "function") updateUnreadChip(); } } catch (e) {}
@@ -4900,7 +4927,8 @@ function openChatRoom(otherUserId, keepLimit) {
       
       const avatarBox = document.getElementById("chatAvatar"); avatarBox.className = "telegram-avatar " + toneCls({id: otherUserId, avatarTone: u.avatarTone});
       if (pvUrl(u)) {
-        avatarBox.innerHTML = `<img src="${esc(pvUrl(u))}">`;
+        const _ci = avatarBox.querySelector("img");
+        if (!_ci || _ci.getAttribute("src") !== pvUrl(u)) avatarBox.innerHTML = `<img src="${esc(pvUrl(u))}">`;
       } else {
         avatarBox.textContent = (u.displayName || "?").charAt(0).toUpperCase();
       }
@@ -19271,6 +19299,7 @@ return R("index");})();
 .file-card .fc-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .file-card .fc-name{font-size:calc(14px * var(--bb-s,1));font-weight:700;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:auto;unicode-bidi:plaintext}
 .file-card .fc-size{font-size:calc(11.5px * var(--bb-s,1));opacity:.7;direction:ltr;text-align:start}
+.msg-bubble.mine .file-card .fc-size{color:#fff!important;opacity:1!important;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.28)}
 #chatView #messagesArea .msg-bubble.file-msg{min-width:230px}
 </style>
 <script id="babylon-media-menu">
@@ -19365,21 +19394,23 @@ return R("index");})();
     var area=$('messagesArea');
     var ph=document.createElement('div');
     ph.className='msg-bubble mine file-msg file-pending';
-    ph.innerHTML='<div class="file-card"><div class="fc-ico"><b>'+extOf(file.name)+'</b></div><div class="fc-body"><div class="fc-name"></div><div class="fc-size">0%</div></div></div>';
+    ph.innerHTML='<div class="file-card"><div class="fc-ico"><b>'+extOf(file.name)+'</b></div><div class="fc-body"><div class="fc-name"></div><div class="fc-size">0 B / '+fmtSize(file.size)+'</div></div></div>';
     ph.querySelector('.fc-name').textContent=file.name||'ملف';
     var place=function(){ if(area&&!ph.isConnected){area.appendChild(ph);area.scrollTop=area.scrollHeight;} };
     place();
-    var fin=function(){ph.remove();};
+    var fin=function(){ if(ph.__swapId&&window.__bbSwap&&window.__bbSwap[ph.__swapId]&&ph.isConnected) setTimeout(function(){if(ph.isConnected)ph.remove();},8000); else ph.remove(); };
+    var failFin=function(){ try{ if(ph.__swapId&&window.__bbSwap) delete window.__bbSwap[ph.__swapId]; }catch(_){} ph.remove(); };
     var xhr=new XMLHttpRequest(), fd=new FormData();
     fd.append('file',file); fd.append('upload_preset',CLD_PRESET); fd.append('folder','chat_files');
     xhr.open('POST','https://api.cloudinary.com/v1_1/'+CLD_CLOUD+'/raw/upload');
-    xhr.upload.onprogress=function(ev){ if(ev.lengthComputable){place();var t=ph.querySelector('.fc-size');if(t)t.textContent=Math.round(ev.loaded/ev.total*100)+'% / '+fmtSize(file.size);} };
-    xhr.onerror=function(){fin();toast('تعذر رفع الملف: فشل الاتصال');};
+    xhr.upload.onprogress=function(ev){ if(ev.lengthComputable){place();var t=ph.querySelector('.fc-size');if(t)t.textContent=fmtSize(ev.loaded)+' / '+fmtSize(file.size);} };
+    xhr.onerror=function(){failFin();toast('تعذر رفع الملف: فشل الاتصال');};
     xhr.onload=function(){
       var r={}; try{r=JSON.parse(xhr.responseText);}catch(_){}
-      if(!(xhr.status>=200&&xhr.status<300&&r.secure_url)){fin();return toast('تعذر رفع الملف: '+((r.error&&r.error.message)||('رمز '+xhr.status)));}
+      if(!(xhr.status>=200&&xhr.status<300&&r.secure_url)){failFin();return toast('تعذر رفع الملف: '+((r.error&&r.error.message)||('رمز '+xhr.status)));}
       var label='📎 '+(file.name||'ملف');
-      db.collection('chats').doc(chatId).collection('messages').add(Object.assign({
+      var t=ph.querySelector('.fc-size'); if(t) t.textContent=fmtSize(file.size)+' / '+fmtSize(file.size);
+      bbAddSwap(ph, db.collection('chats').doc(chatId).collection('messages'), Object.assign({
         senderId:currentUser.uid, fileUrl:r.secure_url, fileName:file.name||'ملف', fileSize:file.size, fileType:file.type||'',
         read:false, createdAt:Date.now()
       },rf)).then(function(){
@@ -19388,7 +19419,7 @@ return R("index");})();
           (typeof groupLastMsgFor==='function'?groupLastMsgFor(chatId,label):{}),
           {['typing_'+currentUser.uid]:false}),{merge:true});
         try{notifyPeer(chatId,label);}catch(_){}
-      }).catch(function(){fin();toast('تعذر إرسال الملف');});
+      }).catch(function(){failFin();toast('تعذر إرسال الملف');});
     };
     xhr.send(fd);
   };
