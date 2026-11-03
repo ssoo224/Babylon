@@ -9858,7 +9858,7 @@ html,body{overscroll-behavior-y:none}
       cancelAnimationFrame(raf);
       var from=p, t0=performance.now();
       /* المدة من سرعة الإصبع: سحبة سريعة تكمل بسرعة وبسلاسة، وسحبة بطيئة تكمل بهدوء */
-      var dur=Math.max(40,Math.min(100,Math.abs(t-from)*150+40));
+      var dur=Math.max(20,Math.min(60,Math.abs(t-from)*150+20));
       (function step(now){
         var k=clamp((now-t0)/dur), e=1-Math.pow(1-k,3);
         try { apply(from+(t-from)*e); } catch (err) { console.warn('profile pull animation stopped', err); pulling=false; track=false; try { reset(); } catch (_) {} return; }
