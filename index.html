@@ -9610,8 +9610,8 @@ html,body{overscroll-behavior-y:none}
 <script id="pf-pull-expand-js">
 /* سحب الشاشة للأسفل في البروفايل: تكبر الصورة مع الإصبع حتى تصبح مربعًا فيه الاسم، ويختفي الغلاف (مثل تليجرام) */
 (function(){
-  var RANGE = 62;      // كم بكسل سحب لتكتمل الصورة
-  var THRESH = 0.35;    // بعد هذه النسبة تثبت مفتوحة عند ترك الإصبع
+  var RANGE = 130;      // كم بكسل سحب لتكتمل الصورة
+  var THRESH = 0.45;    // بعد هذه النسبة تثبت مفتوحة عند ترك الإصبع
   // صور البروفايل مخزنة base64 (ميغابايتات). نحولها مرة وحدة إلى blob حتى ما نكرر نص ضخم بالـCSS كل سحبة
   var _lc={}, _sm={}, _smBusy={};
   function shrink(key,url){
@@ -9857,9 +9857,9 @@ html,body{overscroll-behavior-y:none}
       cancelAnimationFrame(raf);
       var from=p, t0=performance.now();
       /* المدة من سرعة الإصبع: سحبة سريعة تكمل بسرعة وبسلاسة، وسحبة بطيئة تكمل بهدوء */
-      var distPx=Math.abs(t-from)*RANGE, dur=spd>0.05 ? Math.max(90,Math.min(220,distPx/spd*0.9)) : Math.max(120,Math.min(200,Math.abs(t-from)*200+70));
+      var dur=Math.max(140,Math.min(250,Math.abs(t-from)*250+80));
       (function step(now){
-        var k=clamp((now-t0)/dur), e=1-Math.pow(1-k,2.4);
+        var k=clamp((now-t0)/dur), e=1-Math.pow(1-k,3);
         try { apply(from+(t-from)*e); } catch (err) { console.warn('profile pull animation stopped', err); pulling=false; track=false; try { reset(); } catch (_) {} return; }
         if(k<1) raf=requestAnimationFrame(step);
         else {
@@ -9889,8 +9889,8 @@ html,body{overscroll-behavior-y:none}
     function onMove(ev){
       var t=ev.touches[0], dy=t.clientY-sy, dx=t.clientX-sx;
       if(!pulling){
-        var wantPull = !expanded && dy>3 && Math.abs(dy)>Math.abs(dx);
-        var wantBack = expanded && dy<-3 && Math.abs(dy)>Math.abs(dx) && view.scrollTop<=1;
+        var wantPull = !expanded && dy>5 && Math.abs(dy)>Math.abs(dx);
+        var wantBack = expanded && dy<-5 && Math.abs(dy)>Math.abs(dx) && view.scrollTop<=1;
         if(!wantPull && !wantBack) return;
         cancelAnimationFrame(raf);
         if(!expanded){ reset(true); showRing(); sync(); measure(); }
@@ -9901,7 +9901,7 @@ html,body{overscroll-behavior-y:none}
       }
       if(ev.cancelable) ev.preventDefault();
       var nowT=performance.now();
-      if(lastT){ var dt=nowT-lastT; if(dt>0) vel=0.45*vel+0.55*((t.clientY-lastY)/dt); }
+      if(lastT){ var dt=nowT-lastT; if(dt>0) vel=0.8*vel+0.2*((t.clientY-lastY)/dt); }
       lastT=nowT; lastY=t.clientY;
       tv=clamp(p0+dy/RANGE);
       if(!followRaf) followRaf=requestAnimationFrame(follow);
@@ -9923,7 +9923,7 @@ html,body{overscroll-behavior-y:none}
       pulling=false; track=false;
       cancelAnimationFrame(followRaf); followRaf=0; followLast=0;
       if(tv!==p){ try{ apply(tv); }catch(_){} }   /* لا قفزة عند رفع الإصبع: نبدأ من آخر موضع للإصبع */
-      var open = vel>0.3 ? true : vel<-0.3 ? false : (p>=THRESH && (p0===0 || p>=0.6));
+      var open = vel>0.45 ? true : vel<-0.45 ? false : (p>=THRESH && (p0===0 || p>=0.7));
       var spd=Math.abs(vel);
       vel=0; lastT=0;
       animateTo(open ? 1 : 0, spd);
