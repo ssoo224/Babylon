@@ -19230,10 +19230,25 @@ window.onKeyboardImage = async function (dataUrl, mime) {
 <style id="rec-done-label">
 /* عند اكتمال التسجيل: «تم التسجيل» مكان «جاري التسجيل» والنقطة الحمراء تصبح زرقاء سمائية */
 .recording-bar.rec-preview .recording-live-label{color:#38bdf8!important}
-.recording-bar.rec-preview .rec-text{display:inline!important;font-size:0!important;margin-inline-start:1px}
-.recording-bar.rec-preview .rec-text::after{content:"تم التسجيل";font-size:calc(12px * var(--bb-s,1))}
+.recording-bar.rec-preview .rec-text{display:inline!important;margin-inline-start:1px}
 .recording-bar.rec-preview .recording-live-dot{display:block!important;background:#38bdf8!important;animation:none!important;transform:none!important;opacity:1!important}
 </style>
+<script id="rec-done-text">
+/* نص حقيقي (بدون عناصر وهمية) حتى لا تتصل الحروف مع الكلمة المخفية فتبدو «يتم التسجيل» */
+(function(){
+  function sync(bar){
+    var t=bar.querySelector('.rec-text'); if(!t) return;
+    var want=bar.classList.contains('rec-preview')?'تم التسجيل':'جاري التسجيل';
+    if(t.textContent!==want) t.textContent=want;
+  }
+  function init(){
+    var bar=document.getElementById('recordingBar'); if(!bar) return;
+    sync(bar);
+    new MutationObserver(function(){sync(bar);}).observe(bar,{attributes:true,attributeFilter:['class']});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
 <style id="babylon-split-layout-fix">
 /* ============================================================
    إصلاح واجهة التابلت/الأفقي (شاشة مقسومة: قائمة + محادثة)
