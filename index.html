@@ -9618,11 +9618,11 @@ html,body{overscroll-behavior-y:none}
     var quick = view.querySelector('.pf-quick');
     var hero = document.createElement('div');
     hero.className = 'pf-hero';
-    hero.innerHTML = '<img alt="" draggable="false"><div class="pf-hero-letter"></div><div class="pf-hero-ext"></div><div class="pf-hero-shade"></div>'+
+    hero.innerHTML = '<div class="pf-hero-scale"><img alt="" draggable="false"><div class="pf-hero-letter"></div><div class="pf-hero-ext"></div><div class="pf-hero-shade"></div></div>'+
       '<div class="pf-hero-info"><div class="pf-hero-name"></div><div class="pf-hero-status"></div></div>';
     view.appendChild(hero);
     var own = cfg.view==='profileView';
-    var DRAG_STEP = 10; // كل 10px من الإصبع = حركة واحدة
+    var DRAG_STEP = 1; // خطوة 1px = مطابقة كاملة لحركة الإصبع
     var RANGE = own ? 400 : 150; // الملف الشخصي الخاص: 350px؛ ملف الشخص الآخر يبقى 150px
     var TOUCH_SLOP = own ? 3 : 5; // حساسية بدء السحب للملف الشخصي الخاص: 3px
     if(own){
@@ -9637,6 +9637,7 @@ html,body{overscroll-behavior-y:none}
         '<button type="button" class="pf-hero-dots" aria-label="المزيد"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button></div>'+
         '<div class="pf-hero-menu"><button type="button" data-a="dl"><svg class=\"pf-mi\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14\"/></svg><span>تنزيل الصورة</span></button></div>');
     }
+    var scaler=hero.querySelector('.pf-hero-scale');
     var hTop=hero.querySelector('.pf-hero-top'), hCount=hero.querySelector('.pf-hero-count'), hMenu=hero.querySelector('.pf-hero-menu');
     var heroImg=hero.querySelector('img'), hImg=heroImg, hLet=hero.querySelector('.pf-hero-letter'),
         hInfo=hero.querySelector('.pf-hero-info'), hName=hero.querySelector('.pf-hero-name'),
@@ -9683,13 +9684,13 @@ html,body{overscroll-behavior-y:none}
     function sync(){
       var hasImg = img && !img.classList.contains('hidden') && img.getAttribute('src');
       if(!own && hTop){ hTop.style.display=''; }
-      if(hasImg){ hero.style.background='transparent'; var _u=lite(img.getAttribute('src')); if(hImg.getAttribute('src')!==_u){ hImg.src=_u; try{ if(hImg.decode) hImg.decode().catch(function(){}); }catch(_){} } hImg.style.display='block'; hLet.style.display='none'; }
+      if(hasImg){ scaler.style.background='transparent'; var _u=lite(img.getAttribute('src')); if(hImg.getAttribute('src')!==_u){ hImg.src=_u; try{ if(hImg.decode) hImg.decode().catch(function(){}); }catch(_){} } hImg.style.display='block'; hLet.style.display='none'; }
       else {
         hImg.style.display='none'; hLet.style.display='flex'; hLet.innerHTML = txt ? txt.innerHTML : '';
-        if(txt){ var cs=getComputedStyle(txt); hero.style.background = cs.backgroundImage!=='none'? cs.backgroundImage : cs.backgroundColor; }
+        if(txt){ var cs=getComputedStyle(txt); scaler.style.background = cs.backgroundImage!=='none'? cs.backgroundImage : cs.backgroundColor; }
       }
       if(hasImg){ var _bg='url("'+lite(img.getAttribute('src'))+'")'; if(hExt.__bg!==_bg){ hExt.__bg=_bg; hExt.style.background=''; hExt.style.backgroundImage=_bg; hExt.style.backgroundSize='cover'; } }
-      else { hExt.style.backgroundImage='none'; hExt.style.background=hero.style.background||'#16213a'; }
+      else { hExt.style.backgroundImage='none'; hExt.style.background=scaler.style.background||'#16213a'; }
       if(own){ loadItems(); }
       hName.textContent = nameTxt ? nameTxt.textContent : '';
       var st = status.querySelector('span:last-child');
@@ -9728,24 +9729,33 @@ html,body{overscroll-behavior-y:none}
       moveOriginalAvatarIntoHero();
       hideRing();   /* إخفاء فوري للحلقة البيضاء (بلا transition) في نفس إطار ظهور الصورة المكبّرة */
       var size=g.size+(g.S-g.size)*v;
-      hero.style.display='block'; hero.style.willChange='width,height,top,left';
       var e=g.ext*clamp(v*2);
-      hero.style.width=size+'px'; hero.style.height=(size+e)+'px';
-      hImg.style.setProperty('width',size+'px','important');
-      hImg.style.setProperty('height',size+'px','important');
+      /* كل الحركة بـ transform: الحاوية بحجمها النهائي ثابتة، والغلاف الداخلي يُزاح ويُكبَّر بـ translate/scale */
+      var k=size/g.S, ek=e/k;
+      hero.style.display='block'; hero.style.willChange='transform';
+      hero.style.width=g.W+'px'; hero.style.height=(g.S+g.ext)+'px';
+      hero.style.transform='translate3d(0,'+(g.top*(1-v))+'px,0)';
+      scaler.style.width=g.S+'px'; scaler.style.height=(g.S+ek)+'px';
+      scaler.style.transform='translate3d('+((g.W-size)/2)+'px,0,0) scale('+k+')';
+      scaler.style.borderRadius=(50*(1-v))+'%';
+      hImg.style.setProperty('width',g.S+'px','important');
+      hImg.style.setProperty('height',g.S+'px','important');
       hImg.style.setProperty('border-radius',(50*(1-v))+'%','important');
       hImg.style.setProperty('border','0','important');
       hImg.style.setProperty('left','0','important');
       hImg.style.setProperty('top','0','important');
       hImg.style.setProperty('right','auto','important');
       hImg.style.setProperty('bottom','auto','important');
-      hLet.style.height=size+'px';
-      hExt.style.height=(size+e)+'px'; hExt.style.visibility=e>0?'visible':'hidden';
-      var mk=e>0?'linear-gradient(to bottom,#000 calc(100% - '+Math.round(e*1.15)+'px),transparent)':'none';
+      hLet.style.height=g.S+'px';
+      hExt.style.height=(g.S+ek)+'px'; hExt.style.visibility=e>0?'visible':'hidden';
+      var mk=e>0?'linear-gradient(to bottom,#000 calc(100% - '+Math.round(ek*1.15)+'px),transparent)':'none';
       hImg.style.webkitMaskImage=hImg.style.maskImage=mk; hLet.style.webkitMaskImage=hLet.style.maskImage=mk;
-      hShade.style.top=(size*0.35)+'px'; hShade.style.height=(size*0.65+e)+'px'; hShade.style.bottom='auto';
-      hero.style.top=(g.top*(1-v))+'px'; hero.style.left=((g.W-size)/2)+'px';
-      hero.style.borderRadius=(50*(1-v))+'%';
+      hShade.style.top=(g.S*0.35)+'px'; hShade.style.height=(g.S*0.65+ek)+'px'; hShade.style.bottom='auto';
+      if(v>0.5){
+        var side=((g.W-size)/2);
+        if(hTop){ hTop.style.left=side+'px'; hTop.style.right=side+'px'; }
+        hInfo.style.left=(side+18)+'px'; hInfo.style.right=(side+18)+'px';
+      }
       hero.style.pointerEvents = v>=0.99 ? 'auto' : 'none';
       hInfo.style.opacity = clamp((v-0.55)/0.4);
       if(hTop) hTop.style.opacity = clamp((v-0.55)/0.4);
@@ -9774,8 +9784,8 @@ html,body{overscroll-behavior-y:none}
         quick.style.setProperty('margin-bottom',(12+((heroBottom+10-nat)-12)*v)+'px','important');
         var pvq=v>0.001?Math.max(0.125,Math.round(clamp(v*2)*8)/8):0;
         if(g.pvq!==pvq){ g.pvq=pvq; view.style.setProperty('--pv',pvq); }
-        hInfo.style.bottom=(16+e)+'px';
       }
+      hInfo.style.bottom=(g.S+g.ext-size+16)+'px';
     }
     function reset(keepRingOff){
       clearTimeout(sbTimer);
@@ -9784,6 +9794,8 @@ html,body{overscroll-behavior-y:none}
       restoreOriginalAvatar();
       p=0; expanded=false;
       hero.style.display='none'; hero.style.pointerEvents='none'; hInfo.style.opacity=0;
+      hero.style.transform=''; scaler.style.transform=''; scaler.style.width=scaler.style.height=scaler.style.borderRadius='';
+      hInfo.style.left=hInfo.style.right=''; if(hTop){ hTop.style.left=hTop.style.right=''; }
       cover.style.height=''; cover.style.opacity='';
       ring.style.opacity='';
       ring.style.visibility='';
@@ -9860,7 +9872,7 @@ html,body{overscroll-behavior-y:none}
       var nowT=performance.now();
       if(lastT){ var dt=nowT-lastT; if(dt>0) vel=0.8*vel+0.2*((t.clientY-lastY)/dt); }
       lastT=nowT; lastY=t.clientY;
-      /* كل 10 بكسل من حركة الإصبع = خطوة واحدة في سحب الصورة (الحركة تتقدم على دفعات 10px) */
+      /* مطابقة حركة الإصبع (خطوة 1px) */
       tv=clamp(p0+(Math.trunc(dy/DRAG_STEP)*DRAG_STEP)/RANGE);
       if(!followRaf) followRaf=requestAnimationFrame(follow);
     }
@@ -14497,6 +14509,11 @@ body.light #viewersModal .viewer-item {
   height:calc(176px * .55)!important}
 </style>
 
+<style id="pf-hero-transform-only">
+/* حركة الصورة المكبّرة بـ transform فقط: الحاوية ثابتة، والغلاف الداخلي يتحرك ويكبر بـ translate/scale */
+.pf-hero{left:0;top:0;background:transparent!important;will-change:transform;transform-origin:0 0}
+.pf-hero .pf-hero-scale{position:absolute;left:0;top:0;overflow:hidden;background:#16213a;transform-origin:0 0;will-change:transform;backface-visibility:hidden;pointer-events:none}
+</style>
 <script id="babylon-offline">
 /* العمل بدون إنترنت: الواجهة تفتح، لكن لا إرسال ولا استلام.
    ثلاث حالات للشبكة:
