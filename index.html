@@ -9905,12 +9905,10 @@ html,body{overscroll-behavior-y:none}
     }
     function follow(now){
       followRaf=0;
-      /* تحديث السحب في كل إطار رسم متاح، مع تقليل تأخر اللحاق بحركة الإصبع.
-         requestAnimationFrame يتبع معدل تحديث شاشة الجهاز (60/90/120Hz إن توفر). */
-      var dt=Math.min(32,Math.max(1,now-(followLast||now-16))); followLast=now;
-      var a=1-Math.exp(-dt/2.2);
+      var dt=Math.min(40,now-(followLast||now-16)); followLast=now;
+      var a=1-Math.exp(-dt/6);
       var nv=p+(tv-p)*a;
-      if(Math.abs(tv-nv)<0.00035) nv=tv;
+      if(Math.abs(tv-nv)<0.0015) nv=tv;
       try { apply(nv); } catch (err) { console.warn('profile pull tracking stopped', err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try { reset(); } catch (_) {} return; }
       if(pulling && nv!==tv){ followRaf=requestAnimationFrame(follow); } else followLast=0;
     }
