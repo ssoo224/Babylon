@@ -9610,7 +9610,7 @@ html,body{overscroll-behavior-y:none}
 <script id="pf-pull-expand-js">
 /* سحب الشاشة للأسفل في البروفايل: تكبر الصورة مع الإصبع حتى تصبح مربعًا فيه الاسم، ويختفي الغلاف (مثل تليجرام) */
 (function(){
-  var RANGE = 130;      // كم بكسل سحب لتكتمل الصورة
+  var RANGE = 150;      // كم بكسل سحب لتكتمل الصورة
   var THRESH = 0.45;    // بعد هذه النسبة تثبت مفتوحة عند ترك الإصبع
   // صور البروفايل مخزنة base64 (ميغابايتات). نحولها مرة وحدة إلى blob حتى ما نكرر نص ضخم بالـCSS كل سحبة
   var _lc={}, _sm={}, _smBusy={};
@@ -12822,7 +12822,7 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
     }
     /* نمنع تمرير القائمة الأصلي أثناء طي/فتح القصص حتى لا تتحرك المحادثات مع الطي ويُقطع جزء منها */
     if(e.cancelable) e.preventDefault();
-    var p=drag.p0+(t.clientY-drag.y0)/H;
+    var p=drag.p0+(t.clientY-drag.y0)/150;
     var now=performance.now(), dt=now-drag.lt;
     if(dt>0){ drag.v=.7*drag.v+.3*((t.clientY-drag.ly)/dt); drag.lt=now; drag.ly=t.clientY; }   /* بكسل/مللي ثانية، موجب = للأسفل */
     drag.p=p<0?0:p>1?1:p;
