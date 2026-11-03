@@ -9877,8 +9877,9 @@ html,body{overscroll-behavior-y:none}
         cancelAnimationFrame(raf);
         if(!expanded){ hideRing(); reset(true); sync(); measure(); }
         view.classList.add('pf-dragging');
-        sysBars(true);   /* تركيب الصورة على شريط الإشعارات من أول إطار (مرة واحدة فقط، بلا تبديل أثناء السحب) */
-        pulling=true; p0=expanded?1:0; sy=t.clientY; tv=p; vel=0; lastT=0;   // نبدأ من نقطة بدء السحب الفعلي
+        /* لا نغيّر أشرطة النظام أثناء السحب؛ ذلك يسبب إعادة قياس WebView وتقطّعاً. */
+        if(!own) sysBars(true);
+        pulling=true; p0=expanded?1:0; sy=t.clientY; tv=p; vel=0; lastT=0;
         // إخفاء الحلقة فور بدء السحب المقبول، ومنع ظهورها في إطارات التحديث الأولى.
         hideRing();
         dy=0;
@@ -9892,12 +9893,19 @@ html,body{overscroll-behavior-y:none}
     }
     function follow(now){
       followRaf=0;
-      var dt=Math.min(40,now-(followLast||now-16)); followLast=now;
-      var a=1-Math.exp(-dt/6);
-      var nv=p+(tv-p)*a;
-      if(Math.abs(tv-nv)<0.0015) nv=tv;
+      /* الملف الشخصي لصاحب الحساب: تحديث مباشر على إطار الشاشة بلا تأخير تراكمي.
+         البروفايل الآخر يحتفظ بالحركة السابقة. */
+      var nv;
+      if(own) {
+        nv=tv;
+      } else {
+        var dt=Math.min(40,now-(followLast||now-16)); followLast=now;
+        var a=1-Math.exp(-dt/6);
+        nv=p+(tv-p)*a;
+        if(Math.abs(tv-nv)<0.0015) nv=tv;
+      }
       try { apply(nv); } catch (err) { console.warn('profile pull tracking stopped', err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try { reset(); } catch (_) {} return; }
-      if(pulling && nv!==tv){ followRaf=requestAnimationFrame(follow); } else followLast=0;
+      if(!own && pulling && nv!==tv){ followRaf=requestAnimationFrame(follow); } else followLast=0;
     }
 
     function finish(){
