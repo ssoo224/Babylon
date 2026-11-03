@@ -4151,7 +4151,7 @@ function goHome() {
   if (searchClearBtn) searchClearBtn.classList.add("hidden");
   setSearchHint("اكتب 3 أحرف على الأقل", "idle");
   showView("homeView");
-  loadChats();
+  if (!chatsListUnsubscribe) loadChats();   // الاستماع يبقى فعّالًا: لا إعادة تحميل/رسم للقائمة عند الرجوع
 }
 
 function openSearch() { 
@@ -8222,10 +8222,10 @@ function reorderChatListItems(){
     const pa=pins.indexOf(a.dataset.chatid),pb=pins.indexOf(b.dataset.chatid);
     if((pa>=0)!==(pb>=0))return pa>=0?-1:1;
     if(pa>=0&&pb>=0)return pa-pb;
-    const aa=a.dataset.chatid===activeChatId?1:0,bb=b.dataset.chatid===activeChatId?1:0;if(aa!==bb)return bb-aa;
     return (Number(b.dataset.updatedat)||0)-(Number(a.dataset.updatedat)||0);
   });
-  items.forEach(el=>list.appendChild(el));
+  { const cur=chatItems(); let same=cur.length===items.length; for(let i=0;same&&i<items.length;i++) if(cur[i]!==items[i]) same=false;
+    if(!same) items.forEach(el=>list.appendChild(el)); }
   applyChatMarks();
 }
 
@@ -19870,7 +19870,7 @@ window.bbTinyThumb = function (file) {
 
   /* التنقل بين أقسام الشريط السفلي (المحادثات / الإعدادات / الملف الشخصي): بدون أنيميشن */
   var MAIN_TABS = { homeView:1, profileView:1, settingsView:1 };
-  var tabNavUntil = 0;
+  var tabNavUntil = 0, initialEntry = false;
   function tabNav(){ return Date.now() < tabNavUntil; }
   document.addEventListener('click', function(e){
     var b = e.target && e.target.closest && e.target.closest('#bottomNav .nav-item');
@@ -19914,11 +19914,13 @@ window.bbTinyThumb = function (file) {
 
   function init(){
     VIEWS.forEach(function(id){ watch(document.getElementById(id), enterView); });
+    var chatOpenNow = function(){ var c = document.getElementById('chatView'); return c && !c.classList.contains('hidden'); };
     watch(document.getElementById('mainHeader'), function(el){ if (!profileOpen() && !tabNav()) enterBar(el, 'bb-bar-down'); });
     watch(document.getElementById('bottomNav'),  function(el){ if (!profileOpen() && !tabNav()) enterBar(el, 'bb-bar-up'); });
 
     /* أول دخول للتطبيق بعد تسجيل الدخول */
     watch(document.getElementById('mainPage'), function(){
+      initialEntry = true; setTimeout(function(){ initialEntry = false; }, 1400);
       VIEWS.forEach(function(id){
         var v = document.getElementById(id);
         if (v && !v.classList.contains('hidden')) enterView(v);
