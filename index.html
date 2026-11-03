@@ -12690,10 +12690,17 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
 (function(){
   var bar=document.getElementById('storiesBar'), home=document.getElementById('homeView'), orig=window.setStoriesCollapsed;
   if(!bar||!home||typeof orig!=='function') return;
-  var H=0,PT=0,PB=0,drag=null,raf=0,anim=0,pend=null;
+  var H=0,PT=0,PB=0,drag=null,raf=0,anim=0,pend=null,locked=false,lockTop=0,savedOY='';
+  var hbtn=document.getElementById('hdrAvatarBtn');
+  /* صورة الهيدر المصغّرة تظهر/تختفي مع بداية الحركة لا بعد نهايتها */
+  function moved(on){ if(hbtn) hbtn.classList.toggle('story-avatar-moved',!!on); }
+  /* قفل تمرير القائمة أثناء الطي حتى لا تتحرك المحادثات مرتين (تمرير + انكماش) فتختبئ أول محادثة */
+  function lock(top){ if(locked) return; locked=true; savedOY=home.style.overflowY; lockTop=top; home.style.overflowY='hidden'; home.scrollTop=top; }
+  function unlock(){ if(!locked) return; locked=false; home.style.overflowY=savedOY||''; }
   function metrics(){ var cs=getComputedStyle(bar); H=bar.getBoundingClientRect().height; PT=parseFloat(cs.paddingTop)||0; PB=parseFloat(cs.paddingBottom)||0; }
   function apply(p){
     p=p<0?0:p>1?1:p;
+    if(locked&&home.scrollTop!==lockTop) home.scrollTop=lockTop;
     bar.style.height=(H*p).toFixed(2)+'px';
     bar.style.paddingTop=(PT*p).toFixed(2)+'px';
     bar.style.paddingBottom=(PB*p).toFixed(2)+'px';
@@ -12721,15 +12728,15 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
     if(isC===c||bar.classList.contains('hidden')) return orig(c);
     if(c){
       metrics(); if(H<4) return orig(true);
-      bar.classList.add('bb-anim'); run(1,0,.9,function(){ orig(true); clear(); });
+      moved(false); lock(home.scrollTop); bar.classList.add('bb-anim'); run(1,0,.9,function(){ orig(true); clear(); unlock(); });
     } else {
-      orig(false); bar.classList.add('bb-anim'); metrics(); apply(0); run(0,1,.9,clear);
+      orig(false); moved(true); bar.classList.add('bb-anim'); metrics(); apply(0); run(0,1,.9,clear);
     }
   };
   function open(){ return !bar.classList.contains('collapsed')&&!bar.classList.contains('hidden'); }
   home.addEventListener('touchstart',function(e){
     if(e.touches.length!==1){ pend=null; return; }
-    var t=e.touches[0]; pend={x:t.clientX,y:t.clientY};
+    var t=e.touches[0]; pend={x:t.clientX,y:t.clientY,st:home.scrollTop};
     if(drag&&drag.end) pend=null;
   },{passive:true,capture:true});
   home.addEventListener('touchmove',function(e){
@@ -12738,8 +12745,8 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
       if(!pend||bar.classList.contains('hidden')) return;
       var dy=t.clientY-pend.y, dx=Math.abs(t.clientX-pend.x);
       if(Math.abs(dy)<7||Math.abs(dy)<dx*1.2) return;
-      if(open()&&dy<0){ cancelAnim(); clear(); metrics(); if(H<4) return; bar.classList.add('bb-anim'); drag={mode:'c',y0:t.clientY,p0:1}; }
-      else if(!open()&&dy>0&&home.scrollTop<=0){ cancelAnim(); clear(); orig(false); bar.classList.add('bb-anim'); metrics(); if(H<4){ clear(); return; } apply(0); drag={mode:'e',y0:t.clientY,p0:0}; }
+      if(open()&&dy<0){ cancelAnim(); clear(); metrics(); if(H<4) return; bar.classList.add('bb-anim'); moved(false); lock(pend.st||0); drag={mode:'c',y0:t.clientY,p0:1}; }
+      else if(!open()&&dy>0&&home.scrollTop<=0){ cancelAnim(); clear(); orig(false); moved(true); bar.classList.add('bb-anim'); metrics(); if(H<4){ clear(); return; } apply(0); drag={mode:'e',y0:t.clientY,p0:0}; }
       else return;
       drag.v=0; drag.lt=performance.now(); drag.ly=t.clientY; drag.p=drag.p0;
     }
@@ -12755,8 +12762,8 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
     var closing=d.p<.5; if(d.v<-.35) closing=true; else if(d.v>.35) closing=false;
     var v=Math.abs(d.v);
     d.end=true;
-    if(closing){ run(d.p,0,v,function(){ orig(true); clear(); }); }
-    else { run(d.p,1,v,clear); }
+    if(closing){ moved(false); run(d.p,0,v,function(){ orig(true); clear(); unlock(); }); }
+    else { moved(true); run(d.p,1,v,function(){ clear(); unlock(); }); }
   }
   home.addEventListener('touchend',release,{passive:true,capture:true});
   home.addEventListener('touchcancel',release,{passive:true,capture:true});
