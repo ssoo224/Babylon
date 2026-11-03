@@ -12680,7 +12680,9 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
 })();
 </script>
 <style id="bb-stories-smooth-css">
-.app-container #homeView#homeView #storiesBar.bb-anim,.app-container #homeView#homeView #storiesBar.bb-anim.collapsed{max-height:none!important;overflow:hidden!important;transition:none!important;pointer-events:none;will-change:height,opacity;contain:layout paint}
+.app-container #homeView#homeView #storiesBar.bb-anim,.app-container #homeView#homeView #storiesBar.bb-anim.collapsed{max-height:none!important;overflow:visible!important;transition:none!important;pointer-events:none;will-change:height,opacity}
+/* المحتوى يصعد ويصغر تدريجياً مع الشريط بدل أن يُقصّ من الأسفل */
+.app-container #homeView#homeView #storiesBar.bb-anim .sb-item,.app-container #homeView#homeView #storiesBar.bb-anim.collapsed .sb-item{transform-origin:50% 0;translate:0 calc((1 - var(--bb-p,1)) * -34px);scale:calc(.78 + .22 * var(--bb-p,1));transition:none!important}
 </style>
 <script id="bb-stories-smooth-js">
 /* القصص: الشريط يتبع إصبعك بكسلاً بكسلاً (1:1) أثناء السحب، وعند الإفلات يكمل بحركة ناعمة تراعي سرعة الإصبع.
@@ -12695,10 +12697,11 @@ function setTone(el,u){if(!el)return;el.classList.remove('tone-blue','tone-gold'
     bar.style.height=(H*p).toFixed(2)+'px';
     bar.style.paddingTop=(PT*p).toFixed(2)+'px';
     bar.style.paddingBottom=(PB*p).toFixed(2)+'px';
-    bar.style.opacity=(p<.15?p/.15:1).toFixed(3);
+    bar.style.setProperty('--bb-p',p.toFixed(4));
+    bar.style.opacity=Math.min(1,p*1.5).toFixed(3);
     return p;
   }
-  function clear(){ bar.style.height=bar.style.paddingTop=bar.style.paddingBottom=bar.style.opacity=''; bar.classList.remove('bb-anim'); }
+  function clear(){ bar.style.height=bar.style.paddingTop=bar.style.paddingBottom=bar.style.opacity=''; bar.style.removeProperty('--bb-p'); bar.classList.remove('bb-anim'); }
   function cancelAnim(){ if(anim){ cancelAnimationFrame(anim); anim=0; } }
   var ease=function(t){ return 1-Math.pow(1-t,4); };   /* easeOutQuart: ناعم جداً في النهاية */
   function run(from,to,vel,done){
