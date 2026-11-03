@@ -515,7 +515,15 @@ public class MainActivity extends BridgeActivity {
             if (!source.startsWith("https://")) throw new Exception("bad url");
             String nm = (filename == null || filename.trim().isEmpty()) ? "file" : filename.replaceAll("[\\\\/]", "_");
             final String name = nm.startsWith(".") ? "_" + nm : nm;
-            final String mime = (mimeType == null || mimeType.isEmpty()) ? "application/octet-stream" : mimeType;
+            String mm = (mimeType == null) ? "" : mimeType;
+            if (mm.isEmpty() || mm.equals("application/octet-stream")) {
+                int dot = name.lastIndexOf('.');
+                if (dot >= 0 && dot < name.length() - 1) {
+                    String g = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substring(dot + 1).toLowerCase());
+                    if (g != null) mm = g;
+                }
+            }
+            final String mime = mm.isEmpty() ? "application/octet-stream" : mm;
             runOnUiThread(() -> Toast.makeText(MainActivity.this, "جارٍ تجهيز الملف…", Toast.LENGTH_SHORT).show());
             File dir = new File(getCacheDir(), "openfiles");
             if (!dir.exists() && !dir.mkdirs()) throw new Exception("cache dir");
@@ -547,9 +555,7 @@ public class MainActivity extends BridgeActivity {
                     view.setDataAndType(uri, mime);
                     view.setClipData(android.content.ClipData.newRawUri(name, uri));
                     view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    Intent chooser = Intent.createChooser(view, "فتح بواسطة");
-                    chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(chooser);
+                    startActivity(view);   /* نافذة النظام «فتح بواسطة» مع خيار «لا تسأل مرة أخرى» مثل تيليجرام */
                 } catch (android.content.ActivityNotFoundException nf) {
                     Toast.makeText(this, "لا يوجد تطبيق يفتح هذا الملف", Toast.LENGTH_LONG).show();
                 } catch (Throwable t) {
