@@ -9681,6 +9681,13 @@ html,body{overscroll-behavior-y:none}
         '<div class="pf-hero-menu"><button type="button" data-a="dl"><svg class=\"pf-mi\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14\"/></svg><span>تنزيل الصورة</span></button></div>');
     }
     var hTop=hero.querySelector('.pf-hero-top'), hCount=hero.querySelector('.pf-hero-count'), hMenu=hero.querySelector('.pf-hero-menu');
+    /* تحسين سحب صورة الملف الشخصي لصاحب الحساب فقط: تجهيز الطبقات المتحركة للتركيب الرسومي */
+    if(own){
+      hero.style.willChange='transform, opacity';
+      heroImg.style.willChange='transform, opacity';
+      cover.style.willChange='transform, opacity';
+      if(quick) quick.style.willChange='transform, opacity';
+    }
     var heroImg=hero.querySelector('img'), hImg=heroImg, hLet=hero.querySelector('.pf-hero-letter'),
         hInfo=hero.querySelector('.pf-hero-info'), hName=hero.querySelector('.pf-hero-name'),
         hStat=hero.querySelector('.pf-hero-status'), hExt=hero.querySelector('.pf-hero-ext'), hShade=hero.querySelector('.pf-hero-shade');
@@ -9901,7 +9908,8 @@ html,body{overscroll-behavior-y:none}
     function follow(now){
       followRaf=0;
       var dt=Math.min(40,now-(followLast||now-16)); followLast=now;
-      var a=1-Math.exp(-dt/6);
+      /* استجابة أسرع لصورة المالك مع تحديث واحد لكل إطار شاشة عبر requestAnimationFrame. */
+      var a=own ? 1-Math.exp(-dt/3.5) : 1-Math.exp(-dt/6);
       var nv=p+(tv-p)*a;
       if(Math.abs(tv-nv)<0.0015) nv=tv;
       try { apply(nv); } catch (err) { console.warn('profile pull tracking stopped', err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try { reset(); } catch (_) {} return; }
