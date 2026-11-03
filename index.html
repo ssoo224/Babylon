@@ -9681,13 +9681,6 @@ html,body{overscroll-behavior-y:none}
         '<div class="pf-hero-menu"><button type="button" data-a="dl"><svg class=\"pf-mi\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14\"/></svg><span>تنزيل الصورة</span></button></div>');
     }
     var hTop=hero.querySelector('.pf-hero-top'), hCount=hero.querySelector('.pf-hero-count'), hMenu=hero.querySelector('.pf-hero-menu');
-    /* تحسين سحب صورة الملف الشخصي لصاحب الحساب فقط: تجهيز الطبقات المتحركة للتركيب الرسومي */
-    if(own){
-      hero.style.willChange='transform, opacity';
-      heroImg.style.willChange='transform, opacity';
-      cover.style.willChange='transform, opacity';
-      if(quick) quick.style.willChange='transform, opacity';
-    }
     var heroImg=hero.querySelector('img'), hImg=heroImg, hLet=hero.querySelector('.pf-hero-letter'),
         hInfo=hero.querySelector('.pf-hero-info'), hName=hero.querySelector('.pf-hero-name'),
         hStat=hero.querySelector('.pf-hero-status'), hExt=hero.querySelector('.pf-hero-ext'), hShade=hero.querySelector('.pf-hero-shade');
@@ -9802,7 +9795,7 @@ html,body{overscroll-behavior-y:none}
       }
       cover.style.height=(g.coverH+g.delta*v)+'px';
       cover.style.opacity=clamp(1-v*1.5);
-      /* إطار الصورة يُخفى مرة واحدة عند بدء السحب؛ لا نحدّثه داخل كل إطار حركة. */
+      ring.style.opacity=0;
       nameBox.style.overflow='hidden'; nameBox.style.height=(g.nh*(1-v))+'px';
       nameBox.style.marginBottom=(6*(1-v))+'px'; nameBox.style.opacity=clamp(1-v*2);
       status.style.overflow='hidden'; status.style.height=(g.sh*(1-v))+'px'; status.style.opacity=clamp(1-v*2);
@@ -9880,7 +9873,12 @@ html,body{overscroll-behavior-y:none}
 
     view.addEventListener('touchmove',function(ev){
       if(!track || !ev.touches || !ev.touches.length) return;
-      /* لا نغيّر إطار الصورة أو أصنافه أثناء أحداث touchmove المتكررة. */
+      // Hide the source ring on the very first downward movement frame, before the
+      // pull threshold is reached. Restore it if this turns out not to be a pull.
+      var firstTouch=ev.touches[0], earlyDy=firstTouch.clientY-sy, earlyDx=firstTouch.clientX-sx;
+      if(!expanded && earlyDy>0 && Math.abs(earlyDy)>Math.abs(earlyDx)){
+        hideRing();
+      } else if(!pulling && !expanded){ showRing(); }
       try{ onMove(ev); }catch(err){ console.warn('profile pull move failed',err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try{ reset(); }catch(_){} }
     },{passive:false});
     function onMove(ev){
@@ -9892,10 +9890,10 @@ html,body{overscroll-behavior-y:none}
         cancelAnimationFrame(raf);
         if(!expanded){ hideRing(); reset(true); sync(); measure(); }
         view.classList.add('pf-dragging');
-        sysBars(true);   /* تنفيذ مرة واحدة عند بدء السحب فقط */
-        pulling=true; p0=expanded?1:0; sy=t.clientY; tv=p; vel=0; lastT=0;
-        /* إخفاء الإطار مرة واحدة عند قبول السحب، وليس مع كل إطار حركة. */
-        if(!expanded){ hideRing(); ring.style.opacity='0'; }
+        sysBars(true);   /* تركيب الصورة على شريط الإشعارات من أول إطار (مرة واحدة فقط، بلا تبديل أثناء السحب) */
+        pulling=true; p0=expanded?1:0; sy=t.clientY; tv=p; vel=0; lastT=0;   // نبدأ من نقطة بدء السحب الفعلي
+        // إخفاء الحلقة فور بدء السحب المقبول، ومنع ظهورها في إطارات التحديث الأولى.
+        hideRing();
         dy=0;
       }
       if(ev.cancelable) ev.preventDefault();
@@ -9907,11 +9905,12 @@ html,body{overscroll-behavior-y:none}
     }
     function follow(now){
       followRaf=0;
-      var dt=Math.min(40,now-(followLast||now-16)); followLast=now;
-      /* استجابة أسرع لصورة المالك مع تحديث واحد لكل إطار شاشة عبر requestAnimationFrame. */
-      var a=own ? 1-Math.exp(-dt/3.5) : 1-Math.exp(-dt/6);
+      /* تحديث السحب في كل إطار رسم متاح، مع تقليل تأخر اللحاق بحركة الإصبع.
+         requestAnimationFrame يتبع معدل تحديث شاشة الجهاز (60/90/120Hz إن توفر). */
+      var dt=Math.min(32,Math.max(1,now-(followLast||now-16))); followLast=now;
+      var a=1-Math.exp(-dt/2.2);
       var nv=p+(tv-p)*a;
-      if(Math.abs(tv-nv)<0.0015) nv=tv;
+      if(Math.abs(tv-nv)<0.00035) nv=tv;
       try { apply(nv); } catch (err) { console.warn('profile pull tracking stopped', err); pulling=false; track=false; cancelAnimationFrame(followRaf); followRaf=0; try { reset(); } catch (_) {} return; }
       if(pulling && nv!==tv){ followRaf=requestAnimationFrame(follow); } else followLast=0;
     }
