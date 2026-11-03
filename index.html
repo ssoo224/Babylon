@@ -19456,7 +19456,12 @@ return R("index");})();
   /* فتح الملف عبر قائمة التطبيقات القادرة على فتحه */
   function openWith(url,name){
     name=name||'file'; var mime=mimeOf(name), B=window.BabylonAndroid;
+    var N=window.BabylonAndroidNative;
+    /* 1) الدالة الأصلية الجديدة مباشرة من الجسر (لا تعتمد على ترقيع index.html) */
+    try{ if(N&&typeof N.openFileWith==='function'){ N.openFileWith(String(url),String(name),mime); return; } }catch(_){}
     if(B){ var fns=['openFileWith','openFile','openWith','shareFile']; for(var i=0;i<fns.length;i++){ if(typeof B[fns[i]]==='function'){ try{B[fns[i]](String(url),String(name),mime);return;}catch(_){} } } }
+    /* 2) نسخة تطبيق أقدم بلا openFileWith: افتح الرابط بتطبيق خارجي (قائمة التطبيقات/المتصفح) */
+    try{ if(N&&typeof N.openExternal==='function'&&/^https:\/\//.test(String(url))){ N.openExternal(String(url)); return; } }catch(_){}
     var fallback=function(){
       if(/Android/i.test(navigator.userAgent)){
         try{ location.href='intent://'+String(url).replace(/^https?:\/\//,'')+'#Intent;scheme=https;action=android.intent.action.VIEW;type='+mime+';end'; return; }catch(_){}
@@ -20036,5 +20041,195 @@ window.bbTinyThumb = function (file) {
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
+})();
+</script>
+
+<script id="bb-local-cache">
+/* تخزين محلي داخل مساحة التطبيق (IndexedDB): قائمة المحادثات + ملف المستخدم وإعداداته.
+   تُعرض فورًا عند فتح التطبيق، ثم يحدّثها السيرفر بصمت. */
+(function () {
+  'use strict';
+  var DBN = 'babylon_local_v1', ST = 'kv', LKEY = 'babylon_last_uid', dbp = null;
+  function open() {
+    if (dbp) return dbp;
+    dbp = new Promise(function (res, rej) {
+      try {
+        var r = indexedDB.open(DBN, 1);
+        r.onupgradeneeded = function () { try { r.result.createObjectStore(ST); } catch (e) {} };
+        r.onsuccess = function () { res(r.result); };
+        r.onerror = function () { rej(r.error); };
+      } catch (e) { rej(e); }
+    });
+    return dbp;
+  }
+  function kvGet(k) {
+    return open().then(function (d) {
+      return new Promise(function (res) {
+        try { var q = d.transaction(ST, 'readonly').objectStore(ST).get(k); q.onsuccess = function () { res(q.result || null); }; q.onerror = function () { res(null); }; }
+        catch (e) { res(null); }
+      });
+    }).catch(function () { return null; });
+  }
+  function kvSet(k, v) {
+    return open().then(function (d) {
+      return new Promise(function (res) {
+        try { var tx = d.transaction(ST, 'readwrite'); tx.objectStore(ST).put(v, k); tx.oncomplete = function () { res(true); }; tx.onerror = tx.onabort = function () { res(false); }; }
+        catch (e) { res(false); }
+      });
+    }).catch(function () { return false; });
+  }
+  function kvDel(k) {
+    return open().then(function (d) {
+      return new Promise(function (res) {
+        try { var tx = d.transaction(ST, 'readwrite'); tx.objectStore(ST).delete(k); tx.oncomplete = function () { res(true); }; tx.onerror = tx.onabort = function () { res(false); }; }
+        catch (e) { res(false); }
+      });
+    }).catch(function () { return false; });
+  }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+
+  var list = document.getElementById('chatList');
+  var lastUid = ''; try { lastUid = localStorage.getItem(LKEY) || ''; } catch (e) {}
+  var restoredUid = null;
+  function liveItems() { return list ? list.querySelectorAll('.chat-item[id^="chat_item_"]') : []; }
+  function curUser() { try { return (typeof currentUser !== 'undefined') ? currentUser : null; } catch (e) { return null; } }
+
+  /* ---------- 1) استعادة قائمة المحادثات فورًا ---------- */
+  if (list && lastUid) {
+    kvGet('chatlist:' + lastUid).then(function (s) {
+      try {
+        if (!s || !s.html || s.uid !== lastUid) return;
+        if (liveItems().length) return;                         /* السيرفر سبق ورسم القائمة */
+        var cu = curUser(); if (cu && cu.uid !== s.uid) return;
+        list.innerHTML = s.html;
+        restoredUid = s.uid;
+        liveItems().forEach(function (el) {
+          el.classList.remove('is-active-chat', 'cl-selected', 'bb-item-in');
+          el.onclick = function () {
+            var id = el.dataset.chatid; if (!id) return;
+            activeChatId = id;
+            if (el.dataset.group === '1') openGroupRoom(id); else openChatRoom(el.dataset.other);
+          };
+        });
+        try { Object.keys(s.meta || {}).forEach(function (id) { if (!chatMetaCache[id]) chatMetaCache[id] = s.meta[id]; }); } catch (e) {}
+        try { reorderChatListItems(); } catch (e) {}
+        try { updateUnreadChip(); } catch (e) {}
+      } catch (e) { console.warn('bb-local-cache restore', e); }
+    });
+  }
+
+  /* ---------- 2) حفظ القائمة عند أي تغيير ---------- */
+  var tm = null;
+  function snapshotNow() {
+    try {
+      var cu = curUser(); if (!cu || !list) return;
+      if (!liveItems().length) { if (list.querySelector('.empty-chats')) kvDel('chatlist:' + cu.uid); return; }
+      var clone = list.cloneNode(true);
+      clone.querySelectorAll('.chat-item').forEach(function (el) {
+        if (!el.querySelector('.chat-item-info')) { el.remove(); return; }
+        el.classList.remove('is-active-chat', 'cl-selected', 'bb-item-in');
+      });
+      if (!clone.querySelector('.chat-item')) return;
+      var meta = {};
+      clone.querySelectorAll('.chat-item').forEach(function (el) { var id = el.dataset.chatid; if (id && chatMetaCache[id]) meta[id] = chatMetaCache[id]; });
+      try { meta = JSON.parse(JSON.stringify(meta)); } catch (e) { meta = {}; }
+      kvSet('chatlist:' + cu.uid, { uid: cu.uid, html: clone.innerHTML, meta: meta, ts: Date.now() });
+      try { localStorage.setItem(LKEY, cu.uid); } catch (e) {}
+    } catch (e) {}
+  }
+  function schedule() { clearTimeout(tm); tm = setTimeout(snapshotNow, 2500); }
+  if (list && window.MutationObserver) new MutationObserver(schedule).observe(list, { childList: true, subtree: true, characterData: true });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') { clearTimeout(tm); snapshotNow(); } });
+  window.addEventListener('pagehide', function () { clearTimeout(tm); snapshotNow(); });
+
+  /* ---------- 2.5) شريط القصص (صور أصحاب القصص + قصتي) ---------- */
+  var bar = document.getElementById('storiesBar'), bt = null;
+  function storyIdOf(el) { var m = /storyItemClick\(event,'([^']+)'/.exec(el.getAttribute('onclick') || ''); return m ? m[1] : ''; }
+  if (bar && lastUid) {
+    kvGet('storiesbar:' + lastUid).then(function (s) {
+      try {
+        if (!s || !s.html || s.uid !== lastUid) return;
+        if (bar.querySelector('.sb-item')) return;                 /* السيرفر سبق */
+        var cu = curUser(); if (cu && cu.uid !== s.uid) return;
+        bar.innerHTML = s.html;
+        var now = Date.now(), keep = 0;
+        Array.prototype.slice.call(bar.querySelectorAll('.sb-item')).forEach(function (el, i) {
+          if (i === 0) {                                           /* قصتي */
+            if (!(s.myUntil > now)) { var av = el.querySelector('.avatar'); if (av) av.classList.remove('sring', 'seen'); }
+            keep++; return;
+          }
+          var id = storyIdOf(el), until = Number((s.until || {})[id]) || 0;
+          if (!id || until <= now) { el.remove(); return; }       /* انتهت القصة */
+          keep++;
+        });
+        if (keep) { bar.classList.remove('hidden'); if (!restoredUid) restoredUid = s.uid; }
+      } catch (e) { console.warn('bb-local-cache stories restore', e); }
+    });
+  }
+  function snapshotStories() {
+    try {
+      var cu = curUser(); if (!cu || !bar) return;
+      var items = bar.querySelectorAll('.sb-item'); if (!items.length) return;
+      var until = {};
+      Array.prototype.slice.call(items).forEach(function (el, i) {
+        if (i === 0) return;
+        var id = storyIdOf(el); if (!id) return;
+        var u = null; try { u = userCache[id]; } catch (e) {}
+        if (u && u.storyUntil) until[id] = Number(u.storyUntil) || 0;
+      });
+      var myUntil = 0;
+      try { (myStories || []).forEach(function (st) { if (isActive(st)) myUntil = Math.max(myUntil, Number(st.expiresAt) || 0); }); } catch (e) {}
+      kvSet('storiesbar:' + cu.uid, { uid: cu.uid, html: bar.innerHTML, until: until, myUntil: myUntil, ts: Date.now() });
+    } catch (e) {}
+  }
+  function scheduleStories() { clearTimeout(bt); bt = setTimeout(snapshotStories, 1500); }
+  if (bar && window.MutationObserver) new MutationObserver(scheduleStories).observe(bar, { childList: true, subtree: true });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') { clearTimeout(bt); snapshotStories(); } });
+  window.addEventListener('pagehide', function () { clearTimeout(bt); snapshotStories(); });
+
+  /* ---------- 3) ملف المستخدم وإعداداته (خصوصية، غلاف، نبذة…) ---------- */
+  var pt = null;
+  function saveProfile(u) {
+    try {
+      var cu = curUser(); if (!cu || !u || u.id !== cu.uid) return;
+      if (!(window.__bbProfSig && String(window.__bbProfSig).indexOf(cu.uid) === 0)) return;   /* ملف حقيقي من السيرفر فقط */
+      clearTimeout(pt);
+      pt = setTimeout(function () {
+        try { kvSet('profile:' + cu.uid, { uid: cu.uid, data: JSON.parse(JSON.stringify(u)), ts: Date.now() }); } catch (e) {}
+      }, 1000);
+    } catch (e) {}
+  }
+  try {
+    var _upu = updateProfileUI;
+    updateProfileUI = function (u) { try { saveProfile(u); } catch (e) {} return _upu.apply(this, arguments); };
+  } catch (e) {}
+  function primeProfile(uid) {
+    kvGet('profile:' + uid).then(function (p) {
+      try {
+        if (!p || !p.data || p.uid !== uid) return;
+        if (currentUserData) return;                              /* السيرفر سبق */
+        currentUserData = p.data;
+        try { _upu(p.data); } catch (e) {}
+      } catch (e) {}
+    });
+  }
+
+  /* ---------- 4) تغيّر الحساب / تسجيل الخروج ---------- */
+  try {
+    auth.onAuthStateChanged(function (u) {
+      try {
+        if (!u) {
+          if (lastUid) { kvDel('chatlist:' + lastUid); kvDel('profile:' + lastUid); kvDel('storiesbar:' + lastUid); }
+          if (restoredUid && list) { list.innerHTML = ''; if (bar) bar.innerHTML = ''; }
+          restoredUid = null;
+          try { localStorage.removeItem(LKEY); } catch (e) {}
+          return;
+        }
+        if (restoredUid && restoredUid !== u.uid && list) { list.innerHTML = ''; if (bar) bar.innerHTML = ''; restoredUid = null; }
+        try { localStorage.setItem(LKEY, u.uid); } catch (e) {}
+        primeProfile(u.uid);
+      } catch (e) {}
+    });
+  } catch (e) {}
 })();
 </script>
