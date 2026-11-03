@@ -9756,7 +9756,6 @@ html,body{overscroll-behavior-y:none}
       }
       cover.style.height=(g.coverH+g.delta*v)+'px';
       cover.style.opacity=1;   /* لون الغلاف يستمر كاملاً أثناء التكبير والتصغير: لا تلاشي يكشف الخلفية البيضاء */
-      cover.style.setProperty('--cv-fade',String(clamp(1-v*2)));   /* التدرج السفلي (نحو لون الخلفية) يختفي تدريجياً بدل أن يظهر كغشاوة */
       ring.style.opacity=0;
       nameBox.style.overflow='hidden'; nameBox.style.height=(g.nh*(1-v))+'px';
       nameBox.style.marginBottom=(6*(1-v))+'px'; nameBox.style.opacity=clamp(1-v*2);
@@ -9784,7 +9783,7 @@ html,body{overscroll-behavior-y:none}
       restoreOriginalAvatar();
       p=0; expanded=false;
       hero.style.display='none'; hero.style.pointerEvents='none'; hInfo.style.opacity=0;
-      cover.style.height=''; cover.style.opacity=''; cover.style.removeProperty('--cv-fade');
+      cover.style.height=''; cover.style.opacity='';
       ring.style.opacity='';
       ring.style.visibility='';
       if(!keepRingOff) showRing();
@@ -14496,10 +14495,6 @@ body.light #viewersModal .viewer-item {
   height:calc(176px * .55)!important}
 </style>
 
-<style id="pf-cover-keep-color">
-/* الغلاف يحافظ على لونه أثناء سحب الصورة وتصغيرها: لا غشاوة بيضاء من تدرج الخلفية */
-:is(#profileView,#otherUserProfileView) .pf-cover::after{opacity:var(--cv-fade,1)!important}
-</style>
 <script id="babylon-offline">
 /* العمل بدون إنترنت: الواجهة تفتح، لكن لا إرسال ولا استلام.
    ثلاث حالات للشبكة:
