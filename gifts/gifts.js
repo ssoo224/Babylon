@@ -158,13 +158,20 @@ function loadGiftsGrid(uid,gridId,wrapId){
   if(giftGridUnsub[gridId])giftGridUnsub[gridId]();
   const data={};
   const draw=()=>{
-    const items=[].concat(...Object.values(data)).sort((a,b)=>(b.at||0)-(a.at||0));
+    const isMe=uid===meId(),st=giftPrefs(uid);
+    let items=[].concat(...Object.values(data)).sort((a,b)=>(b.at||0)-(a.at||0));
+    if(!isMe)items=items.filter(g=>!st.hidden.has(g.k+'_'+g.number));
+    items.sort((a,b)=>(st.pins.has(b.k+'_'+b.number)?1:0)-(st.pins.has(a.k+'_'+a.number)?1:0));
     wrap.classList.toggle('hidden',!items.length);
     grid.innerHTML='';
     items.forEach(g=>{
+      const key=g.k+'_'+g.number;
       const t=giftArt(g,{still:true,cls:'gift-tile'});
       t.insertAdjacentHTML('beforeend','<div class="gt-n">#'+g.number+'</div>');
-      t.onclick=()=>openGiftPage(uid,g.number,g.k);
+      if(st.pins.has(key))t.insertAdjacentHTML('beforeend','<div class="gt-pin">'+GM_IC.pinS+'</div>');
+      if(isMe&&st.hidden.has(key)){t.classList.add('gt-hid');t.insertAdjacentHTML('beforeend','<div class="gt-eye">'+GM_IC.hideS+'</div>');}
+      t.onclick=()=>{if(t._lp){t._lp=false;return;}openGiftPage(uid,g.number,g.k);};
+      gmBindLongPress(t,uid,g,()=>draw());
       grid.appendChild(t);
     });
   };
@@ -179,6 +186,7 @@ function loadGiftsGrid(uid,gridId,wrapId){
   unsubs.push(db.collection('users').doc(uid).collection('gifts').onSnapshot(snap=>{
     data.__gen=snap.docs.map(d=>d.data()).filter(g=>g.k&&GIFT_KINDS[g.k]);draw();
   },()=>{data.__gen=[];draw();}));
+  if(uid!==meId())db.collection('users').doc(uid).get().then(d=>{if(d.exists){gmRemote[uid]={pins:d.data().giftPins||[],hidden:d.data().giftHidden||[]};draw();}}).catch(()=>{});
   giftGridUnsub[gridId]=()=>unsubs.forEach(u=>u());
 }
 
@@ -651,4 +659,166 @@ function soldMsgNode(m,id,isMine){
   w.innerHTML=isMine?('🛒 اشتريت <b>'+esc(K.name)+' #'+m.number+'</b> بـ ⭐ '+fmtN(m.price||0))
                    :('🛒 اشترى هديتك <b>'+esc(K.name)+' #'+m.number+'</b> بـ ⭐ '+fmtN(m.price||0)+' · استلمت ⭐ '+fmtN(m.net||0));
   return w;
+}
+
+
+/* ===== قائمة الضغط المطوّل على الهدية (إخفاء / إرسال / تثبيت / مشاركة) ===== */
+const gmRemote={};
+const GM_IC={
+ pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5l6 6-3 1-3.5 3.5.5 4-1.5 1.5-4-4-5 5M9.5 8.5l-.5 3.5-3 1 5 5"/><path d="M14.5 3.5l-3 1-3 3"/></svg>',
+ unpin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5l6 6-3 1-3.5 3.5.5 4-1.5 1.5-4-4-5 5M9.5 8.5l-.5 3.5-3 1 5 5"/><path d="M14.5 3.5l-3 1-3 3"/><path d="M3 3l18 18"/></svg>',
+ share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12l-6-7v4C8 9 4.5 12 4 18c2-3 5-4.5 10-4.5V18z"/></svg>',
+ hide:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>',
+ show:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+ send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M7.5 12h9M13 8l4 4-4 4"/></svg>',
+ pinS:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M14.5 3l6.5 6.5-2.2.8-3.3 3.3.4 3.6-1.6 1.6-3.7-3.7L4 21.5l-1-1 5.8-6.1-3.7-3.7 1.6-1.6 3.6.4 3.3-3.3z"/></svg>',
+ hideS:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>'
+};
+function giftPrefs(uid){
+  let pins=[],hidden=[];
+  if(uid===meId()){
+    try{const o=JSON.parse(localStorage.getItem('bbGiftPrefs_'+uid)||'{}');pins=o.pins||[];hidden=o.hidden||[];}catch(e){}
+  }else{const r=gmRemote[uid];if(r){pins=r.pins;hidden=r.hidden;}}
+  return {pins:new Set(pins),hidden:new Set(hidden)};
+}
+function giftPrefsSave(uid,st){
+  const o={pins:[...st.pins],hidden:[...st.hidden]};
+  try{localStorage.setItem('bbGiftPrefs_'+uid,JSON.stringify(o));}catch(e){}
+  try{db.collection('users').doc(uid).update({giftPins:o.pins,giftHidden:o.hidden}).catch(()=>{});}catch(e){}
+}
+function gmBindLongPress(t,uid,g,redraw){
+  let timer=null,sx=0,sy=0;
+  const cancel=()=>{if(timer){clearTimeout(timer);timer=null;}};
+  t.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;cancel();
+    timer=setTimeout(()=>{timer=null;t._lp=true;if(navigator.vibrate)try{navigator.vibrate(12);}catch(_){}gmOpenMenu(t,uid,g,redraw);},430);
+  },{passive:true});
+  t.addEventListener('touchmove',e=>{const x=e.touches[0];if(Math.abs(x.clientX-sx)>8||Math.abs(x.clientY-sy)>8)cancel();},{passive:true});
+  ['touchend','touchcancel'].forEach(ev=>t.addEventListener(ev,()=>{cancel();setTimeout(()=>{t._lp=false;},350);},{passive:true}));
+  t.addEventListener('contextmenu',e=>{e.preventDefault();cancel();t._lp=true;gmOpenMenu(t,uid,g,redraw);});
+}
+function gmCss(){
+  if(document.getElementById('gmCss'))return;
+  const st=document.createElement('style');st.id='gmCss';
+  st.textContent=`
+.gifts-grid .gift-tile{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.gift-tile .gt-pin{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
+.gift-tile .gt-pin svg{width:12px;height:12px}
+.gift-tile.gt-hid .ga-pepe,.gift-tile.gt-hid .ga-pat{opacity:.35}
+.gift-tile .gt-eye{position:absolute;bottom:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
+.gift-tile .gt-eye svg{width:12px;height:12px}
+.gm-ov{position:fixed;inset:0;z-index:100001;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;direction:rtl;
+  background:rgba(8,12,18,.55);-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);transition:backdrop-filter .28s ease,-webkit-backdrop-filter .28s ease,background .28s ease}
+.gm-ov.in{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);background:rgba(8,12,18,.62)}
+.gm-ov.out{-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);background:rgba(8,12,18,0);transition-duration:.18s}
+.gm-card{position:relative;width:min(88vw,360px);aspect-ratio:1.55/1;border-radius:26px;overflow:hidden;flex:0 0 auto;box-shadow:0 14px 40px rgba(0,0,0,.45);
+  transform:scale(.55);opacity:0;transition:transform .36s cubic-bezier(.2,1.25,.4,1),opacity .2s ease}
+.gm-ov.in .gm-card{transform:scale(1);opacity:1}
+.gm-ov.out .gm-card{transform:scale(.7);opacity:0;transition:transform .18s ease,opacity .16s ease}
+.gm-card .ga-pat{position:absolute;inset:0;width:100%;height:100%}
+.gm-pepe{position:absolute;left:50%;top:8%;width:54%;aspect-ratio:1/1;transform:translateX(-50%)}
+.gm-pepe>div,.gm-pepe svg{width:100%;height:100%}
+.gm-title{position:absolute;left:0;right:0;bottom:15%;text-align:center;color:#fff;font-weight:800;font-size:26px;direction:ltr;text-shadow:0 1px 6px rgba(0,0,0,.25)}
+.gm-sub{position:absolute;left:0;right:0;bottom:7%;text-align:center;color:rgba(255,255,255,.62);font-size:14px;font-weight:600}
+.gm-rib{position:absolute;top:8.6px;right:-43.4px;width:120px;padding:2px 0;box-sizing:border-box;transform:rotate(45deg);background:rgba(0,0,0,.34);text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;z-index:3}
+.gm-menu{align-self:flex-end;margin-inline-end:calc((100% - min(88vw,360px))/2);width:min(72vw,270px);background:rgba(28,38,52,.96);border-radius:18px;overflow:hidden;
+  transform-origin:top left;transform:scale(.6);opacity:0;transition:transform .32s cubic-bezier(.2,1.2,.4,1) .06s,opacity .2s ease .06s;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.gm-ov.in .gm-menu{transform:scale(1);opacity:1}
+.gm-ov.out .gm-menu{transform:scale(.8);opacity:0;transition:transform .16s ease,opacity .14s ease}
+.gm-it{display:flex;align-items:center;gap:14px;width:100%;padding:15px 18px;background:none;border:0;color:#f1f5f9;font-size:17px;font-family:inherit;text-align:right;cursor:pointer;direction:rtl;
+  opacity:0;transform:translateY(8px);transition:opacity .22s ease,transform .22s ease,background .12s}
+.gm-ov.in .gm-it{opacity:1;transform:none}
+.gm-it:active{background:rgba(255,255,255,.08)}
+.gm-it svg{width:24px;height:24px;flex:0 0 24px}
+.gm-it span{flex:1}
+.gm-sep{height:8px;background:rgba(255,255,255,.07)}
+.gm-pick{position:fixed;inset:0;z-index:100002;background:var(--cl-bg,#0e1621);color:var(--cl-text,#f1f5f9);display:flex;flex-direction:column;direction:rtl}
+.gm-pick-top{display:flex;align-items:center;gap:10px;padding:calc(12px + var(--sat,0px)) 14px 12px;font-weight:700;font-size:17px}
+.gm-pick-top button{background:none;border:0;color:inherit;font-size:22px;padding:4px 10px}
+.gm-pick-list{flex:1;overflow:auto}
+.gm-pick-row{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer}
+.gm-pick-row:active{background:rgba(255,255,255,.07)}
+.gm-pick-row .g-av{width:44px;height:44px}
+.gm-pick-empty{padding:40px 20px;text-align:center;opacity:.7}
+`;
+  document.head.appendChild(st);
+}
+function gmCloseMenu(ov,cb){
+  if(!ov||ov._closing)return;ov._closing=true;
+  ov.classList.remove('in');ov.classList.add('out');
+  setTimeout(()=>{if(ov._pepe&&ov._pepe._an)try{ov._pepe._an.destroy();}catch(e){}ov.remove();if(cb)cb();},200);
+}
+function gmOpenMenu(tile,uid,g,redraw){
+  gmCss();
+  document.querySelectorAll('.gm-ov').forEach(x=>x.remove());
+  const K=gk(g.k),me=meId(),mine=uid===me,key=g.k+'_'+g.number;
+  const st=giftPrefs(uid),pinned=st.pins.has(key),hid=st.hidden.has(key);
+  const ov=document.createElement('div');ov.className='gm-ov';
+  const items=[];
+  if(mine)items.push({id:'pin',ic:pinned?GM_IC.unpin:GM_IC.pin,t:pinned?'إلغاء التثبيت':'تثبيت',sep:true});
+  items.push({id:'share',ic:GM_IC.share,t:'مشاركة'});
+  if(mine)items.push({id:'hide',ic:hid?GM_IC.show:GM_IC.hide,t:hid?'إظهار':'إخفاء'});
+  if(mine)items.push({id:'send',ic:GM_IC.send,t:'إرسال'});
+  ov.innerHTML='<div class="gm-card" style="background:'+bgCss(g)+'">'+(g.upgraded?patSvg(g.sym):'')
+    +'<div class="gm-pepe"'+(g.upgraded?'':' style="filter:grayscale(1) brightness(.8)"')+'></div>'
+    +'<div class="gm-rib">#'+g.number+'</div>'
+    +'<div class="gm-title">'+esc(K.name)+'</div><div class="gm-sub">مُقتنى رقمي #'+g.number+'</div></div>'
+    +'<div class="gm-menu">'+items.map((x,i)=>'<button type="button" class="gm-it" data-id="'+x.id+'" style="transition-delay:'+(0.1+i*0.05)+'s"><span>'+x.t+'</span>'+x.ic+'</button>'+(x.sep?'<div class="gm-sep"></div>':'')).join('')+'</div>';
+  uiRoot().appendChild(ov);
+  ov._pepe=ov.querySelector('.gm-pepe');
+  mountPepeAnim(ov._pepe,g.upgraded?g.model:-1,{kind:g.k});
+  requestAnimationFrame(()=>requestAnimationFrame(()=>ov.classList.add('in')));
+  ov.addEventListener('click',e=>{if(e.target===ov)gmCloseMenu(ov);});
+  ov.querySelectorAll('.gm-it').forEach(b=>b.onclick=ev=>{
+    ev.stopPropagation();
+    const id=b.dataset.id;
+    if(id==='pin'||id==='hide'){
+      if(id==='pin'){pinned?st.pins.delete(key):st.pins.add(key);}
+      else{hid?st.hidden.delete(key):st.hidden.add(key);}
+      giftPrefsSave(uid,st);
+      gmCloseMenu(ov,()=>{if(redraw)redraw();showToast(id==='pin'?(pinned?'تم إلغاء التثبيت':'تم التثبيت'):(hid?'صارت الهدية ظاهرة':'تم إخفاء الهدية عن الآخرين'));});
+    }else if(id==='share'){
+      gmCloseMenu(ov,()=>gmShare(K,g,uid));
+    }else if(id==='send'){
+      gmCloseMenu(ov,()=>gmSendPick(g));
+    }
+  });
+}
+async function gmShare(K,g,uid){
+  const text=K.name+' #'+g.number+' — مُقتنى رقمي على Babylon';
+  const url=location.href.split('#')[0];
+  try{
+    if(navigator.share){await navigator.share({title:K.name+' #'+g.number,text:text,url:url});return;}
+  }catch(e){if(e&&e.name==='AbortError')return;}
+  try{await navigator.clipboard.writeText(text+'\n'+url);showToast('تم نسخ رابط الهدية');}
+  catch(e){showToast('تعذرت المشاركة');}
+}
+async function gmSendPick(g){
+  gmCss();
+  const K=gk(g.k);
+  try{
+    const ld=await db.collection('giftListings').doc(listId(K,g.number)).get();
+    if(ld.exists){showToast('هذه الهدية معروضة للبيع، ألغِ العرض أولاً');return;}
+  }catch(e){}
+  const ids=contactIds(new Set([meId()]));
+  const ov=document.createElement('div');ov.className='gm-pick';
+  ov.innerHTML='<div class="gm-pick-top"><button type="button" id="gmpBack">✕</button><span>إرسال '+esc(K.name)+' #'+g.number+' إلى…</span></div><div class="gm-pick-list"><div class="gm-pick-empty">جاري التحميل…</div></div>';
+  uiRoot().appendChild(ov);
+  ov.querySelector('#gmpBack').onclick=()=>ov.remove();
+  await loadUsers(ids);
+  const list=ov.querySelector('.gm-pick-list');
+  if(!ids.length){list.innerHTML='<div class="gm-pick-empty">لا توجد محادثات لإرسال الهدية إليها.</div>';return;}
+  list.innerHTML='';
+  ids.forEach(uid=>{
+    const r=document.createElement('div');r.className='gm-pick-row';
+    r.innerHTML=userAvHtml(uid)+'<b>'+esc(gUserName(uid))+'</b>';
+    r.onclick=async()=>{
+      const a=await clAsk({title:'إرسال الهدية',icon:'gift',body:'إرسال <b>'+esc(K.name)+' #'+g.number+'</b> إلى <b>'+esc(gUserName(uid))+'</b>؟ تصير ملكه ولا ترجع إلك.',buttons:[{text:'إرسال'},{text:'إلغاء',cls:'cl-cancel'}]});
+      if(!a||a.i!==0)return;
+      try{await transferGift(g,uid);showToast('🎁 وصلت الهدية إلى '+gUserName(uid));ov.remove();}
+      catch(e){console.error(e);showToast('تعذر إرسال الهدية');}
+    };
+    list.appendChild(r);
+  });
 }
