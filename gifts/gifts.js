@@ -734,9 +734,9 @@ function gmCss(){
 .gm-ov .gmx-wrap{box-shadow:none!important}
 .gm-ribw{position:absolute;top:-2px;right:-2px;width:100px;height:100px;pointer-events:none;z-index:5}
 .gm-rib-s1,.gm-rib-s2{position:absolute;inset:0}
-.gm-rib-s1{clip-path:none}
-.gm-rib-s2{display:none}
-.gm-ribw .gm-rib{position:absolute;left:59px;top:4.7px;width:52px;padding:3px 0;border-radius:2px;box-sizing:border-box;transform:rotate(45deg);transform-origin:center center;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;box-shadow:none;border:0}
+.gm-rib-s1{clip-path:path('M0 2H72A26 26 0 0 1 98 28V100H0Z')}
+.gm-rib-s2{display:block;clip-path:path('M0 0H72A28 28 0 0 1 100 28V100H98V28A26 26 0 0 0 72 2H0Z')}
+.gm-ribw .gm-rib{position:absolute;left:40px;top:4.7px;width:90px;padding:3px 0;border-radius:2px;box-sizing:border-box;transform:rotate(45deg);transform-origin:center center;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;box-shadow:none;border:0}
 .gm-card .ga-pat{position:absolute;inset:0;width:100%;height:100%}
 .gm-pepe{position:absolute;left:50%;top:8%;width:54%;aspect-ratio:1/1;transform:translateX(-50%)}
 .gm-pepe>div,.gm-pepe svg{width:100%;height:100%}
@@ -818,29 +818,63 @@ function giftBaseUrl(){
   const host=location.hostname,web=/^https?:$/.test(location.protocol)&&host&&host!=='localhost'&&host!=='127.0.0.1';
   return (web?location.origin:(window.BB_PUBLIC_URL||location.origin)).replace(/\/$/,'');
 }
-function giftLink(K,g,uid){return giftBaseUrl()+'/?gift='+encodeURIComponent(K.key+'_'+g.number)+'&o='+encodeURIComponent(uid);}
+const giftSlug=K=>String(K.name||K.key).replace(/\s+/g,'');
+function giftLink(K,g,uid){return giftBaseUrl()+'/nft/'+encodeURIComponent(giftSlug(K))+'-'+g.number;}
+function giftKindBySlug(slug){
+  const w=String(slug||'').toLowerCase();
+  return Object.values(GIFT_KINDS).find(K=>giftSlug(K).toLowerCase()===w)||null;
+}
+function giftHostOk(h){
+  const hs=[location.hostname,'babyllon.vercel.app'];
+  try{if(window.BB_PUBLIC_URL)hs.push(new URL(window.BB_PUBLIC_URL).hostname);}catch(e){}
+  h=String(h||'').replace(/^www\./,'').toLowerCase();
+  return hs.some(x=>String(x||'').replace(/^www\./,'').toLowerCase()===h);
+}
+/* يدعم الرابط الجديد /nft/VictoryMedal-1 (المالك يُجلب من قاعدة البيانات) والقديم ?gift=kind_n&o=uid */
 function giftFromUrl(raw){
   try{
-    const u=new URL(raw,location.href),p=u.searchParams.get('gift'),o=u.searchParams.get('o');
+    const u=new URL(raw,location.href);
+    const nm=/^\/nft\/([^\/?#]+)-(\d+)\/?$/.exec(decodeURIComponent(u.pathname));
+    if(nm&&giftHostOk(u.hostname))return {slug:nm[1],number:parseInt(nm[2],10),owner:null,kind:(giftKindBySlug(nm[1])||{}).key||null};
+    const p=u.searchParams.get('gift'),o=u.searchParams.get('o');
     if(!p||!o)return null;
     const m=/^([a-z]+)_(\d+)$/.exec(p);
     if(!m||!GIFT_KINDS[m[1]])return null;
     return {kind:m[1],number:parseInt(m[2],10),owner:o};
   }catch(e){return null;}
 }
+async function giftResolveOwner(r){
+  if(r.owner)return r.owner;
+  const K=r.kind?GIFT_KINDS[r.kind]:giftKindBySlug(r.slug);
+  if(!K)return null;
+  try{
+    const d=await db.collection(K.gen?'giftSales':K.sales).doc(gid(K,r.number)).get();
+    return d.exists?(d.data().ownerId||null):null;
+  }catch(e){return null;}
+}
+async function giftOpenFromRef(r){
+  const K=r.kind?GIFT_KINDS[r.kind]:giftKindBySlug(r.slug);
+  if(!K){showToast('هذه الهدية غير موجودة');return;}
+  const owner=await giftResolveOwner(Object.assign({},r,{kind:K.key}));
+  if(!owner){showToast('هذه الهدية غير موجودة');return;}
+  openGiftPage(owner,r.number,K.key);
+}
 document.addEventListener('click',e=>{
   const a=e.target&&e.target.closest&&e.target.closest('a.msg-link');if(!a)return;
   const r=giftFromUrl(a.getAttribute('href'));if(!r)return;
   if(typeof messageSelectionMode!=='undefined'&&messageSelectionMode)return;
   e.preventDefault();e.stopPropagation();
-  openGiftPage(r.owner,r.number,r.kind);
+  giftOpenFromRef(r);
 },true);
 (function openGiftFromLaunchUrl(){
-  const r=giftFromUrl(location.href);if(!r)return;
+  const r0=giftFromUrl(location.href);if(!r0)return;
   let tries=0;
   const t=setInterval(()=>{
     if(++tries>60){clearInterval(t);return;}
-    if(typeof currentUser!=='undefined'&&currentUser){clearInterval(t);try{openGiftPage(r.owner,r.number,r.kind);}catch(e){}}
+    if(typeof currentUser==='undefined'||!currentUser)return;
+    const r=giftFromUrl(location.href)||r0;
+    if(!r.kind&&r.slug)return; /* أنواع الهدايا المولّدة تُحمَّل لاحقاً */
+    clearInterval(t);try{giftOpenFromRef(r);}catch(e){}
   },500);
 })();
 async function gmShare(K,g,uid){
