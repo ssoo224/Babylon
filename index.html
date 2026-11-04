@@ -9440,7 +9440,7 @@ document.addEventListener('click',function(e){const menu=document.getElementById
 <!-- الهدايا: كل شي بمجلد gifts/ -->
 <script src="gifts/models.js?v=1"></script>
 <script src="gifts/cat-models.js?v=1"></script>
-<script src="gifts/gifts.js?v=20"></script>
+<script src="gifts/gifts.js?v=23"></script>
 <script src="gifts/star-gift.js?v=5"></script>
 <script src="gifts/gift-link.js?v=2"></script>
 <script src="stickers/stickers.js?v=1"></script>
@@ -12270,16 +12270,18 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
 
 <style id="bb-gift-tile-size">
 .gifts-grid .gift-tile .ga-pepe,#giftPage .gp-pepe,#giftStore .st-art .ga-pepe{transform-origin:center center}
-.gifts-grid .gift-tile{position:relative!important;overflow:hidden!important}
+.gifts-grid .gift-tile{position:relative!important;overflow:visible!important}
 #profileView .posts-grid.gifts-grid,#otherUserProfileView .posts-grid.gifts-grid{gap:5px!important}
-#profileView .gifts-grid .gift-tile,#otherUserProfileView .gifts-grid .gift-tile{position:relative!important;overflow:hidden!important}
+#profileView .gifts-grid .gift-tile,#otherUserProfileView .gifts-grid .gift-tile{position:relative!important;overflow:visible!important}
 /* رقم الهدية: شريط مائل يمتد في الزاوية اليسرى العليا */
-.gifts-grid .gift-tile .gt-n{position:absolute!important;top:8.6px!important;left:-43.4px!important;right:auto!important;bottom:auto!important;
+.gifts-grid .gift-tile .gt-rw{position:absolute!important;top:-5px;left:-5px;width:62px;height:62px;overflow:hidden;pointer-events:none;z-index:3}
+.gifts-grid .gift-tile .gt-rw .gt-n{position:absolute!important;top:10.2px!important;left:-34.4px!important;right:auto!important;bottom:auto!important;
   width:120px!important;height:auto!important;margin:0!important;padding:1px 0!important;box-sizing:border-box;
   transform:rotate(-45deg)!important;transform-origin:center center;text-align:center!important;direction:ltr;
-  background:rgba(0,0,0,.34)!important;border-radius:0!important;box-shadow:none!important;
+  border-radius:0!important;box-shadow:0 2px 4px rgba(0,0,0,.4)!important;
   color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:calc(10.5px * var(--bb-s,1))!important;font-weight:800!important;line-height:1.3!important;
-  pointer-events:none;z-index:3}
+  pointer-events:none}
+.gifts-grid .gift-tile .ga-pat{border-radius:inherit;overflow:hidden}
 </style>
 <script id="bb-gift-symbol-size-js">
 /* شبكة الهدايا في البروفايل: المربع أقل عرضًا بـ 6px، المسافة بين الهدايا 3px، والرمز أصغر بـ 6px.
