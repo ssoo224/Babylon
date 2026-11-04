@@ -3547,12 +3547,6 @@ function renderNotificationSettings() {
   if(desc) desc.textContent = push ? 'إشعارات الجهاز مفعّلة؛ يعتمد ظهورها أيضاً على إذن المتصفح.' : 'إشعارات الجهاز متوقفة داخل التطبيق.';
 }
 
-/* رموز الإشعارات: أيقونات خاصة بكل إعداد وتتغير مع الحالة (تشغيل/إيقاف) */
-Object.assign(ICONS, {
-  bellOff: '<path d="M8.7 3A6 6 0 0 1 18 8c0 2.6.4 4.5.9 5.8"/><path d="M17 17H3s3-2 3-9c0-.7.1-1.3.3-1.9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="m2 2 20 20"/>',
-  volume: '<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>',
-  volumeOff: '<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/>'
-});
 function bbDecorateNotifIcons() {
   try {
     const push = getNotificationOption('push', ('Notification' in window && Notification.permission === 'granted'));
@@ -6420,6 +6414,12 @@ const ICONS = {
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>',
   moon:'<path d="M20.9 13A8.5 8.5 0 0 1 11 3.1 8.8 8.8 0 1 0 20.9 13Z"/>'
 };
+/* رموز الإشعارات: أيقونات خاصة بكل إعداد وتتغير مع الحالة (تشغيل/إيقاف) */
+Object.assign(ICONS, {
+  bellOff: '<path d="M8.7 3A6 6 0 0 1 18 8c0 2.6.4 4.5.9 5.8"/><path d="M17 17H3s3-2 3-9c0-.7.1-1.3.3-1.9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="m2 2 20 20"/>',
+  volume: '<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>',
+  volumeOff: '<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/>'
+});
 function svgIcon(name, size) {
   const n = size || 20;
   return '<svg viewBox="0 0 24 24" width="' + n + '" height="' + n + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
