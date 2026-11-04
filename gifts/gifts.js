@@ -737,13 +737,13 @@ function gmCss(){
 .gm-ov .gm-card{position:absolute;inset:0;border-radius:26px;overflow:hidden;border:0!important;outline:0!important;box-shadow:none!important;background-clip:border-box}
 .gm-ov .gmx-wrap,.gm-ov .gm-menu,.gm-ov .gm-it{border:0!important;outline:0!important}
 .gm-ov .gmx-wrap{box-shadow:none!important}
-.gm-ribw{position:absolute;top:-3px;right:-3px;width:136px;height:136px;overflow:hidden;pointer-events:none;z-index:5}
+.gm-ribw{position:absolute;top:-3px;right:-3px;width:54px;height:54px;overflow:hidden;pointer-events:none;z-index:5}
 .gmr-back,.gmr-main{position:absolute;inset:0}
 /* الشريط الأمامي مقصوص بنفس انحناء زاوية البطاقة (26px) فيبدو الجزء الخارج عنها (3px) كأنه خلف البطاقة بلون أغمق */
 .gmr-main{-webkit-clip-path:inset(3px 3px 0 0 round 0 26px 0 0);clip-path:inset(3px 3px 0 0 round 0 26px 0 0)}
-.gmr-band{position:absolute;left:-26.5px;top:45px;width:260px;height:46px;box-sizing:border-box;padding-right:50px;display:block;transform:rotate(45deg);transform-origin:50% 50%;font-style:normal;font-weight:800;font-size:15px;line-height:46px;letter-spacing:.2px;text-align:center;white-space:nowrap;direction:ltr;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25)}
+.gmr-band{position:absolute;left:-10.6px;top:17.7px;width:104px;height:19px;box-sizing:border-box;padding-right:20px;display:block;transform:rotate(45deg);transform-origin:50% 50%;font-style:normal;font-weight:800;font-size:7px;line-height:19px;letter-spacing:0;text-align:center;white-space:nowrap;direction:ltr;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25)}
 .gmr-main .gmr-band{box-shadow:0 0 7px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.07)}
-@media(max-width:380px){.gm-ribw{transform:scale(.85);transform-origin:100% 0}}
+
 .gm-card .ga-pat{position:absolute;inset:0;width:100%;height:100%}
 .gm-pepe{position:absolute;left:50%;top:8%;width:54%;aspect-ratio:1/1;transform:translateX(-50%)}
 .gm-pepe>div,.gm-pepe svg{width:100%;height:100%}
