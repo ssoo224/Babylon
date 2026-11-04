@@ -2993,11 +2993,11 @@ html[data-app-theme="light"] .splash-title{color:#8b680e}
         </div>
 
         <div class="sx-label">البيانات</div>
-        <div class="sx-group sx-group-danger">
-          <div class="sx-item sx-danger" onclick="sxWipeAllData()"><span class="sx-ic" style="background:#dc2626"><i data-ic="trash" data-size="19"></i></span><span class="sx-t">مسح جميع البيانات</span></div>
+        <div class="sx-data-pair">
+          <div class="sx-data-btn" role="button" tabindex="0" onclick="sxClearCache()"><span class="sx-ic" style="background:#8b5cf6"><i data-ic="trash" data-size="19"></i></span><span class="sx-data-t">مسح البيانات المؤقتة</span></div>
+          <div class="sx-data-btn sx-data-danger" role="button" tabindex="0" onclick="sxWipeAllData()"><span class="sx-ic" style="background:#dc2626"><i data-ic="trash" data-size="19"></i></span><span class="sx-data-t">مسح جميع البيانات</span></div>
         </div>
         <div class="sx-group">
-          <div class="sx-item" onclick="sxClearCache()"><span class="sx-ic" style="background:#8b5cf6"><i data-ic="trash" data-size="19"></i></span><span class="sx-t">مسح الذاكرة المؤقتة</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
           <div class="sx-item" onclick="sxAbout()"><span class="sx-ic" style="background:#f59e0b"><i data-ic="info" data-size="19"></i></span><span class="sx-t">حول Babylon Chat</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
         </div>
       </div>
@@ -3546,6 +3546,43 @@ function renderNotificationSettings() {
   const desc=document.getElementById('pushNotificationDescription');
   if(desc) desc.textContent = push ? 'إشعارات الجهاز مفعّلة؛ يعتمد ظهورها أيضاً على إذن المتصفح.' : 'إشعارات الجهاز متوقفة داخل التطبيق.';
 }
+
+/* رموز الإشعارات: أيقونات خاصة بكل إعداد وتتغير مع الحالة (تشغيل/إيقاف) */
+Object.assign(ICONS, {
+  bellOff: '<path d="M8.7 3A6 6 0 0 1 18 8c0 2.6.4 4.5.9 5.8"/><path d="M17 17H3s3-2 3-9c0-.7.1-1.3.3-1.9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="m2 2 20 20"/>',
+  volume: '<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>',
+  volumeOff: '<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/>'
+});
+function bbDecorateNotifIcons() {
+  try {
+    const push = getNotificationOption('push', ('Notification' in window && Notification.permission === 'granted'));
+    const sound = getNotificationOption('sound', true);
+    const icons = document.querySelectorAll('#notificationSettingsView .notification-setting-icon');
+    const defs = [
+      { el: icons[0], on: push, cls: 'nt-push', iconOn: 'bell', iconOff: 'bellOff', cap: 'sound-no' },
+      { el: icons[1], on: sound, cls: 'nt-sound', iconOn: 'volume', iconOff: 'volumeOff', cap: 'sound' }
+    ];
+    defs.forEach(d => {
+      if (!d.el) return;
+      d.el.classList.remove('nt-push', 'nt-sound', 'nt-off');
+      d.el.classList.add(d.cls);
+      if (!d.on) d.el.classList.add('nt-off');
+      d.el.innerHTML = svgIcon(d.on ? d.iconOn : d.iconOff, 25);
+      const strong = d.el.parentNode && d.el.parentNode.querySelector('strong');
+      if (strong) {
+        let chip = strong.querySelector('.nt-state');
+        if (!chip) { chip = document.createElement('em'); strong.appendChild(chip); }
+        chip.className = 'nt-state' + (d.cls === 'nt-sound' ? ' sound' : '') + (d.on ? '' : ' off');
+        chip.textContent = d.on ? 'مفعّل' : 'متوقف';
+      }
+    });
+  } catch (e) {}
+}
+(function () {
+  const _render = renderNotificationSettings;
+  renderNotificationSettings = function () { const r = _render.apply(this, arguments); bbDecorateNotifIcons(); return r; };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bbDecorateNotifIcons, { once: true }); else bbDecorateNotifIcons();
+})();
 
 function requestNotificationPermission() {
   // داخل تطبيق Sketchware، اطلب إذن Android الأصلي بدل Web Notification API غير المدعوم في WebView.
@@ -11865,6 +11902,110 @@ html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSetti
 .app-container .auth-page>:first-child{margin-top:auto}
 .app-container .auth-page>:last-child{margin-bottom:auto}
 .app-container .auth-page>.babylon-logo{width:calc(90px * var(--bb-s,1))!important;height:calc(90px * var(--bb-s,1))!important;min-height:calc(90px * var(--bb-s,1));aspect-ratio:1/1}
+</style>
+<style id="chat-preview-day-mode">
+/* معاينة الرسائل: دعم الطور النهاري لكل الثيمات */
+html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv{background:#eaf0f5!important}
+html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv .msg-bubble.mine{background:linear-gradient(145deg,#e8c85d,#cba843)!important;border-color:transparent!important}
+html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv .msg-bubble.mine,html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv .msg-bubble.mine *{color:#292216!important;-webkit-text-fill-color:#292216!important}
+html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv .msg-bubble:not(.mine){background:#ffffff!important;border-color:#dce4ee!important}
+html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv .msg-bubble:not(.mine) *{color:#202a35!important;-webkit-text-fill-color:#202a35!important}
+html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv .msg-bubble:not(.mine) .msg-meta,html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv .msg-bubble:not(.mine) .msg-meta *{color:#7c8b9c!important;-webkit-text-fill-color:#7c8b9c!important}
+html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv .pv-name,html[data-chat-theme="babylon"] .app-container[data-app-theme="light"] #chatSettingsView .pv .pv-name *{color:#9a6b00!important;-webkit-text-fill-color:#9a6b00!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv{background:var(--chat-bg)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv .msg-bubble.mine{background:var(--bubble-mine)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv .msg-bubble:not(.mine){background:var(--bubble-other)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv .msg-bubble.mine,html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv .msg-bubble.mine *{color:var(--text-mine)!important;-webkit-text-fill-color:var(--text-mine)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv .msg-bubble:not(.mine) *{color:var(--text-other)!important;-webkit-text-fill-color:var(--text-other)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv .msg-bubble:not(.mine) .msg-meta,html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv .msg-bubble:not(.mine) .msg-meta *{color:var(--meta-other)!important;-webkit-text-fill-color:var(--meta-other)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv .pv-name,html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container[data-app-theme] #chatSettingsView .pv .pv-name *{color:var(--accent-chat)!important;-webkit-text-fill-color:var(--accent-chat)!important}
+</style>
+<style id="notif-icons-clear">
+/* رموز قسم الإشعارات: واضحة، ولكل رمز لون وحالة خاصة به */
+#notificationSettingsView .notification-intro-icon{width:calc(54px * var(--bb-s,1))!important;height:calc(54px * var(--bb-s,1))!important;flex:0 0 calc(54px * var(--bb-s,1))!important;border-radius:17px!important;background:linear-gradient(145deg,#f0d060,#c9a02c)!important;color:#2a2108!important;box-shadow:0 6px 16px rgba(201,160,44,.35)}
+#notificationSettingsView .notification-setting-icon{width:calc(48px * var(--bb-s,1))!important;height:calc(48px * var(--bb-s,1))!important;flex:0 0 calc(48px * var(--bb-s,1))!important;border-radius:15px!important;color:#fff!important;transition:background .2s,box-shadow .2s}
+#notificationSettingsView .notification-intro-icon svg,#notificationSettingsView .notification-setting-icon svg{stroke-width:2.3!important;width:calc(25px * var(--bb-s,1));height:calc(25px * var(--bb-s,1))}
+#notificationSettingsView .notification-setting-icon.nt-push{background:linear-gradient(145deg,#4a9bff,#2467d6)!important;box-shadow:0 5px 14px rgba(36,103,214,.35)}
+#notificationSettingsView .notification-setting-icon.nt-sound{background:linear-gradient(145deg,#34c77b,#1b9a58)!important;box-shadow:0 5px 14px rgba(27,154,88,.35)}
+#notificationSettingsView .notification-setting-icon.nt-off{background:linear-gradient(145deg,#8b97a7,#66727f)!important;box-shadow:none}
+#notificationSettingsView .nt-state{display:inline-block;margin-inline-start:8px;padding:2px 9px;border-radius:20px;font-size:calc(11px * var(--bb-s,1));font-weight:700;font-style:normal;vertical-align:middle;background:rgba(36,103,214,.14);color:#2467d6}
+#notificationSettingsView .nt-state.sound{background:rgba(27,154,88,.14);color:#1b9a58}
+#notificationSettingsView .nt-state.off{background:rgba(120,132,148,.18);color:#6b7787}
+.app-container[data-app-theme="dark"] #notificationSettingsView .nt-state{background:rgba(74,155,255,.2);color:#8fc0ff}
+.app-container[data-app-theme="dark"] #notificationSettingsView .nt-state.sound{background:rgba(52,199,123,.2);color:#6fe0a6}
+.app-container[data-app-theme="dark"] #notificationSettingsView .nt-state.off{background:rgba(160,172,188,.2);color:#a9b4c2}
+</style>
+<style id="chat-settings-header-flat">
+/* ترويسة "إعدادات المحادثات": بلون خلفية الصفحة نفسه وأنحف بـ 6 بكسل */
+.app-container #chatSettingsView .sx-top,
+.app-container[data-app-theme] #mainPage #chatSettingsView .sx-top{background:var(--babylon-dark)!important;border:none!important;box-shadow:none!important;padding:11px 16px 5px!important}
+</style>
+<style id="search-focus-outline-off">
+/* إزالة الإطار الذهبي المستطيل عند التركيز على حقول البحث */
+.app-container .gx-search input,.app-container .gx-search input:focus,.app-container .gx-search input:focus-visible,
+.app-container #gpSearch,.app-container #gpSearch:focus,.app-container #gpSearch:focus-visible,
+.app-container .search-input,.app-container .search-input:focus,.app-container .search-input:focus-visible,
+.app-container .search-input-wrap input,.app-container .search-input-wrap input:focus,.app-container .search-input-wrap input:focus-visible{outline:none!important;box-shadow:none!important}
+</style>
+<style id="group-picker-gold-circles">
+/* دوائر اختيار الأعضاء وزر التالي/الإنشاء: ذهبي متدرج مثل أزرار تسجيل الدخول، أصغر بـ 4 بكسل، والعلامة والسهم بيضاء */
+.app-container .gx-fab{width:calc(54px * var(--bb-s,1))!important;height:calc(54px * var(--bb-s,1))!important;background:linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%)!important;color:#fff!important;box-shadow:0 8px 20px rgba(190,150,40,.38)!important}
+.app-container .gx-fab svg{width:26px!important;height:26px!important;flex:0 0 auto;color:#fff!important}
+.app-container .gx-fab svg,.app-container .gx-fab svg *{stroke:#fff!important}
+.app-container .gx-check{flex:0 0 calc(20px * var(--bb-s,1))!important;width:calc(20px * var(--bb-s,1))!important;height:calc(20px * var(--bb-s,1))!important}
+.app-container .gx-row.on .gx-check{border-color:#d3a93b!important;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/15px no-repeat,linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%)!important}
+</style>
+<style id="theme-switch-animation">
+/* أنيميشن التحويل بين الطور النهاري والليلي */
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-old(root){z-index:1}
+::view-transition-new(root){z-index:2}
+html.bb-theme-anim *,html.bb-theme-anim *::before,html.bb-theme-anim *::after{transition:background-color .45s ease,color .45s ease,border-color .45s ease,fill .45s ease,stroke .45s ease,box-shadow .45s ease!important}
+</style>
+<script id="theme-switch-animation-js">
+(function () {
+  if (typeof toggleAppTheme !== 'function') return;
+  var orig = toggleAppTheme;
+  var pt = { x: window.innerWidth / 2, y: 60 };
+  document.addEventListener('pointerdown', function (e) { pt = { x: e.clientX, y: e.clientY }; }, true);
+  window.toggleAppTheme = toggleAppTheme = function () {
+    var root = document.documentElement;
+    var reduce = false;
+    try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    if (reduce) return orig.apply(this, arguments);
+    var self = this, args = arguments;
+    if (document.startViewTransition) {
+      var x = pt.x, y = pt.y;
+      var r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+      try {
+        var t = document.startViewTransition(function () { orig.apply(self, args); });
+        t.ready.then(function () {
+          root.animate(
+            { clipPath: ['circle(0px at ' + x + 'px ' + y + 'px)', 'circle(' + r + 'px at ' + x + 'px ' + y + 'px)'] },
+            { duration: 600, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }
+          );
+        }).catch(function () {});
+        return;
+      } catch (e) {}
+    }
+    root.classList.add('bb-theme-anim');
+    orig.apply(self, args);
+    setTimeout(function () { root.classList.remove('bb-theme-anim'); }, 700);
+  };
+})();
+</script>
+<style id="sx-data-pair-style">
+/* زرّا مسح البيانات المؤقتة وجميع البيانات: جنباً إلى جنب بتنسيق موحّد، و"حول" بمفرده في الأسفل */
+#settingsView .sx-data-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+#settingsView .sx-data-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:calc(104px * var(--bb-s,1));padding:16px 10px;box-sizing:border-box;border-radius:20px;background:var(--babylon-surface);border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 16px rgba(0,0,0,.10);cursor:pointer;text-align:center;transition:transform .15s,background .15s;-webkit-tap-highlight-color:transparent}
+#settingsView .sx-data-btn:active{transform:scale(.97)}
+#settingsView .sx-data-t{font-size:calc(14px * var(--bb-s,1));font-weight:700;line-height:1.4;color:var(--text-main)}
+#settingsView .sx-data-danger{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.28)}
+#settingsView .sx-data-danger .sx-data-t{color:#ef4444}
+.app-container[data-app-theme="light"] #settingsView .sx-data-btn{background:#fff;border-color:#e3e9f1;box-shadow:0 6px 20px rgba(30,50,80,.07)}
+.app-container[data-app-theme="light"] #settingsView .sx-data-t{color:#17212b}
+.app-container[data-app-theme="light"] #settingsView .sx-data-danger{background:#fff5f5;border-color:#fecaca}
+.app-container[data-app-theme="light"] #settingsView .sx-data-danger .sx-data-t{color:#dc2626}
 </style>
 </body>
 </html>
