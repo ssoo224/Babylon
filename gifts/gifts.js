@@ -538,7 +538,10 @@ function giftMsgNode(m,id,isMine){
     +(up?row('النموذج',K.models[g.model].n)+row('الخلفية',PEPE_BGS[g.bg].n)+row('الرمز',PEPE_SYMS[g.sym].n):'')
     +'<button type="button" class="gg-btn">عرض</button></div>';
   const im=w.querySelector('.gg-art img');im.onerror=()=>{im.onerror=null;im.src=thumbLocal(g);};
-  w.querySelector('.gg-btn').onclick=ev=>{ev.stopPropagation();openGiftPage(m.owner||m.to||meId(),m.number,K.key);};
+  w.querySelector('.gg-btn').onclick=ev=>{ev.stopPropagation();
+    /* الهدية المشاركة: نجلب المالك الحالي من قاعدة البيانات لأنها قد تنتقل لشخص آخر */
+    if(m.shared&&typeof giftOpenFromRef==='function')giftOpenFromRef({kind:K.key,number:m.number,owner:null});
+    else openGiftPage(m.owner||m.to||meId(),m.number,K.key);};
   return w;
 }
 
@@ -933,8 +936,10 @@ async function gmShare(K,g,uid){
       close();
       try{
         const now=Date.now();
-        const link=gmGiftLink(K,g);if(!link){showToast('تعذرت مشاركة الهدية');return;}
-        const msg={senderId:me,text:link,read:false,createdAt:now};
+        /* المشاركة ترسل الهدية نفسها (كارت) بدون أي رابط نصي */
+        const n=giftNum(g);if(n==null){showToast('تعذرت مشاركة الهدية');return;}
+        const msg={senderId:me,type:'gift',shared:true,k:K.key,number:n,upgraded:!!g.upgraded,owner:me,to:r.o,text:'🎁 '+K.name+' #'+n,read:false,createdAt:now};
+        if(g.upgraded){msg.model=g.model;msg.bg=g.bg;msg.sym=g.sym;}
         await db.collection('chats').doc(r.id).collection('messages').add(msg);
         await db.collection('chats').doc(r.id).set({updatedAt:now},{merge:true});
         try{notifyPeer(r.id,'🎁 '+K.name+' #'+g.number);}catch(e){}
