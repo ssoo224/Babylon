@@ -30,7 +30,7 @@
       ]
     },
     {
-      "source": "/(index.html)?",
+      "source": "/(index.html|start/?)?",
       "headers": [
         {
           "key": "Cache-Control",
@@ -47,6 +47,10 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/start", "destination": "/index.html" },
+    { "source": "/start/", "destination": "/index.html" }
   ],
   "redirects": [
     { "source": "/nft/:slug", "destination": "/?nft=:slug", "permanent": false },
