@@ -175,6 +175,7 @@ function loadGiftsGrid(uid,gridId,wrapId){
   if(giftGridUnsub[gridId])giftGridUnsub[gridId]();
   const data={};
   const draw=()=>{
+    gmCss(); /* لازم تنحقن أنماط أيقونة التثبيت/الإخفاء قبل رسم البلاطات */
     const isMe=uid===meId(),st=giftPrefs(uid);
     let items=[].concat(...Object.values(data)).sort((a,b)=>(b.at||0)-(a.at||0));
     if(!isMe)items=items.filter(g=>!st.hidden.has(g.k+'_'+g.number));
@@ -691,8 +692,8 @@ const GM_IC={
  hide:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2.2-4.2 5.6-6.5 9-6.5s6.8 2.3 9 6.5c-2.2 4.2-5.6 6.5-9 6.5S5.2 16.2 3 12z"/><circle cx="12" cy="12" r="2.6"/><path d="M4 4l16 16"/></svg>',
  show:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2.2-4.2 5.6-6.5 9-6.5s6.8 2.3 9 6.5c-2.2 4.2-5.6 6.5-9 6.5S5.2 16.2 3 12z"/><circle cx="12" cy="12" r="2.6"/></svg>',
  send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5z"/></svg>',
- pinS:'<svg viewBox="0 0 24 24"><g transform="rotate(35 12 12)" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"><path d="M9.4 3.8h5.2l-.5 4.9 2.6 3v1.6H7.3v-1.6l2.6-3z" fill="#fff" stroke-width="2.2"/><path d="M12 14.5v5.5" fill="none" stroke-width="2"/></g></svg>',
- hideS:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>'
+ pinS:'<svg width="16" height="16" viewBox="0 0 24 24"><g transform="rotate(35 12 12)" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"><path d="M9.4 3.8h5.2l-.5 4.9 2.6 3v1.6H7.3v-1.6l2.6-3z" fill="#fff" stroke-width="2.2"/><path d="M12 14.5v5.5" fill="none" stroke-width="2"/></g></svg>',
+ hideS:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>'
 };
 function giftPrefs(uid){
   let pins=[],hidden=[];
