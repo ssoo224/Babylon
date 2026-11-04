@@ -152,10 +152,17 @@ function giftArt(g,opt){
 }
 
 /* شريط رقم الهدية: يخرج خارج حدود المربع، بلون خلفية الهدية وتحته ظل خفيف */
-function gtRib(g){
-  const c=(g&&g.upgraded&&PEPE_BGS[g.bg])?PEPE_BGS[g.bg].a:'#6b7280';
-  return '<div class="gt-rw"><div class="gt-n" style="background:linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)),'+c+'!important">#'+g.number+'</div></div>';
+function ribCols(g){
+  const b=(g&&g.upgraded&&PEPE_BGS[g.bg])||{a:'#7b8494',b:'#4b5563'};
+  const grad=(k)=>'linear-gradient(rgba(0,0,0,'+k+'),rgba(0,0,0,'+k+')),linear-gradient(90deg,'+b.a+','+b.b+')';
+  return {main:grad(.22),back:grad(.5)};
 }
+function ribHtml(g,cls){
+  const c=ribCols(g);
+  return '<div class="'+cls+'-s1"><div class="'+cls+'" style="background:'+c.main+'">#'+g.number+'</div></div>'
+        +'<div class="'+cls+'-s2"><div class="'+cls+'" style="background:'+c.back+';color:transparent">#'+g.number+'</div></div>';
+}
+function gtRib(g){return '<div class="gt-rw">'+ribHtml(g,'gt-n')+'</div>';}
 /* ---------- شبكة الهدايا بالبروفايل ---------- */
 const giftGridUnsub={};
 function loadGiftsGrid(uid,gridId,wrapId){
@@ -670,13 +677,13 @@ function soldMsgNode(m,id,isMine){
 /* ===== قائمة الضغط المطوّل على الهدية (إخفاء / إرسال / تثبيت / مشاركة) ===== */
 const gmRemote={};
 const GM_IC={
- pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5l6 6-3 1-3.5 3.5.5 4-1.5 1.5-4-4-5 5M9.5 8.5l-.5 3.5-3 1 5 5"/><path d="M14.5 3.5l-3 1-3 3"/></svg>',
- unpin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5l6 6-3 1-3.5 3.5.5 4-1.5 1.5-4-4-5 5M9.5 8.5l-.5 3.5-3 1 5 5"/><path d="M14.5 3.5l-3 1-3 3"/><path d="M3 3l18 18"/></svg>',
+ pin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 4v5c0 1.12.37 2.16 1 3H9c.65-.86 1-1.9 1-3V4h4m3-2H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3V4h1c.55 0 1-.45 1-1s-.45-1-1-1z"/></svg>',
+ unpin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 4v5c0 1.12.37 2.16 1 3H9c.65-.86 1-1.9 1-3V4h4m3-2H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3V4h1c.55 0 1-.45 1-1s-.45-1-1-1z"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
  share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12l-6-7v4C8 9 4.5 12 4 18c2-3 5-4.5 10-4.5V18z"/></svg>',
  hide:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>',
  show:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
  send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M7.5 12h9M13 8l4 4-4 4"/></svg>',
- pinS:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M14.5 3l6.5 6.5-2.2.8-3.3 3.3.4 3.6-1.6 1.6-3.7-3.7L4 21.5l-1-1 5.8-6.1-3.7-3.7 1.6-1.6 3.6.4 3.3-3.3z"/></svg>',
+ pinS:'<svg viewBox="0 0 24 24" fill="#fff"><path transform="rotate(40 12 12)" d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/></svg>',
  hideS:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>'
 };
 function giftPrefs(uid){
@@ -713,26 +720,29 @@ function gmCss(){
 .gift-tile.gt-hid .ga-pepe,.gift-tile.gt-hid .ga-pat{opacity:.35}
 .gift-tile .gt-eye{position:absolute;bottom:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
 .gift-tile .gt-eye svg{width:12px;height:12px}
-.gm-ov{position:fixed;inset:0;z-index:100001;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;direction:rtl;
+.gm-ov{position:fixed;inset:0;z-index:100001;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;direction:rtl;box-sizing:border-box;
   background:rgba(8,12,18,.55);-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);transition:backdrop-filter .28s ease,-webkit-backdrop-filter .28s ease,background .28s ease}
 .gm-ov.in{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);background:rgba(8,12,18,.62)}
 .gm-ov.out{-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);background:rgba(8,12,18,0);transition-duration:.18s}
-.gm-wrap{position:relative;width:min(90vw,560px);aspect-ratio:1.55/1;flex:0 0 auto;
+.gm-wrap{position:relative;width:calc(100% - 36px);max-width:560px;aspect-ratio:1.55/1;flex:0 0 auto;
   transform:scale(.55);opacity:0;transition:transform .36s cubic-bezier(.2,1.25,.4,1),opacity .2s ease}
 .gm-ov.in .gm-wrap{transform:scale(1);opacity:1}
 .gm-ov.out .gm-wrap{transform:scale(.7);opacity:0;transition:transform .18s ease,opacity .16s ease}
 .gm-ov .gm-card{position:absolute;inset:0;border-radius:26px;overflow:hidden;border:0!important;outline:0!important;box-shadow:none!important;background-clip:border-box}
 .gm-ov .gm-wrap,.gm-ov .gm-menu,.gm-ov .gm-it{border:0!important;outline:0!important}
 .gm-ov .gm-wrap{box-shadow:none!important}
-.gm-ribw{position:absolute;top:-2px;right:-2px;width:100px;height:100px;overflow:hidden;pointer-events:none;z-index:5}
-.gm-ribw .gm-rib{position:absolute;left:5px;top:4.7px;width:160px;right:auto;padding:3px 0;transform:rotate(45deg);transform-origin:center center;z-index:1}
+.gm-ribw{position:absolute;top:-2px;right:-2px;width:100px;height:100px;pointer-events:none;z-index:5}
+.gm-rib-s1,.gm-rib-s2{position:absolute;inset:0}
+.gm-rib-s1{clip-path:polygon(0 2px,98px 2px,98px 100px,0 100px)}
+.gm-rib-s2{clip-path:polygon(0 0,100px 0,100px 100px,98px 100px,98px 2px,0 2px)}
+.gm-ribw .gm-rib{position:absolute;left:5px;top:4.7px;width:160px;padding:3px 0;box-sizing:border-box;transform:rotate(45deg);transform-origin:center center;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;box-shadow:none;border:0}
 .gm-card .ga-pat{position:absolute;inset:0;width:100%;height:100%}
 .gm-pepe{position:absolute;left:50%;top:8%;width:54%;aspect-ratio:1/1;transform:translateX(-50%)}
 .gm-pepe>div,.gm-pepe svg{width:100%;height:100%}
 .gm-title{position:absolute;left:0;right:0;bottom:15%;text-align:center;color:#fff;font-weight:800;font-size:26px;direction:ltr;text-shadow:0 1px 6px rgba(0,0,0,.25)}
 .gm-sub{position:absolute;left:0;right:0;bottom:7%;text-align:center;color:rgba(255,255,255,.62);font-size:14px;font-weight:600}
 .gm-rib{box-shadow:0 2px 5px rgba(0,0,0,.4);box-sizing:border-box;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;z-index:3}
-.gm-menu{align-self:flex-end;margin-inline-end:calc((100% - min(90vw,560px))/2);width:min(calc(72vw - 15px),255px);background:var(--cl-card,#17212b);border-radius:18px;overflow:hidden;
+.gm-menu{align-self:flex-end;margin-inline-end:max(18px,calc((100% - 560px)/2));width:min(calc(72vw - 15px),255px);background:var(--cl-card,#17212b);border-radius:18px;overflow:hidden;
   transform-origin:top left;transform:scale(.6);opacity:0;transition:transform .32s cubic-bezier(.2,1.2,.4,1) .06s,opacity .2s ease .06s;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .gm-ov.in .gm-menu{transform:scale(1);opacity:1}
 .gm-ov.out .gm-menu{transform:scale(.8);opacity:0;transition:transform .16s ease,opacity .14s ease}
@@ -743,7 +753,7 @@ function gmCss(){
 .gm-it svg{width:24px;height:24px;flex:0 0 24px}
 .gm-it span{flex:1}
 .gm-sep{height:8px;background:var(--cl-sep,rgba(255,255,255,.07))}
-.gm-pick{position:fixed;inset:0;z-index:100002;background:var(--cl-bg,#0e1621);color:var(--cl-text,#f1f5f9);display:flex;flex-direction:column;direction:rtl}
+.gm-pick{position:fixed;inset:0;z-index:99990;background:var(--cl-bg,#0e1621);color:var(--cl-text,#f1f5f9);display:flex;flex-direction:column;direction:rtl}
 .gm-pick-top{display:flex;align-items:center;gap:10px;padding:calc(12px + var(--sat,0px)) 14px 12px;font-weight:700;font-size:17px}
 .gm-pick-top button{background:none;border:0;color:inherit;font-size:22px;padding:4px 10px}
 .gm-pick-list{flex:1;overflow:auto}
@@ -780,7 +790,7 @@ function gmOpenMenu(tile,uid,g,redraw){
   ov.innerHTML='<div class="gm-wrap"><div class="gm-card" style="background:'+bgCss(g)+'">'+(g.upgraded?patSvg(g.sym):'')
     +'<div class="gm-pepe"'+(g.upgraded?'':' style="filter:grayscale(1) brightness(.8)"')+'></div>'
     +'<div class="gm-title">'+esc(K.name)+'</div><div class="gm-sub">مُقتنى رقمي #'+g.number+'</div></div>'
-    +'<div class="gm-ribw"><div class="gm-rib" style="background:linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)),'+((g.upgraded&&PEPE_BGS[g.bg])?PEPE_BGS[g.bg].a:'#6b7280')+'">#'+g.number+'</div></div></div>'
+    +'<div class="gm-ribw">'+ribHtml(g,'gm-rib')+'</div></div>'
     +'<div class="gm-menu">'+items.map((x,i)=>'<button type="button" class="gm-it" data-id="'+x.id+'" style="transition-delay:'+(0.1+i*0.05)+'s"><span>'+x.t+'</span>'+x.ic+'</button>'+(x.sep?'<div class="gm-sep"></div>':'')).join('')+'</div>';
   uiRoot().appendChild(ov);
   ov._pepe=ov.querySelector('.gm-pepe');
@@ -839,3 +849,13 @@ async function gmSendPick(g){
     list.appendChild(r);
   });
 }
+
+/* زر الرجوع بالهاتف: يغلق نافذة الاختيار أو قائمة الهدية (يُستدعى من معالج الرجوع بالتطبيق) */
+window.__gmCloseTop=function(){
+  if(document.querySelector('.cl-dlg-ov'))return false;
+  const pk=document.querySelector('.gm-pick');
+  if(pk){pk.remove();return true;}
+  const ov=document.querySelector('.gm-ov:not(.out)');
+  if(ov){gmCloseMenu(ov);return true;}
+  return false;
+};
