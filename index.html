@@ -9440,7 +9440,7 @@ document.addEventListener('click',function(e){const menu=document.getElementById
 <!-- الهدايا: كل شي بمجلد gifts/ -->
 <script src="gifts/models.js?v=1"></script>
 <script src="gifts/cat-models.js?v=1"></script>
-<script src="gifts/gifts.js?v=23"></script>
+<script src="gifts/gifts.js?v=25"></script>
 <script src="gifts/star-gift.js?v=5"></script>
 <script src="gifts/gift-link.js?v=2"></script>
 <script src="stickers/stickers.js?v=1"></script>
@@ -12274,8 +12274,8 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
 #profileView .posts-grid.gifts-grid,#otherUserProfileView .posts-grid.gifts-grid{gap:5px!important}
 #profileView .gifts-grid .gift-tile,#otherUserProfileView .gifts-grid .gift-tile{position:relative!important;overflow:visible!important}
 /* رقم الهدية: شريط مائل يمتد في الزاوية اليسرى العليا */
-.gifts-grid .gift-tile .gt-rw{position:absolute!important;top:-5px;left:-5px;width:62px;height:62px;overflow:hidden;pointer-events:none;z-index:3}
-.gifts-grid .gift-tile .gt-rw .gt-n{position:absolute!important;top:10.2px!important;left:-34.4px!important;right:auto!important;bottom:auto!important;
+.gifts-grid .gift-tile .gt-rw{position:absolute!important;top:-2px;left:-2px;width:60px;height:60px;overflow:hidden;pointer-events:none;z-index:3}
+.gifts-grid .gift-tile .gt-rw .gt-n{position:absolute!important;top:11px!important;left:-41px!important;right:auto!important;bottom:auto!important;
   width:120px!important;height:auto!important;margin:0!important;padding:1px 0!important;box-sizing:border-box;
   transform:rotate(-45deg)!important;transform-origin:center center;text-align:center!important;direction:ltr;
   border-radius:0!important;box-shadow:0 2px 4px rgba(0,0,0,.4)!important;
@@ -12293,7 +12293,7 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
   function setupGrid(g){
     var tiles=g.querySelectorAll('.gift-tile'); if(!tiles.length) return;
     var key=g.clientWidth+'|'+tiles.length;
-    if(g.getAttribute('data-bb-key')===key) return;
+    if(g.getAttribute('data-bb-key')===key && tiles[0].style.height) return;
     /* قياس الحجم الأصلي: نلغي تعديلاتنا مؤقتًا */
     ['grid-template-columns','justify-content','gap','row-gap','column-gap'].forEach(function(p){ g.style.removeProperty(p); });
     for(var i=0;i<tiles.length;i++){ tiles[i].style.removeProperty('height'); tiles[i].style.removeProperty('aspect-ratio'); }
