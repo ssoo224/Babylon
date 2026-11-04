@@ -32,7 +32,7 @@
     '#bbCallOv .cb{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12.5px;opacity:.95}' +
     '#bbCallOv button{width:66px;height:66px;border-radius:50%;border:0;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s,background .15s}' +
     '#bbCallOv button:active{transform:scale(.92)}' +
-    '#bbCallOv .acc{background:#22a559}#bbCallOv .rej{background:#e0443e}' +
+    '#bbCallOv .acc{background:#5FE08A}#bbCallOv .rej{background:#FF7B7B}' +
     '#bbCallOv .tg{background:rgba(255,255,255,.14)}#bbCallOv .tg.on{background:#f5e6b8;color:#2a1d06}';
   document.head.appendChild(st);
   var st2 = document.createElement('style');
