@@ -9449,6 +9449,67 @@ document.addEventListener('click',function(e){const menu=document.getElementById
 <script src="gifts/cat-models.js?v=1"></script>
 <script src="gifts/gifts.js?v=30"></script>
 <script src="gifts/star-gift.js?v=5"></script>
+<script id="bb-stars-gift-card-js">
+/* رسالة إهداء النجوم: أبيض وذهبي (نهاري) / رمادي وذهبي (ليلي) */
+function starGiftArt(){
+  try{_gmDefs();}catch(e){}
+  var ros='';
+  for(var k=0;k<16;k++){
+    var a=2*Math.PI*k/16,x=100+58*Math.cos(a),y=76+58*Math.sin(a);
+    ros+='<circle class="'+(k%2?'gm-d2':'gm-d1')+'" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(k%2?1.7:2.6)+'"/>';
+  }
+  var sp=[[34,34],[168,40],[28,112],[174,112]].map(function(q){return '<path class="gm-sp" d="M'+q[0]+' '+(q[1]-6)+'L'+(q[0]+1.8)+' '+(q[1]-1.8)+'L'+(q[0]+6)+' '+q[1]+'L'+(q[0]+1.8)+' '+(q[1]+1.8)+'L'+q[0]+' '+(q[1]+6)+'L'+(q[0]-1.8)+' '+(q[1]+1.8)+'L'+(q[0]-6)+' '+q[1]+'L'+(q[0]-1.8)+' '+(q[1]-1.8)+'Z"/>';}).join('');
+  return '<svg class="gm-art" viewBox="0 0 200 152" aria-hidden="true">'
+    +'<circle class="gm-glow" cx="100" cy="76" r="74" fill="url(#gmHalo)"/>'
+    +'<circle class="gm-disc" cx="100" cy="76" r="63" stroke-width="2.4"/>'
+    +'<circle class="gm-ring" cx="100" cy="76" r="53" fill="none" stroke-width="1"/>'+ros
+    +'<g class="gm-star"><polygon points="'+_gmStarPts(100,76,48,36,15)+'" fill="url(#gmGold)" stroke="#8a5d10" stroke-width=".8" stroke-linejoin="round"/>'
+    +'<circle class="gm-disc gm-core" cx="100" cy="76" r="10.5" stroke-width="1.6"/><circle class="gm-dot" cx="100" cy="76" r="3.6"/></g>'
+    +sp+'</svg>';
+}
+function starGiftNode(m,id,isMine){
+  var nm=String((document.getElementById('otherHeaderNameText')||{}).textContent||'').trim();
+  var who=nm?(' <b>'+esc(nm)+'</b>'):'';
+  var line=isMine?('أنت أهديت'+who+' هدية'):('أهداك'+who+' هدية');
+  var w=document.createElement('div');w.className='gm-wrap';w.id='message_'+id;w.dataset.created=String(m.createdAt||0);
+  w.innerHTML='<div class="sys-msg">'+line+'</div>'
+    +'<div class="gm-card"><div class="gm-line"></div>'+starGiftArt()
+    +'<div class="gm-amt">'+fmtN((isMine&&m.gross)?m.gross:(m.stars||0))+' نجمة</div>'
+    +'<div class="gm-sub">'+((isMine&&m.fee>0)?('وصل '+fmtN(m.stars||0)+' ⭐ بعد عمولة '+fmtN(m.fee)+' ⭐'):'بالنجوم تفتح المحتوى والخدمات داخل بابل.')+'</div>'
+    +'<button type="button" class="gm-btn">عرض</button><div class="gm-line bot"></div></div>';
+  w.querySelector('.gm-btn').onclick=function(ev){ev.stopPropagation();try{openStarsHistory();}catch(e){}};
+  return w;
+}
+</script>
+<style id="bb-stars-gift-card-css">
+/* ألوان الطور النهاري (افتراضي) */
+.gm-wrap{--gm-bg1:#ffffff;--gm-bg2:#fbf3dc;--gm-bd:rgba(201,154,28,.55);--gm-amt:#9a6f0c;--gm-sub:#6b7a8c;--gm-disc:#fffaf0;--gm-dot2:#e3d6a8;--gm-ring:rgba(201,154,28,.55);--gm-sh:0 6px 22px rgba(190,150,40,.22)}
+/* ألوان الطور الليلي */
+html[data-app-theme="dark"] .gm-wrap,body:has(.app-container[data-app-theme="dark"]) .gm-wrap{--gm-bg1:#2d3138;--gm-bg2:#1f2227;--gm-bd:rgba(228,196,91,.45);--gm-amt:#f0cf6a;--gm-sub:#a4acb6;--gm-disc:#3b4049;--gm-dot2:#8b929c;--gm-ring:rgba(228,196,91,.5);--gm-sh:0 6px 22px rgba(0,0,0,.45)}
+html[data-app-theme="light"] .gm-wrap,body:has(.app-container[data-app-theme="light"]) .gm-wrap{--gm-bg1:#ffffff;--gm-bg2:#fbf3dc;--gm-bd:rgba(201,154,28,.55);--gm-amt:#9a6f0c;--gm-sub:#6b7a8c;--gm-disc:#fffaf0;--gm-dot2:#e3d6a8;--gm-ring:rgba(201,154,28,.55);--gm-sh:0 6px 22px rgba(190,150,40,.22)}
+.gm-wrap>.gm-card{position:relative!important;display:flex!important;flex-direction:column!important;align-items:center!important;
+  width:min(280px,78%)!important;height:auto!important;min-height:0!important;margin:8px auto 10px!important;padding:12px 16px 16px!important;
+  box-sizing:border-box!important;border-radius:22px!important;overflow:hidden!important;text-align:center!important;
+  background:linear-gradient(160deg,var(--gm-bg1) 0%,var(--gm-bg2) 100%)!important;
+  border:1.5px solid var(--gm-bd)!important;box-shadow:var(--gm-sh)!important;color:var(--gm-amt)!important}
+.gm-wrap>.gm-card .gm-line{display:block!important;position:static!important;width:62%!important;height:2px!important;margin:0 auto 4px!important;border-radius:2px!important;
+  background:linear-gradient(90deg,transparent,#d3a93b,transparent)!important;background-image:linear-gradient(90deg,transparent,#d3a93b,transparent)!important}
+.gm-wrap>.gm-card .gm-line.bot{margin:12px auto 0!important}
+.gm-wrap>.gm-card .gm-art{display:block!important;position:static!important;width:100%!important;max-width:210px!important;height:auto!important;margin:0 auto!important;animation:none}
+.gm-wrap>.gm-card .gm-disc{fill:var(--gm-disc);stroke:#d9a93a}
+.gm-wrap>.gm-card .gm-core{stroke:#d9a93a}
+.gm-wrap>.gm-card .gm-ring{stroke:var(--gm-ring)}
+.gm-wrap>.gm-card .gm-d1{fill:#d9a93a}
+.gm-wrap>.gm-card .gm-d2{fill:var(--gm-dot2)}
+.gm-wrap>.gm-card .gm-dot{fill:#d9a93a}
+.gm-wrap>.gm-card .gm-sp{fill:#e6c566}
+.gm-wrap>.gm-card .gm-amt{position:static!important;display:block!important;margin:4px 0 0!important;font-size:24px!important;font-weight:800!important;line-height:1.3!important;
+  color:var(--gm-amt)!important;-webkit-text-fill-color:var(--gm-amt)!important;text-shadow:none!important}
+.gm-wrap>.gm-card .gm-sub{position:static!important;display:block!important;margin:4px 0 0!important;font-size:13px!important;font-weight:600!important;line-height:1.5!important;
+  color:var(--gm-sub)!important;-webkit-text-fill-color:var(--gm-sub)!important}
+.gm-wrap>.gm-card .gm-btn{display:block!important;position:static!important;margin:14px auto 0!important;min-width:120px!important;padding:10px 28px!important;border-radius:14px!important;font-size:15px!important;font-weight:800!important}
+</style>
+
 <script src="gifts/gift-link.js?v=2"></script>
 <script src="stickers/stickers.js?v=1"></script>
 <script id="babylon-remove-visited-badge-fix-v2">
@@ -12267,11 +12328,11 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) .gm-
 </style>
 
 <style id="bb-gift-card-btn-outline">
-/* زر (عرض) في كارت الهدية: شفاف مُبيض بنسبة 5% بلا إطار */
+/* زر (عرض) في كارت الهدية: شفاف مُبيض بنسبة 5% بإطار أبيض 1px */
 html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(.gm-wrap,body) .gg-card button.gg-btn,
 html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(.gm-wrap,body) .gg-card button.gg-btn:is(:hover,:active,:focus){
   background:rgba(255,255,255,.05)!important;background-image:none!important;background-color:rgba(255,255,255,.05)!important;
-  border:0!important;outline:0!important;box-shadow:none!important;filter:none!important;
+  border:1px solid #fff!important;outline:0!important;box-shadow:none!important;filter:none!important;
   color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important;font-weight:800!important}
 html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(.gm-wrap,body) .gg-card button.gg-btn:active{
   background:rgba(255,255,255,.10)!important;background-color:rgba(255,255,255,.10)!important}
