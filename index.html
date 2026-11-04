@@ -4086,6 +4086,7 @@ function applyAppTheme(theme) {
   const deleteDialog = document.getElementById('messageDeleteModal');
   if (deleteDialog) deleteDialog.setAttribute('data-app-theme', safeTheme);
   try { localStorage.setItem(APP_THEME_KEY, safeTheme); } catch (e) {}
+  try { if (window.__bbRefreshChatTheme) window.__bbRefreshChatTheme(); } catch (e) {}
   const isLight = safeTheme === 'light';
   const btn = document.getElementById('settingsThemeToggle');
   const icon = document.getElementById('themeSwitchIcon');
@@ -6139,20 +6140,56 @@ const THEMES = {
     pattern:'#c29d30', patternOp:0.11, symbols:['ic:gate','ic:star8','ic:bull','ic:tablet','ic:crescent','ic:jar'] },
   ashur: { name:'آشور', hero:'ic:bull', chatBg:'#1f1710', mine:'linear-gradient(135deg,#8a5a2b,#c48b47)', other:'#3a2c1d',
     textMine:'#fff8ec', textOther:'#f1e4cc', accent:'#e0b36a', tick:'#ffe6b0', metaOther:'#b89f7a', line:'rgba(255,255,255,0.05)',
-    pattern:'#c9a064', patternOp:0.11, symbols:['ic:bull','ic:arch','ic:sun','ic:gate','ic:star8','ic:tablet'] },
+    pattern:'#c9a064', patternOp:0.11, symbols:['ic:bull','ic:arch','ic:sun','ic:gate','ic:star8','ic:tablet'],
+    modes:{
+      dark:{ chatBg:'#1f1710', mine:'linear-gradient(135deg,#74481f,#9a6629)', other:'#3a2c1d', textMine:'#fff8ec', textOther:'#f1e4cc', accent:'#e0b36a', tick:'#ffe6b0', metaOther:'#b89f7a', line:'rgba(255,255,255,0.06)', pattern:'#c9a064', patternOp:0.11 },
+      light:{ chatBg:'#efe3cf', mine:'linear-gradient(135deg,#74481f,#9a6629)', other:'#fffaf1', textMine:'#fff8ec', textOther:'#3a2410', accent:'#7a4d22', tick:'#ffe6b0', metaOther:'#7d6546', line:'rgba(0,0,0,0.08)', pattern:'#8a5a2b', patternOp:0.14 }
+    } },
   sumer: { name:'سومر', hero:'ic:ziggurat', chatBg:'#ecd9b8', mine:'linear-gradient(135deg,#a8552d,#cc7b49)', other:'#fbf1de',
     textMine:'#ffffff', textOther:'#3b2412', accent:'#8a4524', tick:'#fff3c4', metaOther:'#7a5c3a', line:'rgba(0,0,0,0.08)',
-    pattern:'#7a4a24', patternOp:0.16, symbols:['ic:ziggurat','ic:tablet','ic:lyre','ic:jar','ic:reeds','ic:sun'] },
+    pattern:'#7a4a24', patternOp:0.16, symbols:['ic:ziggurat','ic:tablet','ic:lyre','ic:jar','ic:reeds','ic:sun'],
+    modes:{
+      dark:{ chatBg:'#22140d', mine:'linear-gradient(135deg,#9a4a26,#b5602f)', other:'#3a2418', textMine:'#ffffff', textOther:'#f6e6d0', accent:'#e09a6a', tick:'#fff3c4', metaOther:'#b99674', line:'rgba(255,255,255,0.06)', pattern:'#d9895a', patternOp:0.1 },
+      light:{ chatBg:'#ecd9b8', mine:'linear-gradient(135deg,#9a4a26,#b5602f)', other:'#fbf1de', textMine:'#ffffff', textOther:'#3b2412', accent:'#8a4524', tick:'#fff3c4', metaOther:'#6f5232', line:'rgba(0,0,0,0.08)', pattern:'#7a4a24', patternOp:0.16 }
+    } },
   samarra: { name:'سامراء', hero:'ic:minaret', chatBg:'#dcc690', mine:'linear-gradient(135deg,#5f4a1c,#8c6d2f)', other:'#f6eacb',
     textMine:'#ffffff', textOther:'#3a2c10', accent:'#5a4318', tick:'#ffffff', metaOther:'#7b6537', line:'rgba(0,0,0,0.08)',
-    pattern:'#5f4a1c', patternOp:0.15, symbols:['ic:minaret','ic:palm','ic:arch','ic:sun','ic:wave','ic:jar'] },
+    pattern:'#5f4a1c', patternOp:0.15, symbols:['ic:minaret','ic:palm','ic:arch','ic:sun','ic:wave','ic:jar'],
+    modes:{
+      dark:{ chatBg:'#1b1709', mine:'linear-gradient(135deg,#6e5420,#8a6d2a)', other:'#2e2712', textMine:'#fffbea', textOther:'#f3e9c8', accent:'#d9b866', tick:'#fff1b8', metaOther:'#b0a072', line:'rgba(255,255,255,0.06)', pattern:'#c9a24a', patternOp:0.1 },
+      light:{ chatBg:'#dcc690', mine:'linear-gradient(135deg,#5f4a1c,#7d6226)', other:'#f6eacb', textMine:'#ffffff', textOther:'#3a2c10', accent:'#5a4318', tick:'#ffffff', metaOther:'#6b5629', line:'rgba(0,0,0,0.08)', pattern:'#5f4a1c', patternOp:0.15 }
+    } },
   baghdad: { name:'بغداد العباسية', hero:'ic:arch', chatBg:'#0b2b2c', mine:'linear-gradient(135deg,#13787a,#25aaa3)', other:'#17484a',
     textMine:'#ffffff', textOther:'#eef6f2', accent:'#f3ead3', tick:'#c4f5f0', metaOther:'#8fb8b4', line:'rgba(255,255,255,0.06)',
-    pattern:'#f3ead3', patternOp:0.10, symbols:['ic:arch','ic:crescent','ic:star8','ic:minaret','ic:palm','ic:sun'] },
+    pattern:'#f3ead3', patternOp:0.10, symbols:['ic:arch','ic:crescent','ic:star8','ic:minaret','ic:palm','ic:sun'],
+    modes:{
+      dark:{ chatBg:'#0b2b2c', mine:'linear-gradient(135deg,#0f6b6d,#187d7a)', other:'#17484a', textMine:'#ffffff', textOther:'#eef6f2', accent:'#f3ead3', tick:'#c4f5f0', metaOther:'#8fb8b4', line:'rgba(255,255,255,0.06)', pattern:'#f3ead3', patternOp:0.1 },
+      light:{ chatBg:'#d9efec', mine:'linear-gradient(135deg,#0f6b6d,#187d7a)', other:'#f4fbfa', textMine:'#ffffff', textOther:'#0f3433', accent:'#0f6b6d', tick:'#c4f5f0', metaOther:'#4f7a77', line:'rgba(0,0,0,0.08)', pattern:'#0f6b6d', patternOp:0.14 }
+    } },
   ahwar: { name:'الأهوار', hero:'ic:boat', chatBg:'#cfe3d4', mine:'linear-gradient(135deg,#2b7a8c,#3f9a7a)', other:'#f2f8ef',
     textMine:'#ffffff', textOther:'#1f3a2a', accent:'#2b6a4a', tick:'#d9f5c8', metaOther:'#5f7f6a', line:'rgba(0,0,0,0.07)',
-    pattern:'#3f6b3a', patternOp:0.16, symbols:['ic:reeds','ic:boat','ic:fish','ic:wave','ic:palm','ic:sun'] }
+    pattern:'#3f6b3a', patternOp:0.16, symbols:['ic:reeds','ic:boat','ic:fish','ic:wave','ic:palm','ic:sun'],
+    modes:{
+      dark:{ chatBg:'#0c1f18', mine:'linear-gradient(135deg,#1f6677,#2a7a60)', other:'#173528', textMine:'#ffffff', textOther:'#e6f3e8', accent:'#7fd1a6', tick:'#d9f5c8', metaOther:'#86ab95', line:'rgba(255,255,255,0.06)', pattern:'#7fd1a6', patternOp:0.1 },
+      light:{ chatBg:'#cfe3d4', mine:'linear-gradient(135deg,#25707f,#2a7a60)', other:'#f2f8ef', textMine:'#ffffff', textOther:'#1f3a2a', accent:'#2b6a4a', tick:'#d9f5c8', metaOther:'#4f6f5a', line:'rgba(0,0,0,0.08)', pattern:'#3f6b3a', patternOp:0.16 }
+    } }
 };
+
+/* الثيمات تتبع الوضع الليلي/النهاري: لكل ثيم (عدا بابل) لوحة ألوان ليلية وأخرى نهارية بحيث يبقى لون الخط متناسقاً مع لون الثيم */
+function bbAppMode() {
+  try {
+    var a = document.querySelector('.app-container'); var m = a && a.getAttribute('data-app-theme');
+    if (m !== 'light' && m !== 'dark') m = document.documentElement.getAttribute('data-app-theme');
+    if (m !== 'light' && m !== 'dark') m = localStorage.getItem('babylon_chat_app_theme');
+    if (m === 'light' || m === 'dark') return m;
+  } catch (e) {}
+  return 'light';
+}
+function themeFor(id) {
+  const base = THEMES[id] || THEMES.babylon;
+  const v = base.modes && base.modes[bbAppMode()];
+  return v ? Object.assign({}, base, v) : base;
+}
 
 const PREFS_KEY = 'babylon_chat_prefs';
 let prefs = { theme:'babylon', font:15, radius:12 };
@@ -6185,7 +6222,7 @@ function renderPattern(el, t, count) {
 }
 
 function applyPrefs(rebuildPattern) {
-  const t = THEMES[prefs.theme] || THEMES.babylon;
+  const t = themeFor(prefs.theme);
   const r = document.documentElement.style;
   r.setProperty('--chat-bg', t.chatBg);
   r.setProperty('--bubble-mine', t.mine);
@@ -6218,7 +6255,7 @@ function buildThemeStrip() {
   if (!strip) return;
   strip.innerHTML = '';
   Object.keys(THEMES).forEach(id => {
-    const t = THEMES[id];
+    const t = themeFor(id);
     const c = document.createElement('div');
     c.className = 'theme-card';
     c.dataset.id = id;
@@ -6269,6 +6306,7 @@ function setRadius(v) {
 
 buildThemeStrip();
 applyPrefs(true);
+window.__bbRefreshChatTheme = function () { try { buildThemeStrip(); applyPrefs(true); } catch (e) {} };
 
 const ICONS = {
   chat:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
