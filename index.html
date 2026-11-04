@@ -2175,7 +2175,7 @@ i[data-ic]{display:inline-flex;font-style:normal}
 #privacySettingsView .sx-top h2{font-size:calc(20px * var(--bb-s,1));font-weight:800}
 .sx-seg{display:inline-flex;flex-shrink:0;padding:3px;border-radius:14px;background:rgba(127,140,160,.18);gap:2px}
 .sx-seg button{border:none;background:transparent;color:var(--text-muted);font:inherit;font-size:calc(13px * var(--bb-s,1));font-weight:700;padding:7px 14px;border-radius:11px;cursor:pointer;transition:background .2s,color .2s}
-.sx-seg button.on{background:linear-gradient(135deg,#c29d30,#f0c94d);color:#1b1500;box-shadow:0 2px 8px rgba(212,175,55,.35)}
+.sx-seg button.on{background:linear-gradient(135deg,#c29d30,#f0c94d);color:#fff;box-shadow:0 2px 8px rgba(212,175,55,.35)}
 .app-container[data-app-theme="light"] #privacySettingsView .sx-group{border-color:#e3e9f1;box-shadow:0 6px 20px rgba(30,50,80,.07)}
 .app-container[data-app-theme="light"] #privacySettingsView .sx-item+.sx-item::before{background:#e9eef4}
 .app-container[data-app-theme="light"] #privacySettingsView .sx-ch{background:#eef2f7;color:#718096!important}
@@ -6122,6 +6122,14 @@ function loadChats() {
                   const _gTx = m.shared ? (isMine ? 'شاركتَ هدية' : 'شارك هدية') : (isMine ? 'أهديتَ هدية' : 'أهداك هدية');
                   lastMsgText = _gTx;
                   lastMsgHtml = '<span class="chat-media-preview">' + _gIc + '<span>' + _gTx + '</span></span>';
+                }
+                /* وصف المحادثة لهدية النجوم: نجمة SVG ذهبية + "هدية N نجمة" */
+                if (m.type === 'stars') {
+                  const _sN = Number((isMine && m.gross) ? m.gross : (m.stars || 0)) || 0;
+                  const _sIc = '<svg class="chat-media-preview-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#e0a800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#e0a800"><path d="M12 2.9l2.75 5.8 6.35.85-4.65 4.4 1.2 6.3L12 17.15 6.35 20.25l1.2-6.3L2.9 9.55l6.35-.85z"/></svg>';
+                  const _sTx = 'هدية ' + _sN.toLocaleString('en-US') + ' نجمة';
+                  lastMsgText = prefix + _sTx;
+                  lastMsgHtml = (prefix ? '<span class="chat-media-preview-prefix">أنت:</span>' : '') + '<span class="chat-media-preview">' + _sIc + '<span>' + _sTx + '</span></span>';
                 }
                 
                 let tStr = new Date(m.createdAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
