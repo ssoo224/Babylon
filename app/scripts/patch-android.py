@@ -1751,6 +1751,14 @@ public class BabylonCall {
         showWith(ctx, title, callId, av);
     }
 
+    /** نص ملوّن لأزرار الإشعار (رد = أخضر فاتح، رفض = أحمر فاتح). */
+    private static CharSequence bbColored(String text, String hex) {
+        android.text.SpannableString sp = new android.text.SpannableString(text);
+        sp.setSpan(new android.text.style.ForegroundColorSpan(Color.parseColor(hex)), 0, text.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        sp.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, text.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return sp;
+    }
+
     private static void showWith(Context ctx, String title, String callId, Bitmap av) {
         try {
             ensureChannel(ctx);
@@ -1786,8 +1794,8 @@ public class BabylonCall {
                 .setTimeoutAfter(45000)
                 .setFullScreenIntent(full, true)
                 .setContentIntent(full)
-                .addAction(0, "رفض", decPi)
-                .addAction(0, "رد", ans);
+                .addAction(0, bbColored("رفض", "#FF7B7B"), decPi)
+                .addAction(0, bbColored("رد", "#5FE08A"), ans);
             if (Build.VERSION.SDK_INT < 26) {
                 Uri ring = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
                 b.setSound(ring);
