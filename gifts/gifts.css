@@ -42,6 +42,8 @@
 .st-body{padding:4px 16px 40px}
 .st-hero{position:relative;width:min(100%,380px);margin:8px auto 16px;aspect-ratio:1;border-radius:32px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.3)}
 .st-art{position:absolute;inset:0}
+/* رمز الهدية داخل صفحة المتجر أصغر بـ 40px (20px من كل جانب) */
+.st-art .ga-pepe{inset:calc(5% + 20px) calc(5% + 20px) calc(8% + 20px)}
 .fadein{animation:gxFade .5s ease}
 .st-title{text-align:center;font-size:26px;font-weight:800}
 .st-sub{text-align:center;color:var(--cl-sub,#8798aa);margin:3px 0 16px;font-size:14.5px}
@@ -95,7 +97,7 @@
 .sg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:10px 14px 30px}
 .sg-card{position:relative;border-radius:20px;background:var(--cl-card,#17212b);padding:16px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;overflow:hidden;transition:transform .12s}
 .sg-card:active{transform:scale(.96)}
-.sg-art{width:74%;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+.sg-art{width:calc(74% - 20px);aspect-ratio:1;display:flex;align-items:center;justify-content:center}
 .sg-art img{width:100%;height:100%;object-fit:contain;display:block}
 .sg-name{font-size:12.5px;font-weight:600;color:var(--cl-sub,#8798aa);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px}
 .sg-price{display:flex;align-items:center;gap:5px;background:rgba(228,196,91,.14);color:var(--cl-gold,#e4c45b);font-weight:800;font-size:14.5px;padding:4px 13px;border-radius:14px}
