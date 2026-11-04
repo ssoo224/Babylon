@@ -12258,6 +12258,44 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) .gm-
   font-weight:800!important;box-shadow:none!important;text-shadow:none!important}
 html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) .gm-wrap .gg-card .gg-btn :is(svg,i,span){color:#fff!important;-webkit-text-fill-color:#fff!important}
 </style>
+
+<style id="bb-gift-card-btn-outline">
+/* زر (عرض) في كارت الهدية: بلا لون ذهبي، شفاف (يظهر لون خلفية الهدية) ومحاط بإطار أبيض 3px */
+html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(.gm-wrap,body) .gg-card button.gg-btn,
+html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(.gm-wrap,body) .gg-card button.gg-btn:is(:hover,:active,:focus){
+  background:transparent!important;background-image:none!important;background-color:transparent!important;
+  border:3px solid #fff!important;outline:0!important;box-shadow:none!important;filter:none!important;
+  color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important;font-weight:800!important}
+</style>
+
+<style id="bb-gift-tile-size">
+/* مربعات الهدايا في البروفايل: العرض أقل بـ 3px */
+.gifts-grid .gift-tile{width:calc(100% - 3px)!important;justify-self:center;margin-inline:auto!important}
+.gifts-grid .gift-tile .ga-pepe,#giftPage .gp-pepe{transform-origin:center center}
+</style>
+<script id="bb-gift-symbol-size-js">
+/* رمز الهدية: أصغر بـ 6px داخل مربع البروفايل، وبـ 10px عند فتح الهدية (خاصية scale لا تتعارض مع أنيميشن transform) */
+(function(){
+  'use strict';
+  function fit(sel,px){
+    var list=document.querySelectorAll(sel);
+    for(var i=0;i<list.length;i++){
+      var el=list[i], w=el.offsetWidth; if(!w) continue;
+      var v=Math.max(.3,(w-px)/w).toFixed(4);
+      if(el.getAttribute('data-bb-k')!==v){ el.style.scale=v; el.setAttribute('data-bb-k',v); }
+    }
+  }
+  function run(){ fit('.gifts-grid .gift-tile .ga-pepe',6); fit('#giftPage .gp-pepe',10); }
+  var q=0; function sch(){ if(q) return; q=requestAnimationFrame(function(){ q=0; run(); }); }
+  function init(){
+    new MutationObserver(sch).observe(document.body,{childList:true,subtree:true});
+    window.addEventListener('resize',sch);
+    setInterval(function(){ if(!document.hidden) sch(); },800);
+    sch();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+})();
+</script>
 </body>
 </html>
 
