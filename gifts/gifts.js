@@ -708,8 +708,8 @@ function gmCss(){
   const st=document.createElement('style');st.id='gmCss';
   st.textContent=`
 .gifts-grid .gift-tile{outline:0!important;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
-.gift-tile .gt-pin{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
-.gift-tile .gt-pin svg{width:12px;height:12px}
+.gift-tile .gt-pin{position:absolute;top:6px;right:6px;width:16px;height:16px;background:none!important;border:0;border-radius:0;box-shadow:none!important;display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
+.gift-tile .gt-pin svg{width:16px;height:16px;fill:#fff;filter:none;display:block}
 .gift-tile.gt-hid .ga-pepe,.gift-tile.gt-hid .ga-pat{opacity:.35}
 .gift-tile .gt-eye{position:absolute;bottom:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
 .gift-tile .gt-eye svg{width:12px;height:12px}
@@ -717,22 +717,22 @@ function gmCss(){
   background:rgba(8,12,18,.55);-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);transition:backdrop-filter .28s ease,-webkit-backdrop-filter .28s ease,background .28s ease}
 .gm-ov.in{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);background:rgba(8,12,18,.62)}
 .gm-ov.out{-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);background:rgba(8,12,18,0);transition-duration:.18s}
-.gm-wrap{position:relative;width:min(88vw,360px);aspect-ratio:1.55/1;flex:0 0 auto;
+.gm-wrap{position:relative;width:min(90vw,560px);aspect-ratio:1.55/1;flex:0 0 auto;
   transform:scale(.55);opacity:0;transition:transform .36s cubic-bezier(.2,1.25,.4,1),opacity .2s ease}
 .gm-ov.in .gm-wrap{transform:scale(1);opacity:1}
 .gm-ov.out .gm-wrap{transform:scale(.7);opacity:0;transition:transform .18s ease,opacity .16s ease}
 .gm-ov .gm-card{position:absolute;inset:0;border-radius:26px;overflow:hidden;border:0!important;outline:0!important;box-shadow:none!important;background-clip:border-box}
 .gm-ov .gm-wrap,.gm-ov .gm-menu,.gm-ov .gm-it{border:0!important;outline:0!important}
 .gm-ov .gm-wrap{box-shadow:none!important}
-.gm-ribw{position:absolute;top:-6px;right:-7px;width:104px;height:104px;overflow:hidden;pointer-events:none;z-index:5}
-.gm-ribw .gm-rib{position:absolute;left:4px;top:8px;width:160px;right:auto;padding:3px 0;transform:rotate(45deg);transform-origin:center center;z-index:1}
+.gm-ribw{position:absolute;top:-2px;right:-2px;width:100px;height:100px;overflow:hidden;pointer-events:none;z-index:5}
+.gm-ribw .gm-rib{position:absolute;left:5px;top:4.7px;width:160px;right:auto;padding:3px 0;transform:rotate(45deg);transform-origin:center center;z-index:1}
 .gm-card .ga-pat{position:absolute;inset:0;width:100%;height:100%}
 .gm-pepe{position:absolute;left:50%;top:8%;width:54%;aspect-ratio:1/1;transform:translateX(-50%)}
 .gm-pepe>div,.gm-pepe svg{width:100%;height:100%}
 .gm-title{position:absolute;left:0;right:0;bottom:15%;text-align:center;color:#fff;font-weight:800;font-size:26px;direction:ltr;text-shadow:0 1px 6px rgba(0,0,0,.25)}
 .gm-sub{position:absolute;left:0;right:0;bottom:7%;text-align:center;color:rgba(255,255,255,.62);font-size:14px;font-weight:600}
 .gm-rib{box-shadow:0 2px 5px rgba(0,0,0,.4);box-sizing:border-box;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;z-index:3}
-.gm-menu{align-self:flex-end;margin-inline-end:calc((100% - min(88vw,360px))/2);width:min(calc(72vw - 15px),255px);background:var(--cl-card,#17212b);border-radius:18px;overflow:hidden;
+.gm-menu{align-self:flex-end;margin-inline-end:calc((100% - min(90vw,560px))/2);width:min(calc(72vw - 15px),255px);background:var(--cl-card,#17212b);border-radius:18px;overflow:hidden;
   transform-origin:top left;transform:scale(.6);opacity:0;transition:transform .32s cubic-bezier(.2,1.2,.4,1) .06s,opacity .2s ease .06s;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .gm-ov.in .gm-menu{transform:scale(1);opacity:1}
 .gm-ov.out .gm-menu{transform:scale(.8);opacity:0;transition:transform .16s ease,opacity .14s ease}
