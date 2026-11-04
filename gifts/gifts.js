@@ -159,6 +159,11 @@ function ribCols(g){
 }
 function ribHtml(g,cls){
   const c=ribCols(g);
+  if(cls==='gm-rib'){
+    const n=giftNum(g&&g.number),t='#'+(n==null?String(g&&g.number):n.toLocaleString('en-US'));
+    return '<div class="gmr-back"><i class="gmr-band" style="background:'+c.back+';color:transparent">'+t+'</i></div>'
+          +'<div class="gmr-main"><i class="gmr-band" style="background:'+c.main+'">'+t+'</i></div>';
+  }
   return '<div class="'+cls+'-s1"><div class="'+cls+'" style="background:'+c.main+'">#'+g.number+'</div></div>'
         +'<div class="'+cls+'-s2"><div class="'+cls+'" style="background:'+c.back+';color:transparent">#'+g.number+'</div></div>';
 }
@@ -732,11 +737,13 @@ function gmCss(){
 .gm-ov .gm-card{position:absolute;inset:0;border-radius:26px;overflow:hidden;border:0!important;outline:0!important;box-shadow:none!important;background-clip:border-box}
 .gm-ov .gmx-wrap,.gm-ov .gm-menu,.gm-ov .gm-it{border:0!important;outline:0!important}
 .gm-ov .gmx-wrap{box-shadow:none!important}
-.gm-ribw{position:absolute;top:-2px;right:-2px;width:100px;height:100px;pointer-events:none;z-index:5}
-.gm-rib-s1,.gm-rib-s2{position:absolute;inset:0}
-.gm-rib-s1{clip-path:path('M0 2H72A26 26 0 0 1 98 28V100H0Z')}
-.gm-rib-s2{display:block;clip-path:path('M0 0H72A28 28 0 0 1 100 28V100H98V28A26 26 0 0 0 72 2H0Z')}
-.gm-ribw .gm-rib{position:absolute;left:40px;top:4.7px;width:90px;padding:3px 0;border-radius:2px;box-sizing:border-box;transform:rotate(45deg);transform-origin:center center;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;box-shadow:none;border:0}
+.gm-ribw{position:absolute;top:-3px;right:-3px;width:136px;height:136px;overflow:hidden;pointer-events:none;z-index:5}
+.gmr-back,.gmr-main{position:absolute;inset:0}
+/* الشريط الأمامي مقصوص بنفس انحناء زاوية البطاقة (26px) فيبدو الجزء الخارج عنها (3px) كأنه خلف البطاقة بلون أغمق */
+.gmr-main{-webkit-clip-path:inset(3px 3px 0 0 round 0 26px 0 0);clip-path:inset(3px 3px 0 0 round 0 26px 0 0)}
+.gmr-band{position:absolute;left:-26.5px;top:45px;width:260px;height:46px;box-sizing:border-box;padding-right:50px;display:block;transform:rotate(45deg);transform-origin:50% 50%;font-style:normal;font-weight:800;font-size:15px;line-height:46px;letter-spacing:.2px;text-align:center;white-space:nowrap;direction:ltr;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25)}
+.gmr-main .gmr-band{box-shadow:0 0 7px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.07)}
+@media(max-width:380px){.gm-ribw{transform:scale(.85);transform-origin:100% 0}}
 .gm-card .ga-pat{position:absolute;inset:0;width:100%;height:100%}
 .gm-pepe{position:absolute;left:50%;top:8%;width:54%;aspect-ratio:1/1;transform:translateX(-50%)}
 .gm-pepe>div,.gm-pepe svg{width:100%;height:100%}
@@ -831,11 +838,14 @@ function giftNum(v,d){
   }
   return null;
 }
-function giftLink(K,g,uid){
+/* اسم فريد حتى لا يطغى عليه تعريف آخر لـ giftLink في ملف ثاني (مثل gift-link.js) */
+function gmGiftLink(K,g){
   const n=giftNum(g);
   if(!K||n==null)return null;
-  return giftBaseUrl()+'/nft/'+encodeURIComponent(giftSlug(K))+'-'+n;
+  const link=giftBaseUrl()+'/nft/'+encodeURIComponent(giftSlug(K))+'-'+n;
+  return /\[object|undefined|NaN/.test(link)?null:link;
 }
+function giftLink(K,g,uid){return gmGiftLink(K,g);}
 function giftKindBySlug(slug){
   const w=String(slug||'').toLowerCase();
   return Object.values(GIFT_KINDS).find(K=>giftSlug(K).toLowerCase()===w)||null;
@@ -923,7 +933,7 @@ async function gmShare(K,g,uid){
       close();
       try{
         const now=Date.now();
-        const link=giftLink(K,g,uid);if(!link){showToast('تعذرت مشاركة الهدية');return;}
+        const link=gmGiftLink(K,g);if(!link){showToast('تعذرت مشاركة الهدية');return;}
         const msg={senderId:me,text:link,read:false,createdAt:now};
         await db.collection('chats').doc(r.id).collection('messages').add(msg);
         await db.collection('chats').doc(r.id).set({updatedAt:now},{merge:true});
