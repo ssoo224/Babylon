@@ -2993,9 +2993,9 @@ html[data-app-theme="light"] .splash-title{color:#8b680e}
         </div>
 
         <div class="sx-label">البيانات</div>
-        <div class="sx-data-pair">
-          <div class="sx-data-btn" role="button" tabindex="0" onclick="sxClearCache()"><span class="sx-ic" style="background:#8b5cf6"><i data-ic="trash" data-size="19"></i></span><span class="sx-data-t">مسح البيانات المؤقتة</span></div>
-          <div class="sx-data-btn sx-data-danger" role="button" tabindex="0" onclick="sxWipeAllData()"><span class="sx-ic" style="background:#dc2626"><i data-ic="trash" data-size="19"></i></span><span class="sx-data-t">مسح جميع البيانات</span></div>
+        <div class="sx-group">
+          <div class="sx-item" onclick="sxClearCache()"><span class="sx-ic" style="background:#8b5cf6"><i data-ic="trash" data-size="19"></i></span><span class="sx-t">مسح البيانات المؤقتة</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
+          <div class="sx-item" onclick="sxWipeAllData()"><span class="sx-ic" style="background:#dc2626"><i data-ic="trash" data-size="19"></i></span><span class="sx-t">مسح جميع البيانات</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
         </div>
         <div class="sx-group">
           <div class="sx-item" onclick="sxAbout()"><span class="sx-ic" style="background:#f59e0b"><i data-ic="info" data-size="19"></i></span><span class="sx-t">حول Babylon Chat</span><span class="sx-ch"><i data-ic="chevron" data-size="18"></i></span></div>
@@ -11901,8 +11901,9 @@ html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSetti
 /* إصلاح شعار شاشة الدخول: لا ينضغط (يتحول لشكل بيضاوي) ولا يُقصّ من الأعلى عند قصر الشاشة */
 .app-container .auth-page{justify-content:flex-start!important;overflow-y:auto}
 .app-container .auth-page>*{flex-shrink:0!important}
-.app-container .auth-page>:first-child{margin-top:auto}
-.app-container .auth-page>:last-child{margin-bottom:auto}
+/* توسيط عمودي آمن مع التمرير: عنصران وهميان بهامش auto يتقاسمان المساحة الفارغة بالتساوي.
+   (كان آخر عنصر في الصفحة مخفيًا فلا يعمل هامشه، فيُدفع المحتوى للأسفل) */
+.app-container .auth-page::before,.app-container .auth-page::after{content:"";display:block;flex:0 0 0;margin:auto 0}
 .app-container .auth-page>.babylon-logo{width:calc(90px * var(--bb-s,1))!important;height:calc(90px * var(--bb-s,1))!important;min-height:calc(90px * var(--bb-s,1));aspect-ratio:1/1}
 </style>
 <style id="chat-preview-day-mode">
@@ -12009,6 +12010,74 @@ html.bb-theme-anim *,html.bb-theme-anim *::before,html.bb-theme-anim *::after{tr
 .app-container[data-app-theme="light"] #settingsView .sx-data-danger{background:#fff5f5;border-color:#fecaca}
 .app-container[data-app-theme="light"] #settingsView .sx-data-danger .sx-data-t{color:#dc2626}
 </style>
+
+<style id="bb-gesture-fill-css">
+/* حقل خلف أزرار/إيماءات الهاتف السفلية: يأخذ لون القسم الحالي والوضع (نهاري/ليلي)، ويختفي (ارتفاعه صفر) إذا لم توجد أزرار */
+#bbGestureFill{position:fixed;left:0;right:0;bottom:0;height:var(--sab-real,max(env(safe-area-inset-bottom,0px),var(--bb-nav-inset,0px)));z-index:6;pointer-events:none;background:transparent;transition:background-color .18s ease}
+</style>
+<script id="bb-gesture-fill-js">
+(function(){
+  'use strict';
+  var fill=null, last='', queued=false;
+  var VIEWS=['homeView','searchView','profileView','otherUserProfileView','settingsView','chatSettingsView','notificationSettingsView','privacySettingsView','editProfileView','chatView'];
+  function shown(el){ return !!el && !el.classList.contains('hidden') && el.getClientRects().length>0; }
+  function theme(){
+    var a=document.querySelector('.app-container[data-app-theme]');
+    var t=(a&&a.getAttribute('data-app-theme'))||document.documentElement.getAttribute('data-app-theme');
+    return t==='light'?'light':'dark';
+  }
+  /* لون الخلفية الصلب للعنصر (أو أقرب أب له خلفية صلبة). 'IMG' = خلفية متدرجة/صورة */
+  function solidBg(el){
+    for(var e=el;e;e=e.parentElement){
+      var cs=getComputedStyle(e);
+      if(cs.backgroundImage&&cs.backgroundImage!=='none') return 'IMG';
+      var m=(cs.backgroundColor||'').match(/rgba?\(([^)]+)\)/);
+      if(m){ var p=m[1].split(',').map(parseFloat); var a=p.length>3?p[3]:1; if(a>=0.9) return cs.backgroundColor; }
+    }
+    return null;
+  }
+  function section(){
+    var otp=document.getElementById('otpPage'); if(shown(otp)) return {el:otp,kind:'page'};
+    var pages=['verifyPage','authPage'];
+    for(var i=0;i<pages.length;i++){ var pg=document.getElementById(pages[i]); if(shown(pg)) return {el:pg,kind:'page'}; }
+    var nav=document.getElementById('bottomNav'); if(shown(nav)) return {el:nav,kind:'nav'};
+    for(var j=0;j<VIEWS.length;j++){ var v=document.getElementById(VIEWS[j]); if(shown(v)) return {el:v,kind:VIEWS[j]==='chatView'?'chat':'view'}; }
+    return null;
+  }
+  function compute(){
+    var sec=section(), t=theme(), fb=t==='light'?'#edf2f8':'#090d16';
+    if(!sec) return fb;
+    var c=solidBg(sec.el);
+    if(c&&c!=='IMG') return c;
+    if(sec.kind==='chat') return 'transparent';   /* خلفية محادثة بصورة/تدرج: لا نغطيها */
+    return fb;
+  }
+  function update(){
+    queued=false;
+    if(!fill) return;
+    var c=compute();
+    if(c!==last){ last=c; fill.style.backgroundColor=c; }
+  }
+  function schedule(){ if(queued) return; queued=true; requestAnimationFrame(update); }
+  function init(){
+    var host=document.querySelector('.app-container')||document.body;
+    fill=document.createElement('div'); fill.id='bbGestureFill'; fill.setAttribute('aria-hidden','true');
+    host.appendChild(fill);
+    new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        var tg=muts[i].target;
+        if(tg&&tg.closest&&tg.closest('#messagesArea,#chatList,.messages-area')&&muts[i].attributeName==='class') continue;
+        schedule(); return;
+      }
+    }).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class','data-app-theme']});
+    window.addEventListener('resize',schedule);
+    window.addEventListener('load',schedule);
+    [300,1000,2500].forEach(function(ms){ setTimeout(schedule,ms); });
+    schedule();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+})();
+</script>
 </body>
 </html>
 
