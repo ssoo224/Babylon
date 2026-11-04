@@ -9712,6 +9712,7 @@ async function avatarDownload(){
 <style id="pf-pull-expand-css">
 html,body{overscroll-behavior-y:none}
 #profileView,#otherUserProfileView{position:relative;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+#profileView,#otherUserProfileView{overflow-x:hidden!important;max-width:100%}
 .pf-hero{position:absolute;z-index:1;overflow:hidden;display:none;pointer-events:none;background:#16213a;will-change:width,height,top,left,border-radius;-webkit-tap-highlight-color:transparent}
 .pf-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
 .pf-hero .pf-hero-letter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--babylon-gold);font-weight:800;font-size:clamp(48px,26vw,140px)}
@@ -12273,7 +12274,7 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
 #profileView .posts-grid.gifts-grid,#otherUserProfileView .posts-grid.gifts-grid{gap:5px!important}
 #profileView .gifts-grid .gift-tile,#otherUserProfileView .gifts-grid .gift-tile{position:relative!important;overflow:visible!important}
 /* رقم الهدية: شريط مائل يمتد في الزاوية اليسرى العليا */
-.gifts-grid .gift-tile .gt-rw{position:absolute!important;top:-2px;left:-2px;width:60px;height:60px;pointer-events:none;z-index:3}
+.gifts-grid .gift-tile .gt-rw{position:absolute!important;top:-2px;left:-2px;width:60px;height:60px;pointer-events:none;z-index:3;overflow:hidden!important}
 .gifts-grid .gift-tile .gt-n-s1,.gifts-grid .gift-tile .gt-n-s2{position:absolute;inset:0}
 .gifts-grid .gift-tile .gt-n-s1{clip-path:inset(2px 0 0 2px round 2px 0 0 0)}
 .gifts-grid .gift-tile .gt-n-s2{clip-path:path(evenodd,'M0 2A2 2 0 0 1 2 0H60V2H4A2 2 0 0 0 2 4V60H0Z')}
@@ -12348,6 +12349,16 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
     sch();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+})();
+</script>
+<script id="bb-profile-noshift-js">
+(function(){'use strict';
+  function fix(el){ if(el && el.scrollLeft!==0) el.scrollLeft=0; }
+  function bind(id){ var el=document.getElementById(id); if(!el||el._bbNoShift) return; el._bbNoShift=1;
+    el.addEventListener('scroll',function(){ fix(el); },{passive:true}); }
+  function init(){ bind('profileView'); bind('otherUserProfileView'); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  setInterval(init,2000);
 })();
 </script>
 </body>
