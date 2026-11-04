@@ -12125,6 +12125,139 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#giftStore,#giftPage
 html body:has(.app-container[data-app-theme]) :is(#mainPage,#giftStore,#giftPage,#giftSend,#starsHist,.gp-ov,.gx-ov) :is(.gp-cta,.gs-send,.gm-btn,.gg-btn,#gpOk,#gpSell):disabled{opacity:.55;box-shadow:none!important;filter:none}
 html body:has(.app-container[data-app-theme]) :is(#mainPage,#giftStore,#giftPage,#giftSend,#starsHist,.gp-ov,.gx-ov) :is(.gp-cta,.gs-send,.gm-btn,.gg-btn,#gpOk,#gpSell) :is(svg,i,span){color:#fff!important;-webkit-text-fill-color:#fff!important}
 </style>
+
+<style id="bb-stars-field-and-sb-fields">
+/* ===== 1) حقل رصيد النجوم (بطاقة الرصيد) بنفس لون أزرار الهدايا بالضبط ===== */
+html body:has(.app-container[data-app-theme]) .sh-bal{
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' fill-opacity='.18' stroke='%23fff' stroke-opacity='.18' stroke-width='2' stroke-linejoin='round' d='M12 2.6 14.9 8.9 21.8 9.7 16.7 14.4 18 21.2 12 17.8 6 21.2 7.3 14.4 2.2 9.7 9.1 8.9Z'/%3E%3C/svg%3E") no-repeat left -14px bottom -22px/120px 120px,
+    linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%)!important;
+  background-color:#d3a93b!important;
+  box-shadow:0 8px 20px rgba(190,150,40,.38)!important;
+  color:#fff!important}
+
+/* ===== 2) حقل شريط الإشعارات (أيقونات الهاتف) في الإعدادات والهدايا والنجوم ===== */
+#bbTopFill{position:fixed;top:0;left:0;right:0;height:var(--sat-real,0px);z-index:6;pointer-events:none;background:transparent;display:none;transition:background-color .18s ease}
+#bbTopFill.on{display:block}
+/* لوحة المطوّر (من الإعدادات): رأسها يبدأ تحت الشريط */
+#dvpOverlay .dvp-head{padding-top:calc(14px + var(--sat,0px))!important}
+/* صفحة الهدية: أزرارها تنزل تحت الشريط والغلاف يمتد خلفه بلونه */
+#giftPage .gp-top{margin-top:var(--sat,0px)}
+</style>
+<script id="bb-top-field-js">
+(function(){
+  'use strict';
+  var strip=null, queued=false, lastC='', lastZ='', lastOn=false;
+  var SET=['settingsView','privacySettingsView','notificationSettingsView','chatSettingsView'];
+  var OV='#dvpOverlay,.gp-ov,#giftSend,.gx-ov,.blk-ov';
+  function shown(el){ return !!el && !el.classList.contains('hidden') && el.getClientRects().length>0; }
+  function theme(){
+    var a=document.querySelector('.app-container[data-app-theme]');
+    var t=(a&&a.getAttribute('data-app-theme'))||document.documentElement.getAttribute('data-app-theme');
+    return t==='light'?'light':'dark';
+  }
+  function rgba(s){
+    var m=(s||'').match(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,\/]+([\d.]+))?\s*\)/);
+    return m?[+m[1],+m[2],+m[3],m[4]==null?1:+m[4]]:null;
+  }
+  function css(c){ return 'rgb('+Math.round(c[0])+','+Math.round(c[1])+','+Math.round(c[2])+')'; }
+  /* لون التدرّج عند منتصف حافة العنصر العلوية (شعاعي أو خطي) */
+  function gradAt(el){
+    var bi=getComputedStyle(el).backgroundImage; if(!bi||bi==='none') return null;
+    var cols=(bi.match(/rgba?\([^)]*\)/g)||[]).map(rgba).filter(function(c){ return c&&c[3]>=.9; });
+    if(!cols.length) return null;
+    if(cols.length===1) return cols[0];
+    var a=cols[0], b=cols[cols.length-1], t=0;
+    if(/radial-gradient/.test(bi)){
+      var r=el.getBoundingClientRect(), m=bi.match(/at\s+([\d.]+)%\s+([\d.]+)%/);
+      var px=m?+m[1]/100:.5, py=m?+m[2]/100:.5;
+      var fx=Math.max(px,1-px)*r.width, fy=Math.max(py,1-py)*r.height, far=Math.sqrt(fx*fx+fy*fy);
+      var ex=(.5-px)*r.width, ey=-py*r.height, d=Math.sqrt(ex*ex+ey*ey);
+      t=far?Math.min(1,d/far):.5;
+    }
+    return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t, 1];
+  }
+  function solid(el){
+    for(var e=el;e&&e.nodeType===1;e=e.parentElement){
+      var cs=getComputedStyle(e), c=rgba(cs.backgroundColor);
+      if(c&&c[3]>=.9) return c;
+      var g=gradAt(e); if(g) return g;
+    }
+    return null;
+  }
+  function top(){
+    var list=document.querySelectorAll(OV), best=null, bz=-1;
+    for(var i=0;i<list.length;i++){
+      var el=list[i]; if(!shown(el)) continue;
+      var cs=getComputedStyle(el); if(cs.visibility==='hidden'||(cs.position!=='fixed'&&cs.position!=='absolute')) continue;
+      var z=parseInt(cs.zIndex,10); if(isNaN(z)) z=0;
+      if(z>=bz){ best=el; bz=z; }
+    }
+    if(best) return {el:best,z:bz+1,ov:true};
+    for(var j=0;j<SET.length;j++){ var v=document.getElementById(SET[j]); if(shown(v)) return {el:v,z:6,ov:false}; }
+    return null;
+  }
+  function colorOf(sec){
+    var el=sec.el, fb=theme()==='light'?[237,242,248,1]:[9,13,22,1], c=null;
+    if(sec.ov){
+      var hero=el.querySelector('.gp-hero');
+      if(hero){ c=gradAt(hero)||solid(hero); }
+      if(!c){
+        var own=getComputedStyle(el), oc=rgba(own.backgroundColor);
+        if(oc&&oc[3]>=.9) c=oc;
+        else{
+          var v=(own.getPropertyValue('--cl-bg')||own.getPropertyValue('--dv-bg')||'').trim();
+          if(v) return v;
+          c=gradAt(el)||(el.lastElementChild&&solid(el.lastElementChild));
+        }
+      }
+    }else{
+      c=solid(el);
+    }
+    return css(c||fb);
+  }
+  function update(){
+    queued=false; if(!strip) return;
+    var sec=top(), on=!!sec, c='', z='';
+    if(on && !sec.ov && document.querySelector('.app-container.vp-on')) on=false;   /* شريط الصوت العلوي يأخذ المساحة */
+    if(on){ c=colorOf(sec); z=String(sec.z); }
+    if(on!==lastOn){ lastOn=on; strip.classList.toggle('on',on); }
+    if(on && c!==lastC){ lastC=c; strip.style.backgroundColor=c; }
+    if(on && z!==lastZ){ lastZ=z; strip.style.zIndex=z; }
+  }
+  function schedule(){ if(queued) return; queued=true; requestAnimationFrame(update); }
+  function init(){
+    strip=document.createElement('div'); strip.id='bbTopFill'; strip.setAttribute('aria-hidden','true');
+    document.body.appendChild(strip);
+    new MutationObserver(function(muts){
+      for(var i=0;i<muts.length;i++){
+        var tg=muts[i].target;
+        if(tg&&tg.closest&&tg.closest('#messagesArea,#chatList,.messages-area')) continue;
+        schedule(); return;
+      }
+    }).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class','data-app-theme','data-dvp-theme']});
+    var mo=new MutationObserver(schedule);
+    mo.observe(document.body,{childList:true});
+    var host=document.querySelector('.app-container'); if(host) mo.observe(host,{childList:true});
+    window.addEventListener('resize',schedule);
+    window.addEventListener('load',schedule);
+    setInterval(function(){ if(!document.hidden) schedule(); },700);   /* تغيّر لون غلاف الهدية بعد التحميل */
+    schedule();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
+})();
+</script>
+
+<style id="bb-gift-card-white-text">
+/* كارت الهدية في المحادثة: كل الكتابة بيضاء وغامقة + زر (عرض) بإطار أبيض وبلون خلفية الهدية */
+html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) .gm-wrap .gg-card :is(.gg-from,.gg-from b,.gg-title,.gg-row,.gg-row span,.gg-row b){
+  color:#fff!important;-webkit-text-fill-color:#fff!important;font-weight:800!important;opacity:1!important}
+html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) .gm-wrap .gg-card .gg-btn{
+  background:inherit!important;background-color:transparent!important;
+  border:2px solid #fff!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+  font-weight:800!important;box-shadow:none!important;text-shadow:none!important}
+html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) .gm-wrap .gg-card .gg-btn :is(svg,i,span){color:#fff!important;-webkit-text-fill-color:#fff!important}
+</style>
 </body>
 </html>
 
@@ -15288,7 +15421,7 @@ body.light #viewersModal .viewer-item {
     if(document.querySelector('.babylon-media-viewer')) return 'black';
     if(vis('storyViewer')||vis('avatarGalleryModal')) return 'black';
     var ov=document.getElementById('blkOverlay'); if(ov) return ov.querySelector('.sx-top')||ov;
-    var gx=document.querySelectorAll('.gx-ov'); if(gx.length) return gx[gx.length-1];
+    var gx=document.querySelectorAll('.gx-ov,.gp-ov,#dvpOverlay'); if(gx.length){ var gl=gx[gx.length-1]; return gl.querySelector('.gp-hero')||gl; }
     if(vis('profileView')||vis('otherUserProfileView')) return null;   /* منطق الغلاف الحالي */
     var v;
     if((v=vis('chatView'))) return v;
