@@ -12267,12 +12267,14 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) .gm-
 </style>
 
 <style id="bb-gift-card-btn-outline">
-/* زر (عرض) في كارت الهدية: بلا لون ذهبي، شفاف (يظهر لون خلفية الهدية) ومحاط بإطار أبيض 3px */
+/* زر (عرض) في كارت الهدية: شفاف مُبيض (أبيض نصف شفاف) بلا إطار */
 html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(.gm-wrap,body) .gg-card button.gg-btn,
 html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(.gm-wrap,body) .gg-card button.gg-btn:is(:hover,:active,:focus){
-  background:transparent!important;background-image:none!important;background-color:transparent!important;
-  border:3px solid #fff!important;outline:0!important;box-shadow:none!important;filter:none!important;
+  background:rgba(255,255,255,.24)!important;background-image:none!important;background-color:rgba(255,255,255,.24)!important;
+  border:0!important;outline:0!important;box-shadow:none!important;filter:none!important;
   color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important;font-weight:800!important}
+html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(.gm-wrap,body) .gg-card button.gg-btn:active{
+  background:rgba(255,255,255,.36)!important;background-color:rgba(255,255,255,.36)!important}
 </style>
 
 <style id="bb-gift-tile-size">
