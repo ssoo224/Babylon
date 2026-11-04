@@ -677,13 +677,13 @@ function soldMsgNode(m,id,isMine){
 /* ===== قائمة الضغط المطوّل على الهدية (إخفاء / إرسال / تثبيت / مشاركة) ===== */
 const gmRemote={};
 const GM_IC={
- pin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 4v5c0 1.12.37 2.16 1 3H9c.65-.86 1-1.9 1-3V4h4m3-2H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3V4h1c.55 0 1-.45 1-1s-.45-1-1-1z"/></svg>',
- unpin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 4v5c0 1.12.37 2.16 1 3H9c.65-.86 1-1.9 1-3V4h4m3-2H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3V4h1c.55 0 1-.45 1-1s-.45-1-1-1z"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
- share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12l-6-7v4C8 9 4.5 12 4 18c2-3 5-4.5 10-4.5V18z"/></svg>',
- hide:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>',
- show:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
- send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M7.5 12h9M13 8l4 4-4 4"/></svg>',
- pinS:'<svg viewBox="0 0 24 24" fill="#fff"><path transform="rotate(40 12 12)" d="M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"/></svg>',
+ pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3.5h7M10 3.5v5.2L7 12v1.5h10V12l-3-3.3V3.5M12 13.5V21"/></svg>',
+ unpin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3.5h7M10 3.5v5.2L7 12v1.5h10V12l-3-3.3V3.5M12 13.5V21"/><path d="M4 4l16 16"/></svg>',
+ share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3.5M8 7l4-4 4 4M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12"/></svg>',
+ hide:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2.2-4.2 5.6-6.5 9-6.5s6.8 2.3 9 6.5c-2.2 4.2-5.6 6.5-9 6.5S5.2 16.2 3 12z"/><circle cx="12" cy="12" r="2.6"/><path d="M4 4l16 16"/></svg>',
+ show:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c2.2-4.2 5.6-6.5 9-6.5s6.8 2.3 9 6.5c-2.2 4.2-5.6 6.5-9 6.5S5.2 16.2 3 12z"/><circle cx="12" cy="12" r="2.6"/></svg>',
+ send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5z"/></svg>',
+ pinS:'<svg viewBox="0 0 24 24"><g transform="rotate(35 12 12)" stroke="#fff" stroke-linejoin="round" stroke-linecap="round"><path d="M9.4 3.8h5.2l-.5 4.9 2.6 3v1.6H7.3v-1.6l2.6-3z" fill="#fff" stroke-width="2.2"/><path d="M12 14.5v5.5" fill="none" stroke-width="2"/></g></svg>',
  hideS:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>'
 };
 function giftPrefs(uid){
@@ -734,9 +734,9 @@ function gmCss(){
 .gm-ov .gmx-wrap{box-shadow:none!important}
 .gm-ribw{position:absolute;top:-2px;right:-2px;width:100px;height:100px;pointer-events:none;z-index:5}
 .gm-rib-s1,.gm-rib-s2{position:absolute;inset:0}
-.gm-rib-s1{clip-path:polygon(0 2px,98px 2px,98px 100px,0 100px)}
-.gm-rib-s2{clip-path:polygon(0 0,100px 0,100px 100px,98px 100px,98px 2px,0 2px)}
-.gm-ribw .gm-rib{position:absolute;left:5px;top:4.7px;width:160px;padding:3px 0;box-sizing:border-box;transform:rotate(45deg);transform-origin:center center;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;box-shadow:none;border:0}
+.gm-rib-s1{clip-path:none}
+.gm-rib-s2{display:none}
+.gm-ribw .gm-rib{position:absolute;left:59px;top:4.7px;width:52px;padding:3px 0;border-radius:999px;box-sizing:border-box;transform:rotate(45deg);transform-origin:center center;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;box-shadow:none;border:0}
 .gm-card .ga-pat{position:absolute;inset:0;width:100%;height:100%}
 .gm-pepe{position:absolute;left:50%;top:8%;width:54%;aspect-ratio:1/1;transform:translateX(-50%)}
 .gm-pepe>div,.gm-pepe svg{width:100%;height:100%}
