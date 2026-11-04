@@ -1214,6 +1214,7 @@ body {
 .set-row .set-ico { font-size: calc(20px * var(--bb-s,1)); width: calc(26px * var(--bb-s,1)); text-align: center; }
 .set-row .set-chev { margin-right: auto; color: var(--text-muted); }
 .set-card { background: var(--babylon-surface); border-radius: 16px; margin: 12px 12px 0; padding: 14px 16px 10px; }
+.set-card.set-card-compact { padding: 10px 16px 6px; }
 .set-card-title { font-size: calc(14px * var(--bb-s,1)); font-weight: 700; color: var(--babylon-gold); text-align: right; margin-bottom: 10px; }
 .slider-row { display: flex; align-items: center; gap: 14px; direction: ltr; padding-bottom: 6px; }
 .slider-row input[type=range] { flex: 1; accent-color: var(--babylon-gold); height: calc(28px * var(--bb-s,1)); }
@@ -1232,6 +1233,20 @@ body {
   padding: 4px 4px 12px; scrollbar-width: none; -webkit-overflow-scrolling: touch;
 }
 .theme-strip::-webkit-scrollbar { display: none; }
+.theme-strip-wrap { position: relative; }
+.theme-strip-wrap::before, .theme-strip-wrap::after { content: ""; position: absolute; top: 0; bottom: 12px; width: 38px; z-index: 2; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.theme-strip-wrap::before { left: 0; background: linear-gradient(to right, var(--babylon-surface-card, #fff), rgba(127,127,127,0)); }
+.theme-strip-wrap::after { right: 0; background: linear-gradient(to left, var(--babylon-surface-card, #fff), rgba(127,127,127,0)); }
+.theme-strip-wrap.can-left::before, .theme-strip-wrap.can-right::after { opacity: 1; }
+.ts-arrow { position: absolute; top: 70px; z-index: 3; width: 34px; height: 34px; margin-top: -17px; border-radius: 50%; border: 0; padding: 0; display: none; align-items: center; justify-content: center; cursor: pointer; background: rgba(23,33,43,.78); color: #fff; box-shadow: 0 3px 10px rgba(0,0,0,.28); -webkit-tap-highlight-color: transparent; }
+.ts-arrow svg { width: 18px; height: 18px; }
+.ts-arrow.ts-left { left: 4px; animation: tsNudgeL 1.6s ease-in-out infinite; }
+.ts-arrow.ts-right { right: 4px; animation: tsNudgeR 1.6s ease-in-out infinite; }
+.theme-strip-wrap.can-left .ts-left, .theme-strip-wrap.can-right .ts-right { display: flex; }
+.ts-arrow:active { transform: scale(.92); }
+@keyframes tsNudgeL { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-4px); } }
+@keyframes tsNudgeR { 0%,100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) { .ts-arrow.ts-left, .ts-arrow.ts-right { animation: none; } }
 .theme-card { flex: 0 0 calc(96px * var(--bb-s,1)); scroll-snap-align: center; cursor: pointer; text-align: center; }
 .theme-thumb {
   position: relative; height: 132px; border-radius: 14px; overflow: hidden;
@@ -3016,14 +3031,6 @@ html[data-app-theme="light"] .splash-title{color:#8b680e}
       <div class="sx-top"><button type="button" class="sx-back" onclick="openSettings()" aria-label="رجوع"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><h2>إعدادات المحادثات</h2></div>
 
       <div style="flex:1; overflow-y:auto; padding-bottom:24px;">
-        <div class="set-card">
-          <div class="set-card-title">حجم خط الرسائل</div>
-          <div class="slider-row">
-            <input id="fontRange" type="range" min="12" max="22" step="1" value="15" oninput="setFont(this.value)">
-            <span id="fontVal" class="slider-val">15</span>
-          </div>
-        </div>
-
         <div class="pv">
           <div class="pattern-layer" id="pvPattern"></div>
           <div class="msg-bubble">
@@ -3042,7 +3049,15 @@ html[data-app-theme="light"] .splash-title{color:#8b680e}
           <div id="themeStrip" class="theme-strip"></div>
         </div>
 
-        <div class="set-card">
+        <div class="set-card set-card-compact">
+          <div class="set-card-title">حجم خط الرسائل</div>
+          <div class="slider-row">
+            <input id="fontRange" type="range" min="12" max="22" step="1" value="15" oninput="setFont(this.value)">
+            <span id="fontVal" class="slider-val">15</span>
+          </div>
+        </div>
+
+        <div class="set-card set-card-compact">
           <div class="set-card-title">زوايا الرسالة</div>
           <div class="slider-row">
             <input id="radiusRange" type="range" min="0" max="20" step="1" value="12" oninput="setRadius(this.value)">
@@ -6307,6 +6322,40 @@ function setRadius(v) {
 buildThemeStrip();
 applyPrefs(true);
 window.__bbRefreshChatTheme = function () { try { buildThemeStrip(); applyPrefs(true); } catch (e) {} };
+
+/* إشارة تحريك شريط الثيمات: أسهم وتلاشي عند الأطراف تدل على وجود ثيمات إضافية مخفية */
+(function () {
+  var strip = document.getElementById('themeStrip');
+  if (!strip || (strip.parentNode && strip.parentNode.classList.contains('theme-strip-wrap'))) return;
+  var wrap = document.createElement('div');
+  wrap.className = 'theme-strip-wrap';
+  strip.parentNode.insertBefore(wrap, strip);
+  wrap.appendChild(strip);
+  function mk(cls, path, label, dir) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'ts-arrow ' + cls; b.setAttribute('aria-label', label);
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="' + path + '"/></svg>';
+    b.onclick = function () { strip.scrollBy({ left: dir * Math.max(120, strip.clientWidth * 0.8), behavior: 'smooth' }); };
+    wrap.appendChild(b);
+    return b;
+  }
+  mk('ts-left', 'm15 18-6-6 6-6', 'المزيد من الثيمات', -1);
+  mk('ts-right', 'm9 18 6-6-6-6', 'المزيد من الثيمات', 1);
+  function upd() {
+    var sr = strip.getBoundingClientRect();
+    var cards = strip.querySelectorAll('.theme-card');
+    if (!cards.length || sr.width < 10) { wrap.classList.remove('can-left', 'can-right'); return; }
+    var minL = Infinity, maxR = -Infinity;
+    cards.forEach(function (c) { var r = c.getBoundingClientRect(); if (r.left < minL) minL = r.left; if (r.right > maxR) maxR = r.right; });
+    wrap.classList.toggle('can-left', minL < sr.left - 8);
+    wrap.classList.toggle('can-right', maxR > sr.right + 8);
+  }
+  strip.addEventListener('scroll', upd, { passive: true });
+  window.addEventListener('resize', upd);
+  try { new ResizeObserver(upd).observe(strip); } catch (e) {}
+  try { new MutationObserver(function () { requestAnimationFrame(upd); }).observe(strip, { childList: true }); } catch (e) {}
+  requestAnimationFrame(upd); setTimeout(upd, 400);
+})();
 
 const ICONS = {
   chat:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
@@ -11797,6 +11846,25 @@ html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView 
 html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView .msg-bubble:not(.mine) .msg-text,
 html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView .msg-bubble:not(.mine) .msg-text *:not(.mention){color:var(--text-other)!important;-webkit-text-fill-color:var(--text-other)!important}
 html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatView .msg-bubble:not(.mine) .msg-meta{color:var(--meta-other)!important;-webkit-text-fill-color:var(--meta-other)!important}
+</style>
+<style id="chat-preview-theme-colors">
+/* معاينة الرسائل في إعدادات المحادثة تتبع ألوان الثيم المختار (عدا بابل) */
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv{background:var(--chat-bg)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .msg-bubble.mine{background:var(--bubble-mine)!important;border-color:transparent!important;color:var(--text-mine)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .msg-bubble.mine,html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .msg-bubble.mine *{color:var(--text-mine)!important;-webkit-text-fill-color:var(--text-mine)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .msg-bubble:not(.mine){background:var(--bubble-other)!important;border-color:var(--bubble-line)!important;color:var(--text-other)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .msg-bubble:not(.mine) *{color:var(--text-other)!important;-webkit-text-fill-color:var(--text-other)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .msg-bubble:not(.mine) .msg-meta,html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .msg-bubble:not(.mine) .msg-meta *{color:var(--meta-other)!important;-webkit-text-fill-color:var(--meta-other)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .pv-name,html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .pv-name *{color:var(--accent-chat)!important;-webkit-text-fill-color:var(--accent-chat)!important}
+html[data-chat-theme]:not([data-chat-theme="babylon"]) .app-container #chatSettingsView .pv .msg-bubble.mine .check-mark.read{color:var(--tick-read)!important;-webkit-text-fill-color:var(--tick-read)!important}
+</style>
+<style id="auth-logo-fix">
+/* إصلاح شعار شاشة الدخول: لا ينضغط (يتحول لشكل بيضاوي) ولا يُقصّ من الأعلى عند قصر الشاشة */
+.app-container .auth-page{justify-content:flex-start!important;overflow-y:auto}
+.app-container .auth-page>*{flex-shrink:0!important}
+.app-container .auth-page>:first-child{margin-top:auto}
+.app-container .auth-page>:last-child{margin-bottom:auto}
+.app-container .auth-page>.babylon-logo{width:calc(90px * var(--bb-s,1))!important;height:calc(90px * var(--bb-s,1))!important;min-height:calc(90px * var(--bb-s,1));aspect-ratio:1/1}
 </style>
 </body>
 </html>
