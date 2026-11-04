@@ -520,7 +520,7 @@ function giftMsgNode(m,id,isMine){
   const myName=(typeof currentUserData!=='undefined'&&currentUserData&&currentUserData.displayName)||'أنت';
   const from=isMine?myName:other;
   const who=other?(' <b>'+esc(other)+'</b>'):'';
-  const line=isMine?('أنت أهديت'+who+' هدية'):('أهداك'+who+' هدية');
+  const line=m.shared?(isMine?('شاركت'+who+' هدية'):('شاركك'+who+' هدية')):(isMine?('أنت أهديت'+who+' هدية'):('أهداك'+who+' هدية'));
   const g={k:K.key,number:m.number,upgraded:!!m.upgraded,model:m.model,bg:m.bg,sym:m.sym};
   const up=g.upgraded&&K.models[g.model]&&PEPE_BGS[g.bg]&&PEPE_SYMS[g.sym];
   const w=document.createElement('div');w.className='gm-wrap';w.id='message_'+id;w.dataset.created=String(m.createdAt||0);
@@ -528,12 +528,12 @@ function giftMsgNode(m,id,isMine){
   w.innerHTML='<div class="sys-msg">'+line+'</div>'
     +'<div class="gg-card" style="background:'+bgCss(g)+'">'+(up?patSvg(g.sym):'')
     +'<div class="gg-art"><img alt="" src="'+thumbUrl(g)+'"></div>'
-    +'<div class="gg-from">هدية من <b>'+esc(from||'مستخدم')+'</b></div>'
+    +(m.shared?'':'<div class="gg-from">هدية من <b>'+esc(from||'مستخدم')+'</b></div>')
     +'<div class="gg-title">'+esc(K.name)+' #'+g.number+'</div>'
     +(up?row('النموذج',K.models[g.model].n)+row('الخلفية',PEPE_BGS[g.bg].n)+row('الرمز',PEPE_SYMS[g.sym].n):'')
     +'<button type="button" class="gg-btn">عرض</button></div>';
   const im=w.querySelector('.gg-art img');im.onerror=()=>{im.onerror=null;im.src=thumbLocal(g);};
-  w.querySelector('.gg-btn').onclick=ev=>{ev.stopPropagation();openGiftPage(m.to||meId(),m.number,K.key);};
+  w.querySelector('.gg-btn').onclick=ev=>{ev.stopPropagation();openGiftPage(m.owner||m.to||meId(),m.number,K.key);};
   return w;
 }
 
@@ -718,19 +718,20 @@ function gmCss(){
 .gift-tile .gt-pin{position:absolute;top:6px;right:6px;width:16px;height:16px;background:none!important;border:0;border-radius:0;box-shadow:none!important;display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
 .gift-tile .gt-pin svg{width:16px;height:16px;fill:#fff;filter:none;display:block}
 .gift-tile.gt-hid .ga-pepe,.gift-tile.gt-hid .ga-pat{opacity:.35}
-.gift-tile .gt-eye{position:absolute;bottom:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none}
-.gift-tile .gt-eye svg{width:12px;height:12px}
+.gift-tile .gt-eye{position:absolute;bottom:6px;right:6px;width:16px;height:16px;background:none!important;border:0;border-radius:0;box-shadow:none!important;display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none;color:#fff}
+.gift-tile .gt-eye svg{width:16px;height:16px;display:block;fill:none!important;stroke:#fff!important}
+.gift-tile .gt-eye svg *{fill:none!important;stroke:#fff!important}
 .gm-ov{position:fixed;inset:0;z-index:100001;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;direction:rtl;box-sizing:border-box;
   background:rgba(8,12,18,.55);-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);transition:backdrop-filter .28s ease,-webkit-backdrop-filter .28s ease,background .28s ease}
 .gm-ov.in{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);background:rgba(8,12,18,.62)}
 .gm-ov.out{-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);background:rgba(8,12,18,0);transition-duration:.18s}
-.gm-wrap{position:relative;width:calc(100% - 36px);max-width:560px;aspect-ratio:1.55/1;flex:0 0 auto;
+.gmx-wrap{position:relative;width:calc(100% - 36px);max-width:560px;aspect-ratio:1.55/1;flex:0 0 auto;
   transform:scale(.55);opacity:0;transition:transform .36s cubic-bezier(.2,1.25,.4,1),opacity .2s ease}
-.gm-ov.in .gm-wrap{transform:scale(1);opacity:1}
-.gm-ov.out .gm-wrap{transform:scale(.7);opacity:0;transition:transform .18s ease,opacity .16s ease}
+.gm-ov.in .gmx-wrap{transform:scale(1);opacity:1}
+.gm-ov.out .gmx-wrap{transform:scale(.7);opacity:0;transition:transform .18s ease,opacity .16s ease}
 .gm-ov .gm-card{position:absolute;inset:0;border-radius:26px;overflow:hidden;border:0!important;outline:0!important;box-shadow:none!important;background-clip:border-box}
-.gm-ov .gm-wrap,.gm-ov .gm-menu,.gm-ov .gm-it{border:0!important;outline:0!important}
-.gm-ov .gm-wrap{box-shadow:none!important}
+.gm-ov .gmx-wrap,.gm-ov .gm-menu,.gm-ov .gm-it{border:0!important;outline:0!important}
+.gm-ov .gmx-wrap{box-shadow:none!important}
 .gm-ribw{position:absolute;top:-2px;right:-2px;width:100px;height:100px;pointer-events:none;z-index:5}
 .gm-rib-s1,.gm-rib-s2{position:absolute;inset:0}
 .gm-rib-s1{clip-path:polygon(0 2px,98px 2px,98px 100px,0 100px)}
@@ -787,7 +788,7 @@ function gmOpenMenu(tile,uid,g,redraw){
   items.push({id:'share',ic:GM_IC.share,t:'مشاركة'});
   if(mine)items.push({id:'hide',ic:hid?GM_IC.show:GM_IC.hide,t:hid?'إظهار':'إخفاء'});
   if(mine)items.push({id:'send',ic:GM_IC.send,t:'إرسال'});
-  ov.innerHTML='<div class="gm-wrap"><div class="gm-card" style="background:'+bgCss(g)+'">'+(g.upgraded?patSvg(g.sym):'')
+  ov.innerHTML='<div class="gmx-wrap"><div class="gm-card" style="background:'+bgCss(g)+'">'+(g.upgraded?patSvg(g.sym):'')
     +'<div class="gm-pepe"'+(g.upgraded?'':' style="filter:grayscale(1) brightness(.8)"')+'></div>'
     +'<div class="gm-title">'+esc(K.name)+'</div><div class="gm-sub">مُقتنى رقمي #'+g.number+'</div></div>'
     +'<div class="gm-ribw">'+ribHtml(g,'gm-rib')+'</div></div>'
@@ -813,13 +814,45 @@ function gmOpenMenu(tile,uid,g,redraw){
   });
 }
 async function gmShare(K,g,uid){
-  const text=K.name+' #'+g.number+' — مُقتنى رقمي على Babylon';
-  const url=location.href.split('#')[0];
-  try{
-    if(navigator.share){await navigator.share({title:K.name+' #'+g.number,text:text,url:url});return;}
-  }catch(e){if(e&&e.name==='AbortError')return;}
-  try{await navigator.clipboard.writeText(text+'\n'+url);showToast('تم نسخ رابط الهدية');}
-  catch(e){showToast('تعذرت المشاركة');}
+  document.getElementById('gmSharePicker')?.remove();
+  const d=document.createElement('div');d.id='gmSharePicker';d.className='message-delete-modal';
+  d.innerHTML='<div class="message-delete-card fwd-card"><div class="message-delete-heading">مشاركة الهدية إلى</div><div class="fwd-list" id="gmShList"><div class="fwd-empty">جارٍ التحميل…</div></div><button type="button" class="cancel" id="gmShCancel">إلغاء</button></div>';
+  uiRoot().appendChild(d);
+  const close=()=>d.remove();
+  d.addEventListener('click',e=>{if(e.target===d)close();});
+  d.querySelector('#gmShCancel').onclick=close;
+  const list=d.querySelector('#gmShList'),me=meId(),rows=[];
+  const ids=Object.keys(chatMetaCache||{});
+  for(let i=0;i<ids.length;i++){
+    const id=ids[i],m=chatMetaCache[id];
+    if(!m||m.type==='group'||!(m.participants||[]).includes(me))continue;
+    const o=(m.participants||[]).find(x=>x!==me);
+    if(!o||(typeof myBlocks!=='undefined'&&myBlocks&&myBlocks[o]))continue;
+    let u=null;try{u=await fetchUser(o);}catch(e){}
+    if(!u)continue;
+    rows.push({id,o,name:u.displayName||'مستخدم',sub:'@'+(u.username||''),at:m.updatedAt||0,photo:(typeof pvUrl==='function'?pvUrl(u):'')});
+  }
+  if(!d.isConnected)return;
+  rows.sort((a,b)=>b.at-a.at);
+  if(!rows.length){list.innerHTML='<div class="fwd-empty">لا توجد محادثات متاحة</div>';return;}
+  list.innerHTML='';
+  rows.forEach(r=>{
+    const b=document.createElement('button');b.type='button';b.className='fwd-row';
+    b.innerHTML='<span class="avatar">'+(r.photo?'<img src="'+esc(r.photo)+'" alt="">':esc((r.name||'?').charAt(0).toUpperCase()))+'</span><span class="fwd-info"><b>'+esc(r.name)+'</b><i>'+esc(r.sub)+'</i></span>';
+    b.onclick=async()=>{
+      close();
+      try{
+        const now=Date.now();
+        const msg={senderId:me,type:'gift',shared:true,owner:uid,k:K.key,number:g.number,upgraded:!!g.upgraded,text:'🎁 هدية '+K.name+' #'+g.number,createdAt:now,read:false};
+        if(g.upgraded){msg.model=g.model;msg.bg=g.bg;msg.sym=g.sym;}
+        await db.collection('chats').doc(r.id).collection('messages').add(msg);
+        await db.collection('chats').doc(r.id).set({updatedAt:now},{merge:true});
+        try{notifyPeer(r.id,msg.text);}catch(e){}
+        showToast('تمت مشاركة الهدية مع '+r.name);
+      }catch(e){console.error(e);showToast('تعذرت مشاركة الهدية');}
+    };
+    list.appendChild(b);
+  });
 }
 async function gmSendPick(g){
   gmCss();
