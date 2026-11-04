@@ -12275,12 +12275,12 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
 /* رقم الهدية: شريط مائل يمتد في الزاوية اليسرى العليا */
 .gifts-grid .gift-tile .gt-rw{position:absolute!important;top:-2px;left:-2px;width:60px;height:60px;pointer-events:none;z-index:3}
 .gifts-grid .gift-tile .gt-n-s1,.gifts-grid .gift-tile .gt-n-s2{position:absolute;inset:0}
-.gifts-grid .gift-tile .gt-n-s1{clip-path:polygon(2px 2px,60px 2px,60px 60px,2px 60px)}
-.gifts-grid .gift-tile .gt-n-s2{clip-path:polygon(0 0,60px 0,60px 2px,2px 2px,2px 60px,0 60px)}
+.gifts-grid .gift-tile .gt-n-s1{clip-path:inset(2px 0 0 2px round 2px 0 0 0)}
+.gifts-grid .gift-tile .gt-n-s2{clip-path:path(evenodd,'M0 2A2 2 0 0 1 2 0H60V2H4A2 2 0 0 0 2 4V60H0Z')}
 .gifts-grid .gift-tile .gt-rw .gt-n{position:absolute!important;top:11px!important;left:-41px!important;right:auto!important;bottom:auto!important;
   width:120px!important;height:auto!important;margin:0!important;padding:1px 0!important;box-sizing:border-box;
   transform:rotate(-45deg)!important;transform-origin:center center;text-align:center!important;direction:ltr;
-  border-radius:0!important;box-shadow:none!important;border:0!important;outline:0!important;
+  border-radius:2px!important;box-shadow:none!important;border:0!important;outline:0!important;
   -webkit-text-fill-color:currentColor!important;font-size:calc(10.5px * var(--bb-s,1))!important;font-weight:800!important;line-height:1.3!important;color:#fff;
   pointer-events:none}
 .gifts-grid .gift-tile .ga-pat{border-radius:inherit;overflow:hidden}
