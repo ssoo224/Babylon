@@ -6116,6 +6116,13 @@ function loadChats() {
                 lastMsgHtml = (m.imageUrl || m.videoUrl || m.fileUrl)
                   ? `${prefix ? '<span class="chat-media-preview-prefix">أنت:</span>' : ''}<span class="chat-media-preview">${mediaIcon}<span>${m.imageUrl ? 'صورة' : (m.fileUrl ? 'ملف' : 'فيديو')}</span></span>`
                   : esc(lastMsgText);
+                /* وصف المحادثة للهدايا: أيقونة هدية حمراء + نص حسب الحالة */
+                if (m.type === 'gift') {
+                  const _gIc = '<svg class="chat-media-preview-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#e53935" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="color:#e53935"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>';
+                  const _gTx = m.shared ? (isMine ? 'شاركتَ هدية' : 'شارك هدية') : (isMine ? 'أهديتَ هدية' : 'أهداك هدية');
+                  lastMsgText = _gTx;
+                  lastMsgHtml = '<span class="chat-media-preview">' + _gIc + '<span>' + _gTx + '</span></span>';
+                }
                 
                 let tStr = new Date(m.createdAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
                 if (tStr.startsWith('0')) tStr = tStr.substring(1);
