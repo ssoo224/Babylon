@@ -12269,28 +12269,66 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
 </style>
 
 <style id="bb-gift-tile-size">
-/* مربعات الهدايا في البروفايل: العرض أقل بـ 3px */
-.gifts-grid .gift-tile{width:calc(100% - 3px)!important;justify-self:center;margin-inline:auto!important}
-.gifts-grid .gift-tile .ga-pepe,#giftPage .gp-pepe{transform-origin:center center}
+.gifts-grid .gift-tile .ga-pepe,#giftPage .gp-pepe,#giftStore .st-art .ga-pepe{transform-origin:center center}
 </style>
 <script id="bb-gift-symbol-size-js">
-/* رمز الهدية: أصغر بـ 6px داخل مربع البروفايل، وبـ 10px عند فتح الهدية (خاصية scale لا تتعارض مع أنيميشن transform) */
+/* شبكة الهدايا في البروفايل: المربع أقل عرضًا بـ 6px، المسافة بين الهدايا 3px، والرمز أصغر بـ 6px.
+   صفحة الهدية: الرمز أصغر بـ 10px. (scale لا يتعارض مع أنيميشن transform) */
 (function(){
   'use strict';
-  function fit(sel,px){
-    var list=document.querySelectorAll(sel);
-    for(var i=0;i<list.length;i++){
-      var el=list[i], w=el.offsetWidth; if(!w) continue;
-      var v=Math.max(.3,(w-px)/w).toFixed(4);
+  var TILE_W=6, GAP=3, SYM=6, PAGE_SYM=10, STORE_SYM=15;
+  function setImp(el,k,v){ el.style.setProperty(k,v,'important'); }
+  function setupGrid(g){
+    var tiles=g.querySelectorAll('.gift-tile'); if(!tiles.length) return;
+    var key=g.clientWidth+'|'+tiles.length;
+    if(g.getAttribute('data-bb-key')===key) return;
+    /* قياس الحجم الأصلي: نلغي تعديلاتنا مؤقتًا */
+    ['grid-template-columns','justify-content','gap','row-gap','column-gap'].forEach(function(p){ g.style.removeProperty(p); });
+    for(var i=0;i<tiles.length;i++){ tiles[i].style.removeProperty('scale'); }
+    var pe=tiles[0].querySelector('.ga-pepe');
+    var w0=tiles[0].offsetWidth; if(!w0) return;
+    var cols=(getComputedStyle(g).gridTemplateColumns||'').split(' ').filter(Boolean).length||3;
+    var p0=pe?pe.offsetWidth:0;
+    g.setAttribute('data-bb-p0',String(p0));
+    setImp(g,'grid-template-columns','repeat('+cols+','+(w0-TILE_W)+'px)');
+    setImp(g,'justify-content','center');
+    setImp(g,'gap',GAP+'px');
+    g.setAttribute('data-bb-key',g.clientWidth+'|'+tiles.length);
+    var all=g.querySelectorAll('.ga-pepe'); for(var k=0;k<all.length;k++) all[k].removeAttribute('data-bb-k');
+  }
+  function fitPepe(el,target){
+    var w=el.offsetWidth; if(!w||!target) return;
+    var v=Math.max(.3,Math.min(1,target/w)).toFixed(4);
+    if(el.getAttribute('data-bb-k')!==v){ el.style.scale=v; el.setAttribute('data-bb-k',v); }
+  }
+  function run(){
+    var grids=document.querySelectorAll('.gifts-grid');
+    for(var i=0;i<grids.length;i++){
+      var g=grids[i]; setupGrid(g);
+      var p0=parseFloat(g.getAttribute('data-bb-p0'))||0; if(!p0) continue;
+      var ps=g.querySelectorAll('.gift-tile .ga-pepe');
+      for(var j=0;j<ps.length;j++) fitPepe(ps[j],p0-SYM);
+    }
+    /* صفحة الهدية في المتجر: كل أنواع الهدايا (القديمة والإضافية) */
+    var arts=document.querySelectorAll('#giftStore .st-art');
+    for(var n=0;n<arts.length;n++){
+      var se=arts[n].querySelector('.ga-pepe')||arts[n].lastElementChild; if(!se) continue;
+      var sw=se.offsetWidth; if(!sw) continue;
+      var sv=Math.max(.3,(sw-STORE_SYM)/sw).toFixed(4);
+      if(se.getAttribute('data-bb-k')!==sv){ se.style.setProperty('scale',sv,'important'); se.setAttribute('data-bb-k',sv); }
+    }
+    var gp=document.querySelectorAll('#giftPage .gp-pepe');
+    for(var m=0;m<gp.length;m++){
+      var el=gp[m], w=el.offsetWidth; if(!w) continue;
+      var v=Math.max(.3,(w-PAGE_SYM)/w).toFixed(4);
       if(el.getAttribute('data-bb-k')!==v){ el.style.scale=v; el.setAttribute('data-bb-k',v); }
     }
   }
-  function run(){ fit('.gifts-grid .gift-tile .ga-pepe',6); fit('#giftPage .gp-pepe',10); }
   var q=0; function sch(){ if(q) return; q=requestAnimationFrame(function(){ q=0; run(); }); }
   function init(){
     new MutationObserver(sch).observe(document.body,{childList:true,subtree:true});
     window.addEventListener('resize',sch);
-    setInterval(function(){ if(!document.hidden) sch(); },800);
+    setInterval(function(){ if(!document.hidden) sch(); },300);
     sch();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
