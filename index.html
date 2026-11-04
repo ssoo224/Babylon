@@ -8942,8 +8942,15 @@ openDeleteChatsDialog=async function(ids){
 function chatNameOf(id){const el=document.getElementById('chat_item_'+id);if(el&&el.dataset.name)return el.dataset.name;const n=el&&el.querySelector('.chat-item-name');if(!n)return 'المستخدم';const t=n.childNodes[0];return ((t&&t.textContent)||n.textContent||'المستخدم').trim()||'المستخدم';}
 function openCurrentChatUserProfile(){
   if(isGroupChat()){openGroupInfo();return;}
-  if(!currentChatOtherUserId)return;
-  db.collection('users').doc(currentChatOtherUserId).get().then(doc=>{if(doc.exists)openUserProfileDirect(doc.data());});
+  const uid=currentChatOtherUserId;if(!uid)return;
+  /* بعد الرجوع من تطبيق آخر يكون اتصال Firestore قديماً فيتأخر get() أو يفشل بصمت.
+     نجرّب الخادم أولاً، وإذا تأخر أكثر من 0.7 ثانية أو فشل نفتح فوراً من الكاش المحلي. */
+  let done=false;
+  const go=d=>{if(done||!d)return;done=true;if(!d.id)d=Object.assign({id:uid},d);openUserProfileDirect(d);};
+  const ref=db.collection('users').doc(uid);
+  const fromCache=()=>ref.get({source:'cache'}).then(doc=>{if(doc.exists)go(doc.data());else if(GU[uid])go(GU[uid]);}).catch(()=>{if(GU[uid])go(GU[uid]);}).then(()=>{if(!done)try{showToast('تعذر فتح الملف الشخصي، تحقق من الاتصال');}catch(e){}});
+  const t=setTimeout(fromCache,700);
+  ref.get().then(doc=>{clearTimeout(t);if(doc.exists)go(doc.data());else if(!done)fromCache();}).catch(()=>{clearTimeout(t);if(!done)fromCache();});
 }
 function notifyPeer(chatId,text){
   if(!currentUser||!chatId)return;
