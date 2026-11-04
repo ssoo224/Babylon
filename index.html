@@ -12361,6 +12361,42 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
   setInterval(init,2000);
 })();
 </script>
+<style id="bb-gift-share-clean-css">
+.msg-bubble.bb-gift-share{background:rgba(228,196,91,.16)!important;background-image:none!important;border:1px solid rgba(228,196,91,.28)!important;box-shadow:none!important;padding:5px!important}
+.msg-bubble.bb-gift-share .msg-meta{color:var(--babylon-gold,#b8922a)!important;opacity:.9}
+.msg-bubble.bb-gift-share .msg-meta *{color:inherit!important}
+.bb-gift-hide{display:none!important}
+</style>
+<script id="bb-gift-share-clean-js">
+(function(){'use strict';
+  var NFT=/\/nft\/[^\s"'<>]*-\d+/;
+  function clean(t){
+    if(!t||t._bbG) return;
+    var txt=t.textContent||'';
+    if(!NFT.test(txt)&&!NFT.test(t.innerHTML||'')) return;
+    var hasCard=txt.indexOf('عرض الهدية')>-1;
+    if(!hasCard) return; /* انتظر حتى تظهر بطاقة الهدية ثم أخفِ الرابط */
+    var b=t.closest('.msg-bubble'); if(b) b.classList.add('bb-gift-share');
+    (function walk(n){
+      var ch=Array.prototype.slice.call(n.childNodes);
+      ch.forEach(function(c){
+        if(c.nodeType===3){ if(c.nodeValue.trim()) c.nodeValue=''; }
+        else if(c.nodeType===1){
+          var ct=c.textContent||'';
+          if(ct.indexOf('عرض الهدية')>-1){ if(c.children.length) walk(c); }
+          else if(c.tagName==='A'||/msg-link|noopener|nft/i.test(c.className+ct+(c.getAttribute('href')||''))) c.classList.add('bb-gift-hide');
+        }
+      });
+    })(t);
+    t._bbG=1;
+  }
+  function scan(root){ (root||document).querySelectorAll('.msg-text').forEach(clean); }
+  var timer;
+  new MutationObserver(function(){ clearTimeout(timer); timer=setTimeout(function(){ document.querySelectorAll('.msg-text').forEach(function(t){t._bbG=0;}); scan(); },120); })
+    .observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+  scan();
+})();
+</script>
 </body>
 </html>
 
