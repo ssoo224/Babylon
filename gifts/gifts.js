@@ -819,7 +819,23 @@ function giftBaseUrl(){
   return (web?location.origin:(window.BB_PUBLIC_URL||location.origin)).replace(/\/$/,'');
 }
 const giftSlug=K=>String(K.name||K.key).replace(/\s+/g,'');
-function giftLink(K,g,uid){return giftBaseUrl()+'/nft/'+encodeURIComponent(giftSlug(K))+'-'+g.number;}
+/* يستخرج رقم الهدية الحقيقي حتى لو وصل داخل كائن (مثل {number:..} أو {g:{number:..}}) */
+function giftNum(v,d){
+  d=d||0;
+  if(v==null||d>4)return null;
+  if(typeof v==='number')return isFinite(v)&&v>=0?Math.floor(v):null;
+  if(typeof v==='string'){const m=/^\s*#?(\d+)\s*$/.exec(v);return m?parseInt(m[1],10):null;}
+  if(typeof v==='object'){
+    if(typeof v.toNumber==='function'){try{return giftNum(v.toNumber(),d+1);}catch(e){}}
+    for(const k of ['number','n','num','value','g']){if(k in v){const r=giftNum(v[k],d+1);if(r!=null)return r;}}
+  }
+  return null;
+}
+function giftLink(K,g,uid){
+  const n=giftNum(g);
+  if(!K||n==null)return null;
+  return giftBaseUrl()+'/nft/'+encodeURIComponent(giftSlug(K))+'-'+n;
+}
 function giftKindBySlug(slug){
   const w=String(slug||'').toLowerCase();
   return Object.values(GIFT_KINDS).find(K=>giftSlug(K).toLowerCase()===w)||null;
@@ -907,7 +923,8 @@ async function gmShare(K,g,uid){
       close();
       try{
         const now=Date.now();
-        const msg={senderId:me,text:giftLink(K,g,uid),read:false,createdAt:now};
+        const link=giftLink(K,g,uid);if(!link){showToast('تعذرت مشاركة الهدية');return;}
+        const msg={senderId:me,text:link,read:false,createdAt:now};
         await db.collection('chats').doc(r.id).collection('messages').add(msg);
         await db.collection('chats').doc(r.id).set({updatedAt:now},{merge:true});
         try{notifyPeer(r.id,'🎁 '+K.name+' #'+g.number);}catch(e){}
