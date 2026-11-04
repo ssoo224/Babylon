@@ -736,7 +736,7 @@ function gmCss(){
 .gm-rib-s1,.gm-rib-s2{position:absolute;inset:0}
 .gm-rib-s1{clip-path:none}
 .gm-rib-s2{display:none}
-.gm-ribw .gm-rib{position:absolute;left:59px;top:4.7px;width:52px;padding:3px 0;border-radius:999px;box-sizing:border-box;transform:rotate(45deg);transform-origin:center center;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;box-shadow:none;border:0}
+.gm-ribw .gm-rib{position:absolute;left:59px;top:4.7px;width:52px;padding:3px 0;border-radius:2px;box-sizing:border-box;transform:rotate(45deg);transform-origin:center center;text-align:center;color:#fff;font-size:11px;font-weight:800;direction:ltr;line-height:1.3;box-shadow:none;border:0}
 .gm-card .ga-pat{position:absolute;inset:0;width:100%;height:100%}
 .gm-pepe{position:absolute;left:50%;top:8%;width:54%;aspect-ratio:1/1;transform:translateX(-50%)}
 .gm-pepe>div,.gm-pepe svg{width:100%;height:100%}
@@ -813,6 +813,36 @@ function gmOpenMenu(tile,uid,g,redraw){
     }
   });
 }
+/* ---------- رابط الهدية: المشاركة ترسل الرابط فقط، وفتحه يعرض صفحة الهدية ---------- */
+function giftBaseUrl(){
+  const host=location.hostname,web=/^https?:$/.test(location.protocol)&&host&&host!=='localhost'&&host!=='127.0.0.1';
+  return (web?location.origin:(window.BB_PUBLIC_URL||location.origin)).replace(/\/$/,'');
+}
+function giftLink(K,g,uid){return giftBaseUrl()+'/?gift='+encodeURIComponent(K.key+'_'+g.number)+'&o='+encodeURIComponent(uid);}
+function giftFromUrl(raw){
+  try{
+    const u=new URL(raw,location.href),p=u.searchParams.get('gift'),o=u.searchParams.get('o');
+    if(!p||!o)return null;
+    const m=/^([a-z]+)_(\d+)$/.exec(p);
+    if(!m||!GIFT_KINDS[m[1]])return null;
+    return {kind:m[1],number:parseInt(m[2],10),owner:o};
+  }catch(e){return null;}
+}
+document.addEventListener('click',e=>{
+  const a=e.target&&e.target.closest&&e.target.closest('a.msg-link');if(!a)return;
+  const r=giftFromUrl(a.getAttribute('href'));if(!r)return;
+  if(typeof messageSelectionMode!=='undefined'&&messageSelectionMode)return;
+  e.preventDefault();e.stopPropagation();
+  openGiftPage(r.owner,r.number,r.kind);
+},true);
+(function openGiftFromLaunchUrl(){
+  const r=giftFromUrl(location.href);if(!r)return;
+  let tries=0;
+  const t=setInterval(()=>{
+    if(++tries>60){clearInterval(t);return;}
+    if(typeof currentUser!=='undefined'&&currentUser){clearInterval(t);try{openGiftPage(r.owner,r.number,r.kind);}catch(e){}}
+  },500);
+})();
 async function gmShare(K,g,uid){
   document.getElementById('gmSharePicker')?.remove();
   const d=document.createElement('div');d.id='gmSharePicker';d.className='message-delete-modal';
@@ -843,11 +873,10 @@ async function gmShare(K,g,uid){
       close();
       try{
         const now=Date.now();
-        const msg={senderId:me,type:'gift',shared:true,owner:uid,k:K.key,number:g.number,upgraded:!!g.upgraded,text:'🎁 هدية '+K.name+' #'+g.number,createdAt:now,read:false};
-        if(g.upgraded){msg.model=g.model;msg.bg=g.bg;msg.sym=g.sym;}
+        const msg={senderId:me,text:giftLink(K,g,uid),read:false,createdAt:now};
         await db.collection('chats').doc(r.id).collection('messages').add(msg);
         await db.collection('chats').doc(r.id).set({updatedAt:now},{merge:true});
-        try{notifyPeer(r.id,msg.text);}catch(e){}
+        try{notifyPeer(r.id,'🎁 '+K.name+' #'+g.number);}catch(e){}
         showToast('تمت مشاركة الهدية مع '+r.name);
       }catch(e){console.error(e);showToast('تعذرت مشاركة الهدية');}
     };
