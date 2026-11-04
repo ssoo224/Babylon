@@ -4177,7 +4177,9 @@ function showView(viewId) {
 
   const showMainHeader = viewId === "homeView";
   mainHeader.classList.toggle("hidden", !showMainHeader);
-  bottomNav.classList.toggle("hidden", viewId === "chatView");
+  /* الشريط السفلي يظهر فقط في الأقسام الرئيسية الثلاثة (المحادثات / الإعدادات / الملف الشخصي)،
+     ويختفي في أي شاشة فرعية: تعديل الملف، إعدادات المحادثة والإشعارات والخصوصية، البحث، ملف مستخدم آخر، والمحادثة */
+  bottomNav.classList.toggle("hidden", !(viewId === "homeView" || viewId === "settingsView" || viewId === "profileView"));
 
   if (viewId === "homeView") {
     mainSearchBtn.classList.remove("hidden");
