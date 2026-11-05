@@ -5353,8 +5353,8 @@ function renderMsgDoc(doc, box, existingTyping) {
         if (grp && !isMine) {
           target = document.createElement('div'); target.className = 'g-row'; target.dataset.sender = m.senderId;
           target.appendChild(b); target.insertAdjacentHTML('beforeend', userAvHtml(m.senderId, ''));
-          const av = target.querySelector('.g-av'); if (av) av.onclick = (ev) => { ev.stopPropagation(); memberAction(m.senderId); };
-          const sn = b.querySelector('.g-sender'); if (sn) sn.onclick = (ev) => { ev.stopPropagation(); memberAction(m.senderId); };
+          const av = target.querySelector('.g-av'); if (av) av.onclick = (ev) => { ev.stopPropagation(); memberAction(m.senderId, true); };
+          const sn = b.querySelector('.g-sender'); if (sn) sn.onclick = (ev) => { ev.stopPropagation(); memberAction(m.senderId, true); };
         }
         const _swp = window.__bbSwap && window.__bbSwap[doc.id];
         if (_swp && _swp.isConnected && _swp.parentNode) {
@@ -8385,6 +8385,23 @@ function seekVoicePlayback(range){var card=range.closest('.custom-voice-card'), 
 .cl-dlg.stack .cl-btns{flex-direction:column;align-items:stretch;gap:0;margin:0 -8px}
 .cl-dlg.stack button{text-align:right;padding:13px 16px;font-weight:600}
 .cl-dlg.stack button.cl-cancel{border-top:1px solid var(--cl-sep,rgba(255,255,255,.08));margin-top:4px}
+/* نافذة العضو: حقل الاسم 64px ثم فاصل 4px ثم حقل الأزرار */
+.up-wrap{width:min(340px,100%);display:flex;flex-direction:column;gap:4px;direction:rtl;text-align:right;animation:clPop .16s ease}
+.up-head{height:64px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--cl-card,#17212b);color:var(--cl-text,#f1f5f9);border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.up-head .up-av{width:calc(46px * var(--bb-s,1));height:calc(46px * var(--bb-s,1));font-size:calc(19px * var(--bb-s,1));flex:0 0 auto;box-shadow:0 0 0 2px var(--cl-gold,#e4c45b)}
+.up-t{min-width:0;display:flex;flex-direction:column;gap:2px}
+.up-t b{font-size:calc(16px * var(--bb-s,1));font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.up-t b em{font-style:normal;font-weight:600;color:var(--cl-sub,#8798aa);font-size:.82em}
+.up-t span{font-size:calc(12.5px * var(--bb-s,1));color:var(--cl-sub,#8798aa);direction:ltr;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.up-box{background:var(--cl-card,#17212b);color:var(--cl-text,#f1f5f9);border-radius:20px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.up-btn{width:100%;min-height:calc(54px * var(--bb-s,1));display:flex;align-items:center;gap:13px;padding:0 16px;border:0;background:transparent;color:inherit;font:inherit;font-size:calc(15.5px * var(--bb-s,1));font-weight:700;cursor:pointer;text-align:right}
+.up-btn+.up-btn{border-top:1px solid var(--cl-sep,rgba(255,255,255,.08))}
+.up-btn:active{background:rgba(127,140,160,.14)}
+.up-ic{flex:0 0 calc(24px * var(--bb-s,1));display:flex;align-items:center;justify-content:center;color:var(--cl-gold,#e4c45b)}
+.up-dot:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--cl-gold,#e4c45b);opacity:.7}
+.up-btn.cl-danger{color:#e5484d}.up-btn.cl-danger .up-dot:before{background:#e5484d}
+.up-sec{padding:10px 16px 6px;font-size:calc(12px * var(--bb-s,1));font-weight:800;color:var(--cl-sub,#8798aa);border-top:1px solid var(--cl-sep,rgba(255,255,255,.08))}
+
 .cl-ta{resize:none;min-height:calc(96px * var(--bb-s,1));line-height:1.6}
 </style>
 <script>
@@ -9342,19 +9359,63 @@ function openBannedScreen(){
 }
 
 /* ---------- إجراءات العضو ---------- */
-async function memberAction(uid){
+/* ---------- نافذة العضو: صورة + اسم (حقل 64px) ثم حقل أزرار بفاصل 4px ---------- */
+function memberPopup(uid,d,mgmt,fromChat){
+  return new Promise(res=>{
+    const me=meId(),g=GU[uid]||{},t=gTitle(uid,d);
+    const IC={
+      msg:'<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/></svg>',
+      profile:'<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>',
+      mention:'<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg>'
+    };
+    const main=[];
+    if(uid!==me)main.push({k:'msg',text:'إرسال رسالة'});
+    main.push({k:'profile',text:'عرض الملف الشخصي'});
+    if(fromChat&&uid!==me)main.push({k:'mention',text:'إشارة'});
+    const row=(b,ic)=>'<button type="button" class="up-btn'+(b.cls?' '+b.cls:'')+'" data-k="'+b.k+'">'+(ic?'<span class="up-ic">'+ic+'</span>':'<span class="up-ic up-dot"></span>')+'<span class="up-tx">'+b.text+'</span></button>';
+    const ov=document.createElement('div');ov.className='cl-dlg-ov up-ov';
+    ov.innerHTML='<div class="up-wrap" role="dialog" aria-modal="true">'
+      +'<div class="up-head">'+userAvHtml(uid,'up-av')+'<div class="up-t"><b>'+esc(g.displayName||'مستخدم')+(uid===me?' <em>(أنت)</em>':'')+'</b><span>'+(g.username?'@'+esc(g.username):'')+(t?(g.username?' · ':'')+esc(t):'')+'</span></div></div>'
+      +'<div class="up-box">'+main.map(b=>row(b,IC[b.k])).join('')
+      +(mgmt.length?'<div class="up-sec">إدارة العضو</div>'+mgmt.map(b=>row(b,'')).join(''):'')
+      +'</div></div>';
+    uiRoot().appendChild(ov);
+    const done=v=>{ov.remove();res(v);};
+    ov.addEventListener('click',e=>{if(e.target===ov)done(null);});
+    ov.querySelectorAll('.up-btn').forEach(b=>b.onclick=()=>done(b.dataset.k));
+  });
+}
+function insertMemberMention(uid){
+  const un=(GU[uid]||{}).username;
+  if(!un){showToast('لا يوجد اسم مستخدم لهذا العضو');return;}
+  const input=document.getElementById('messageInput');if(!input)return;
+  let v=String(input.value||'');
+  if(v&&!/\s$/.test(v))v+=' ';
+  input.value=v+'@'+un+', ';
+  try{input.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){}
+  input.focus();
+  try{const rg=document.createRange();rg.selectNodeContents(input);rg.collapse(false);const sl=window.getSelection();sl.removeAllRanges();sl.addRange(rg);}catch(_){}
+}
+async function memberAction(uid,fromChat){
   const d=chatMetaCache[activeChatId],me=meId();if(!d)return;
   const g=GU[uid]||{},myRole=gRole(me,d),tRole=gRole(uid,d),isOwner=myRole==='owner';
-  const acts=[{k:'profile',text:'عرض الملف الشخصي'}];
+  const acts=[];
   if(isOwner&&uid!==me){acts.push(tRole==='admin'?{k:'adm',text:'تعديل صلاحيات المشرف'}:{k:'prom',text:'تعيين كمشرف'});}
   if((isOwner)||(myRole==='admin'&&uid===me))acts.push({k:'title',text:'تغيير اللقب'});
   const canAct=uid!==me&&tRole!=='owner'&&gRight('ban')&&(tRole==='member'||isOwner);
   if(canAct&&tRole==='member')acts.push({k:'mute',text:(d.muted&&d.muted[uid])?'إلغاء تقييد الكتابة':'تقييد من الكتابة'});
   if(canAct){acts.push({k:'remove',text:'إزالة من المجموعة',cls:'cl-danger'});acts.push({k:'ban',text:'إزالة وحظر',cls:'cl-danger'});}
-  acts.push({text:'إلغاء',k:'x',cls:'cl-cancel'});
-  const r=await clAsk({stack:true,title:esc(g.displayName||'مستخدم'),body:(g.username?'@'+esc(g.username):'')+(gTitle(uid,d)?' · '+esc(gTitle(uid,d)):''),buttons:acts});
-  if(!r)return;const a=acts[r.i];if(!a||a.k==='x')return;
-  if(a.k==='profile'){
+  const key=await memberPopup(uid,d,acts,!!fromChat);
+  if(!key)return;const a={k:key};
+  if(a.k==='msg'){
+    if(uid===me)return;
+    if(typeof myBlocks!=='undefined'&&myBlocks&&myBlocks[uid]){showToast('أنت حاظر هذا المستخدم');return;}
+    try{if(await blockedByThem(uid)){showToast('تم حظرك من قبل هذا المستخدم');return;}}catch(e){}
+    try{closeGroupInfo();closeSub();}catch(e){}
+    currentChatOtherUserId=uid;startChatFromProfile();
+  }else if(a.k==='mention'){
+    insertMemberMention(uid);
+  }else if(a.k==='profile'){
     if(uid===me){showToast('هذا ملفك الشخصي');return;}
     db.collection('users').doc(uid).get().then(doc=>{if(doc.exists){window.__grpReturn=activeChatId;closeGroupInfo();closeSub();openUserProfileDirect(Object.assign({id:uid},doc.data()));}});
   }else if(a.k==='prom'||a.k==='adm'){openAdminEditor(uid,a.k==='prom');}
