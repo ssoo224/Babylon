@@ -8318,13 +8318,31 @@ function seekVoicePlayback(range){var card=range.closest('.custom-voice-card'), 
 .gx-photo{flex:0 0 calc(64px * var(--bb-s,1));width:calc(64px * var(--bb-s,1));height:calc(64px * var(--bb-s,1));border-radius:50%;background:var(--cl-gold,#e4c45b);color:#1a1a1a;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer}
 .gx-photo img{width:100%;height:100%;object-fit:cover}
 .gx-name{flex:1;min-width:0;background:none!important;border:0!important;border-bottom:2px solid var(--cl-gold,#e4c45b)!important;border-radius:0!important;box-shadow:none!important;color:inherit;font:inherit;font-size:calc(17px * var(--bb-s,1));padding:10px 2px;outline:none}
+
+/* صفحة «مجموعة جديدة»: بطاقات وأيقونات SVG مثل بقية التطبيق، بدون أشرطة/إطارات ذهبية مستطيلة */
+.gc-hero{display:flex;flex-direction:column;align-items:center;gap:10px;padding:22px 18px 4px}
+.gc-photo{position:relative;width:calc(96px * var(--bb-s,1));height:calc(96px * var(--bb-s,1));border-radius:50%;background:linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 22px rgba(190,150,40,.38)}
+.gc-photo>img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.gc-photo>svg{stroke:#fff}
+.gc-plus{position:absolute;bottom:-2px;inset-inline-start:-2px;width:calc(30px * var(--bb-s,1));height:calc(30px * var(--bb-s,1));border-radius:50%;background:var(--cl-card,#17212b);color:var(--cl-gold,#c99a1c);border:3px solid var(--cl-bg,#0e1621);display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+.gc-plus svg{width:calc(14px * var(--bb-s,1));height:calc(14px * var(--bb-s,1))}
+.gc-hint{font-size:calc(12.5px * var(--bb-s,1));color:var(--cl-sub,#8798aa)}
+.gc-field{display:flex;align-items:center;gap:12px;margin:14px 14px 0;padding:0 16px;height:calc(56px * var(--bb-s,1));background:var(--cl-card,#17212b);border-radius:18px;box-shadow:var(--cl-shadow,0 1px 2px rgba(20,35,55,.05))}
+.gc-fic{display:flex;color:var(--cl-gold,#c99a1c);flex:0 0 auto}
+.gc-in,.gc-in:focus,.gc-in:focus-visible,.app-container #grpPick .gc-in{flex:1;min-width:0;background:none!important;border:0!important;outline:0!important;box-shadow:none!important;border-radius:0!important;color:var(--cl-text,#f1f5f9);font:inherit;font-size:calc(16.5px * var(--bb-s,1));font-weight:600;padding:0;caret-color:var(--cl-gold,#c99a1c)}
+.gc-in::placeholder{color:var(--cl-sub,#8798aa);font-weight:500}
+.gc-cnt{flex:0 0 auto;font-size:calc(12px * var(--bb-s,1));color:var(--cl-sub,#8798aa);direction:ltr}
+.gc-card{margin:12px 14px 96px;background:var(--cl-card,#17212b);border-radius:20px;box-shadow:var(--cl-shadow,0 1px 2px rgba(20,35,55,.05));overflow:hidden;padding-bottom:6px}
+.gc-head{display:flex;align-items:center;gap:10px;padding:14px 16px 6px;font-size:calc(14.5px * var(--bb-s,1));font-weight:800;color:var(--cl-text,#f1f5f9)}
+.gc-hic{width:calc(32px * var(--bb-s,1));height:calc(32px * var(--bb-s,1));border-radius:11px;display:flex;align-items:center;justify-content:center;color:var(--cl-gold,#c99a1c);background:rgba(201,154,28,.14)}
 .gi-hero{text-align:center;padding:14px 16px 6px}
 .gi-av{position:relative;width:calc(104px * var(--bb-s,1));height:calc(104px * var(--bb-s,1));margin:0 auto 12px}
 .gi-av.can{cursor:pointer}
 .gi-av .g-av{width:calc(104px * var(--bb-s,1));height:calc(104px * var(--bb-s,1));font-size:calc(44px * var(--bb-s,1));box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .gi-av.sm{width:calc(84px * var(--bb-s,1));height:calc(84px * var(--bb-s,1))}
 .gi-av.sm .g-av{width:calc(84px * var(--bb-s,1));height:calc(84px * var(--bb-s,1));font-size:calc(34px * var(--bb-s,1))}
-.gi-cam{position:absolute;bottom:0;left:0;width:calc(34px * var(--bb-s,1));height:calc(34px * var(--bb-s,1));border-radius:50%;background:var(--cl-gold,#e4c45b);color:#111;display:flex;align-items:center;justify-content:center;border:3px solid var(--cl-bg,#0e1621)}
+.gi-cam{position:absolute;bottom:0;left:0;width:calc(34px * var(--bb-s,1));height:calc(34px * var(--bb-s,1));border-radius:50%;background:linear-gradient(135deg,#e6c566 0%,#d3a93b 45%,#bc8e24 100%);color:#fff;display:flex;align-items:center;justify-content:center;border:3px solid var(--cl-bg,#0e1621);box-sizing:border-box;box-shadow:0 4px 10px rgba(190,150,40,.35)}
+.gi-cam svg{stroke:#fff!important;color:#fff!important}
 .gi-name{display:inline-flex;align-items:center;gap:7px;font-size:calc(21px * var(--bb-s,1));font-weight:700;max-width:100%}
 .gi-name.can{cursor:pointer}
 .gi-name svg{opacity:.55;flex:0 0 auto}
@@ -8346,6 +8364,11 @@ function seekVoicePlayback(range){var card=range.closest('.custom-voice-card'), 
 .gi-owner{margin-inline-start:auto;font-size:calc(12px * var(--bb-s,1));color:var(--cl-gold,#e4c45b);flex:0 0 auto}
 .cl-in{width:100%;box-sizing:border-box;background:var(--cl-chip,rgba(255,255,255,.09))!important;border:1.5px solid transparent!important;border-radius:12px;color:inherit;padding:11px 13px;font:inherit;font-size:calc(15.5px * var(--bb-s,1));margin:2px 0 14px;outline:none}
 .cl-in:focus{border-color:var(--cl-gold,#e4c45b)!important}
+/* حقل اللقب المخصص (تعيين مشرف): بدون أشرطة/إطارات ذهبية، وخلفية أنصع بياضاً */
+.app-container #aeTitle,.app-container #aeTitle:focus,.app-container #aeTitle:focus-visible{outline:none!important;box-shadow:none!important;border:1.5px solid transparent!important;caret-color:var(--cl-gold,#c99a1c)}
+.app-container[data-app-theme="light"] #aeTitle,.app-container[data-app-theme="light"] #aeTitle:focus{background:#fbfcfe!important;border-color:#e8edf3!important}
+.app-container[data-app-theme="dark"] #aeTitle,.app-container[data-app-theme="dark"] #aeTitle:focus{border-color:rgba(255,255,255,.06)!important}
+
 .cl-dlg .cl-btns{flex-wrap:wrap}
 .cl-dlg button.cl-cancel{color:var(--cl-sub,#8798aa)}
 #newGroupBtn svg{display:block}
@@ -8356,6 +8379,11 @@ function seekVoicePlayback(range){var card=range.closest('.custom-voice-card'), 
 .g-sender .g-sn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .g-role{flex:0 0 auto;font-size:calc(11.5px * var(--bb-s,1));font-weight:600;color:var(--cl-gold,#c9a227);opacity:.95}
 .g-role.m{color:var(--cl-sub,#8798aa)}
+/* رأس رسالة المجموعة: اللقب يميناً واسم المستخدم يساراً، وكلاهما كامل الظهور حتى مع رسالة قصيرة (الفقاعة تتسع لهما) */
+.g-row.g-first .g-sender{flex-direction:row-reverse;align-items:center;gap:10px;width:max-content;min-width:100%;box-sizing:border-box}
+.g-row.g-first .g-sender .g-sn{flex:0 1 auto;min-width:0;max-width:min(46vw,200px);font-size:calc(13.5px * var(--bb-s,1));font-weight:800}
+.g-row.g-first .g-sender .g-role{flex:0 0 auto;white-space:nowrap;padding:2px 10px;border-radius:10px;font-size:calc(11.5px * var(--bb-s,1));font-weight:700}
+
 .pinned-bar{display:flex;align-items:center;gap:11px;padding:7px 14px 7px 8px;background:var(--cl-card,#17212b);border-bottom:1px solid var(--cl-sep,rgba(255,255,255,.07));direction:rtl;cursor:pointer;flex:0 0 auto}
 .pinned-bar.hidden{display:none!important}
 .pinned-bar .pb-line{display:flex;flex-direction:column;gap:2px;height:calc(34px * var(--bb-s,1));width:3px;flex:0 0 3px}
@@ -8900,13 +8928,13 @@ function compressSquare(file,size,cb){
 function renderPickerStep2(){
   const ov=document.getElementById('grpPick');if(!ov)return;
   ov.innerHTML='<div class="gx-top"><button type="button" class="gx-ib" id="gpBack2" aria-label="رجوع"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button><div class="gx-title"><b>مجموعة جديدة</b><span>أدخل اسم المجموعة</span></div></div>'
-    +'<div class="gx-scroll"><div class="gx-name-row"><label class="gx-photo" id="gpPhoto" for="gpFile">'+(GP.photo?'<img src="'+esc(GP.photo)+'" alt="">':'<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h3l1.6-2.2h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.3" r="3.6"/></svg>')+'</label><input type="file" id="gpFile" accept="image/*" class="hidden">'
-    +'<input id="gpName" class="gx-name" type="text" maxlength="40" placeholder="اسم المجموعة" value="'+esc(GP.name)+'" autocomplete="off"></div>'
-    +'<div class="gx-sec">'+memberWord(GP.selected.length+1)+'</div>'
-    +'<div class="gx-list flat">'+GP.selected.map(u=>{const g=GU[u]||{};return '<div class="gx-row static">'+userAvHtml(u,'gx-av')+'<div class="gx-t"><b>'+esc(g.displayName||'مستخدم')+'</b><span>'+(g.username?'@'+esc(g.username):'')+'</span></div></div>';}).join('')+'</div></div>'
+    +'<div class="gx-scroll"><div class="gc-hero"><label class="gc-photo" id="gpPhoto" for="gpFile">'+(GP.photo?'<img src="'+esc(GP.photo)+'" alt="">':'<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l1.6-2.2h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.3" r="3.6"/></svg>')+'<span class="gc-plus"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></label><input type="file" id="gpFile" accept="image/*" class="hidden"><div class="gc-hint">صورة المجموعة (اختياري)</div></div>'
+    +'<div class="gc-field"><span class="gc-fic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8.5" r="3.2"/><path d="M20 20v-1.4a3.5 3.5 0 0 0-2.6-3.4M15.5 5.3a3.2 3.2 0 0 1 0 6.2"/></svg></span><input id="gpName" class="gc-in" type="text" maxlength="40" placeholder="اسم المجموعة" value="'+esc(GP.name)+'" autocomplete="off"><span class="gc-cnt" id="gpCnt">'+(GP.name||'').length+'/40</span></div>'
+    +'<div class="gc-card"><div class="gc-head"><span class="gc-hic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8.5" r="3.2"/><path d="M20 20v-1.4a3.5 3.5 0 0 0-2.6-3.4M15.5 5.3a3.2 3.2 0 0 1 0 6.2"/></svg></span><b>'+memberWord(GP.selected.length+1)+'</b></div>'
+    +GP.selected.map(u=>{const g=GU[u]||{};return '<div class="gx-row static">'+userAvHtml(u,'gx-av')+'<div class="gx-t"><b>'+esc(g.displayName||'مستخدم')+'</b><span>'+(g.username?'@'+esc(g.username):'')+'</span></div></div>';}).join('')+'</div></div>'
     +'<button type="button" class="gx-fab on" id="gpCreate" aria-label="إنشاء"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></button>';
   ov.querySelector('#gpBack2').onclick=()=>{GP.name=ov.querySelector('#gpName').value;GP.step=1;renderPickerStep1();};
-  ov.querySelector('#gpName').addEventListener('input',e=>{GP.name=e.target.value;});
+  ov.querySelector('#gpName').addEventListener('input',e=>{GP.name=e.target.value;const c=ov.querySelector('#gpCnt');if(c)c.textContent=e.target.value.length+'/40';});
   ov.querySelector('#gpFile').addEventListener('change',e=>{
     const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
     if(!f.type.startsWith('image/'))return showToast('اختر ملف صورة فقط');
