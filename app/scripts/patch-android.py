@@ -34,6 +34,10 @@ m = m.replace("</manifest>", add + "</manifest>")
 if "windowSoftInputMode" not in m:
     m, n = re.subn(r"<activity\b", '<activity android:windowSoftInputMode="adjustResize"', m, count=1)
     if n != 1: die("ما لقيت activity", mf)
+else:
+    # لا نسمح بوجود adjustPan لأنه يحرّك النافذة بدلاً من تصغير WebView.
+    m = re.sub(r'android:windowSoftInputMode="[^"]*"',
+               'android:windowSoftInputMode="adjustResize|stateAlwaysHidden"', m, count=1)
 meta = '        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="messages" />\n'
 meta += '        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_notify" />\n'
 meta += '        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/notif_gold" />\n'
@@ -101,6 +105,8 @@ import android.widget.Toast;
 import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -120,8 +126,16 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // IME/keyboard: request resize rather than pan so the WebView composer
+        // follows the keyboard edge on Android 5+ (including Capacitor WebView).
+        getWindow().setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
+        );
+
         applyTransparentBars();
         View decor = getWindow().getDecorView();
+        installKeyboardInsetsBridge(decor);
 
         // تسجيل واجهة الحفظ فوراً (قبل تحميل الصفحة) ليعمل التنزيل إلى المعرض.
         registerNativeBridge();
@@ -136,6 +150,31 @@ public class MainActivity extends BridgeActivity {
         if (!prefs.getBoolean("first_request_done", false)) {
             prefs.edit().putBoolean("first_request_done", true).apply();
             decor.postDelayed(this::requestInitialPermissions, 700);
+        }
+    }
+
+    /**
+     * IME compatibility bridge: Android 9-10 may resize the WebView, while
+     * Android 11+ can report IME insets in edge-to-edge mode. Send the inset
+     * to HTML so the composer can follow the keyboard in either case.
+     */
+    private void installKeyboardInsetsBridge(View decor) {
+        try {
+            ViewCompat.setOnApplyWindowInsetsListener(decor, (view, insets) -> {
+                int imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
+                boolean visible = insets.isVisible(WindowInsetsCompat.Type.ime()) || imeBottom > 0;
+                final int height = imeBottom;
+                final boolean shown = visible;
+                try {
+                    WebView web = getBridge() != null ? getBridge().getWebView() : null;
+                    if (web != null) web.post(() -> web.evaluateJavascript(
+                        "window.dispatchEvent(new CustomEvent('babylonNativeKeyboard',{detail:{visible:" + shown + ",height:" + height + "}}));", null));
+                } catch (Throwable ignored) {}
+                return insets;
+            });
+            ViewCompat.requestApplyInsets(decor);
+        } catch (Throwable t) {
+            android.util.Log.w("BabylonChat", "keyboard insets bridge unavailable", t);
         }
     }
 
