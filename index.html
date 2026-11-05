@@ -14842,6 +14842,8 @@ function bbMsgUser(u){
 #chatView #vpBar.in-chat{position:absolute!important;top:var(--vp-top,110px)!important;left:10px!important;right:10px!important;margin:0!important;height:calc(34px * var(--bb-s,1))!important;min-height:calc(34px * var(--bb-s,1));box-sizing:border-box;padding:0 14px!important;z-index:14;
   border:1px solid rgba(228,196,91,.35)!important;border-radius:16px!important;box-shadow:var(--cr-shadow,0 4px 12px rgba(0,0,0,.18));animation:vpInChat .22s ease}
 .app-container[data-app-theme="light"] #chatView #vpBar.in-chat{border-color:rgba(194,157,48,.45)!important}
+#chatView #vpBar.in-chat{border-color:rgba(203,213,225,.4)!important}
+.app-container[data-app-theme="light"] #chatView #vpBar.in-chat{border-color:#d9dee5!important}
 @keyframes vpInChat{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 #chatView#chatView.vp-chat #messagesArea.messages-area{padding-top:var(--vp-pad,calc(var(--cr-head-h,110px) + 52px))!important}
 #chatView#chatView.vp-chat #pinnedBar:not(.hidden) ~ #messagesArea.messages-area{padding-top:var(--vp-pad,calc(var(--cr-head-h,110px) + 106px))!important}
@@ -15021,12 +15023,19 @@ function bbMsgUser(u){
     var c=cur;if(!c)return;
     var cv=document.getElementById('chatView');
     var inChat=cv&&!cv.classList.contains('hidden')&&activeChatId===c.chatId;
-    if(!inChat){try{if(c.group)openGroupRoom(c.chatId);else if(c.other)openChatRoom(c.other);}catch(e){}}
+    if(!inChat){try{activeChatId=c.chatId;if(c.group)openGroupRoom(c.chatId);else if(c.other)openChatRoom(c.other);}catch(e){}}
     var tries=0;
     (function find(){
       var el=document.getElementById('message_'+c.id);
       if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('search-match');setTimeout(function(){el.classList.remove('search-match');},3500);return;}
-      if(++tries>30){try{showToast('الصوتية ضمن الرسائل الأقدم');}catch(e){}return;}
+      var area=document.getElementById('messagesArea');
+      var loaded=area&&area.querySelector('.msg-bubble');
+      /* المحادثة اكتملت وما زالت الرسالة غير ظاهرة: حمّل الرسائل الأقدم تلقائياً حتى نصل إليها */
+      if(loaded&&activeChatId===c.chatId&&typeof window.goToReplied==='function'){
+        window.goToReplied(c.id,'',null);
+        return;
+      }
+      if(++tries>40){try{showToast('تعذر العثور على الرسالة الصوتية');}catch(e){}return;}
       setTimeout(find,150);
     })();
   }
@@ -21365,5 +21374,34 @@ html:has(.app-container[data-app-theme="dark"]),body:has(.app-container[data-app
       } catch (e) {}
     });
   } catch (e) {}
+})();
+</script>
+
+<script id="babylon-native-keyboard-sync">
+/* مزامنة حقل الكتابة مع الكيبورد: الجسر الأصلي (Android) يرفع النافذة بمقدار الكيبورد،
+   وهنا نحدّث حالة kb-open ونُبقي آخر الرسائل ظاهرة إن كنت في أسفل المحادثة. */
+(function(){
+  var root=document.documentElement, atBottom=true, lastH=window.innerHeight;
+  function box(){return document.getElementById('messagesArea');}
+  function near(b){return b.scrollHeight-b.scrollTop-b.clientHeight<140;}
+  function bind(){var b=box();if(!b||b.__kbBound)return;b.__kbBound=1;b.addEventListener('scroll',function(){atBottom=near(b);},{passive:true});}
+  function stick(){
+    var b=box();if(!b||!atBottom)return;
+    b.scrollTop=b.scrollHeight;
+    requestAnimationFrame(function(){b.scrollTop=b.scrollHeight;});
+  }
+  window.addEventListener('babylonNativeKeyboard',function(e){
+    var d=(e&&e.detail)||{};
+    root.classList.toggle('kb-open',!!d.visible&&d.height>0);
+    bind();stick();
+  });
+  window.addEventListener('resize',function(){
+    bind();
+    if(window.innerHeight!==lastH){lastH=window.innerHeight;stick();}
+  });
+  document.addEventListener('focusin',function(e){
+    bind();var b=box();if(b)atBottom=near(b);
+  });
+  var mo=new MutationObserver(bind);mo.observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
