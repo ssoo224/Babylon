@@ -5,6 +5,10 @@
 var VERSION = 'v3';
 var SHELL = 'babylon-shell-' + VERSION;
 var RUNTIME = 'babylon-rt-' + VERSION;
+/* كاش دائم لأشكال الهدايا وحركاتها (.tgs) وصورها المصغّرة وملصقات المجموعات: يُحذف فقط عند مسح بيانات التطبيق */
+var ASSETS = 'babylon-assets-v1';
+var ASSET_MAX = 1500;
+var ASSET_HOSTS = ['cdn.changes.tg'];
 
 /* نُبقي منطق إشعارات Firebase الموجود في ملفك القديم يعمل كما هو */
 try { importScripts('firebase-messaging-sw.js'); } catch (e) {}
@@ -62,7 +66,7 @@ self.addEventListener('install', function (event) {
 self.addEventListener('activate', function (event) {
   event.waitUntil((async function () {
     var keys = await caches.keys();
-    await Promise.all(keys.filter(function (k) { return k !== SHELL && k !== RUNTIME && k.indexOf('babylon-') === 0; })
+    await Promise.all(keys.filter(function (k) { return k !== SHELL && k !== RUNTIME && k !== ASSETS && k.indexOf('babylon-') === 0; })
       .map(function (k) { return caches.delete(k); }));
     await self.clients.claim();
   })());
@@ -113,6 +117,35 @@ async function cacheFirst(request) {
   } catch (e) { return Response.error(); }
 }
 
+function isAssetReq(url) {
+  if (ASSET_HOSTS.indexOf(url.hostname) !== -1) return true;
+  if (url.hostname === 'res.cloudinary.com' && url.pathname.indexOf('/stickers/') !== -1) return true;      /* ملصقات المجموعات فقط (لا صور/فيديوهات الرسائل) */
+  if (url.origin === self.location.origin && /\/(gifts|stickers)\/.+\.(tgs|webp|png|json)$/i.test(url.pathname)) return true;
+  return false;
+}
+async function trimAssets(cache) {
+  try {
+    var keys = await cache.keys();
+    if (keys.length > ASSET_MAX) await Promise.all(keys.slice(0, keys.length - ASSET_MAX + 100).map(function (k) { return cache.delete(k); }));
+  } catch (e) {}
+}
+async function assetCacheFirst(req, event) {
+  var cache = await caches.open(ASSETS);
+  var hit = await cache.match(req.url);
+  if (hit) return hit;
+  var same = new URL(req.url).origin === self.location.origin;
+  try {
+    var r = await fetch(req.url, same ? {} : { mode: 'cors', credentials: 'omit' });
+    if (r && r.ok) {
+      var p = cache.put(req.url, r.clone()).then(function () { return trimAssets(cache); }).catch(function () {});
+      try { event.waitUntil(p); } catch (e) {}
+    }
+    return r;
+  } catch (e) {
+    try { return await fetch(req); } catch (x) { return Response.error(); }
+  }
+}
+
 self.addEventListener('fetch', function (event) {
   var req = event.request;
   if (req.method !== 'GET') return;
@@ -123,6 +156,8 @@ self.addEventListener('fetch', function (event) {
   if (req.headers.has('range')) return;
 
   if (req.mode === 'navigate') { event.respondWith(navigationHandler(event)); return; }
+
+  if (isAssetReq(url)) { event.respondWith(assetCacheFirst(req, event)); return; }
 
   if (url.origin === self.location.origin) {
     if (url.pathname === '/firebase-messaging-sw.js' || url.pathname === '/offline-sw.js') return;
