@@ -77,7 +77,9 @@
     '#updPage:before{display:none}' +
     '#updPage .u-glow{background:radial-gradient(circle,rgba(232,190,70,.30),rgba(232,190,70,0) 68%)}' +
     '#updPage .u-orb:before,#updPage .u-orb:after{border-color:rgba(201,154,28,.5)}' +
-    '#updPage .u-track{stroke:rgba(22,32,43,.10)}' +
+    '#updPage .u-track{display:inline;fill:none;stroke:rgba(214,170,50,.22);stroke-width:5}' +
+    '#updPage .u-core{background:linear-gradient(135deg,#fff1b0 0%,#f4d56a 28%,#e8bf45 62%,#d9a830 100%);border:2px solid #fff6cf;box-shadow:0 10px 28px rgba(232,190,70,.45),inset 0 2px 4px rgba(255,255,255,.6)}' +
+    '#updPage.err .u-core{background:linear-gradient(145deg,#ff9a8f,#e0443e 60%,#a42a26);border-color:#ffd0cb}' +
     '#updPage .u-fill{filter:drop-shadow(0 0 5px rgba(201,154,28,.45))}' +
     '#updPage .u-chip{color:#8a6200;background:rgba(201,154,28,.12);border-color:rgba(201,154,28,.4)}' +
     '#updPage h1{background:linear-gradient(180deg,#e3ae2c,#b47f00 75%);-webkit-background-clip:text;background-clip:text;color:transparent}' +
