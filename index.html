@@ -20879,6 +20879,21 @@ window.bbTinyThumb = function (file) {
 .app-container.bb-tabswitch #bottomNav.telegram-bottom-nav::before{opacity:0;transition:none!important}
 .app-container.bb-tabswitch :is(#homeView,#profileView,#settingsView) *{animation:none!important}
 </style>
+<style id="bb-night-unify">
+/* الوضع الليلي: توحيد الخلفيات والحقول في الإعدادات وكل الأقسام والملف الشخصي مع خلفية صفحة المحادثات */
+.app-container[data-app-theme="dark"],.blk-ov[data-app-theme="dark"],.gp-ov,#giftSend{--babylon-dark:#0e1621;--babylon-surface:#17212b;--babylon-surface-card:#17212b;--babylon-surface-hover:#1d2a38;--babylon-border:rgba(255,255,255,.08);--pf-bg:#0e1621;--pf-card:#17212b;--cl-bg:#0e1621;--cl-card:#17212b;--cl-chip:#1d2a38;--card-bg:#17212b;--border-color:rgba(255,255,255,.08)}
+.app-container[data-app-theme="dark"] #settingsView,.app-container[data-app-theme="dark"] #privacySettingsView,.app-container[data-app-theme="dark"] #notificationSettingsView,.app-container[data-app-theme="dark"] #chatSettingsView,.app-container[data-app-theme="dark"] #profileView,.app-container[data-app-theme="dark"] #otherUserProfileView,.app-container[data-app-theme="dark"] #editProfileView,.app-container[data-app-theme="dark"] #searchView{background-color:#0e1621!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180' fill='none' stroke='%23e4c45b' stroke-opacity='.11' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 52h36M16 52v-7h28v7M20 45v-7h20v7M24 38v-7h12v7M30 31v-5'/%3E%3Cg transform='translate%28125 38%29'%3E%3Ccircle r='13'/%3E%3Ccircle r='3'/%3E%3Cpath d='M0-18V18M-18 0H18M-12.7-12.7L12.7 12.7M12.7-12.7L-12.7 12.7'/%3E%3C/g%3E%3Cpath d='M30 108l11 3-7 11zM48 118l11 3-7 11zM24 128l11 3-7 11z'/%3E%3Cpath d='M140 120a15 15 0 1 0 8 23a12 12 0 0 1-8-23z'/%3E%3Ccircle cx='152' cy='124' r='2'/%3E%3Cpath d='M90 82l6 6-6 6-6-6z'/%3E%3Cpath d='M88 150v22M88 158c-5-4-10-4-14-2M88 158c5-4 10-4 14-2M88 164c-4-3-8-3-11-1M88 164c4-3 8-3 11-1'/%3E%3C/svg%3E")!important;background-size:180px 180px!important;background-repeat:repeat!important}
+html:has(.app-container[data-app-theme="dark"]),body:has(.app-container[data-app-theme="dark"]){background:#0e1621!important}
+.blk-ov[data-app-theme="dark"]{background:#0e1621!important}
+.app-container[data-app-theme="dark"] :is(.sx-hero,.sx-group,.set-card,.set-row,.notification-intro,.notification-setting-card,.pf-card,.edit-profile-card,.edit-profile-header,.blk-row,.profile-card,.profile-row,.settings-card,.chat-settings-card,.appearance-setting-row){background:#17212b!important;border-color:rgba(255,255,255,.08)!important}
+.app-container[data-app-theme="dark"] .sx-group-danger{background:rgba(220,38,38,.10)!important;border-color:rgba(220,38,38,.28)!important}
+.app-container[data-app-theme="dark"] :is(.sx-top,.settings-view::before){background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+.blk-ov[data-app-theme="dark"] .sx-top{background:#17212b!important;border-color:rgba(255,255,255,.08)!important}
+.blk-ov[data-app-theme="dark"] .blk-row{background:#17212b!important;border-color:rgba(255,255,255,.08)!important}
+.app-container[data-app-theme="dark"] :is(#settingsView,#privacySettingsView,#notificationSettingsView,#chatSettingsView,#profileView,#otherUserProfileView,#editProfileView) :is(input,textarea,select,.babylon-input){background:#1d2a38!important;border-color:rgba(255,255,255,.1)!important;color:#f1f5f9!important}
+.app-container[data-app-theme="dark"] :is(.sx-seg,.notification-toggle,.settings-theme-switch){background:#1d2a38!important;border-color:rgba(255,255,255,.08)!important}
+.app-container[data-app-theme="dark"] #editProfileView .edit-profile-header{background:#0e1621!important}
+</style>
 <script id="bb-entrance-anim-js">
 (function(){
   'use strict';
