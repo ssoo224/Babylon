@@ -17115,7 +17115,6 @@ html{overflow:hidden!important;overscroll-behavior:none}
   window.addEventListener('scroll',function(){if(window.scrollY||window.scrollX)apply();},{passive:true});
   document.addEventListener('focusin',function(){track(1400);});
   document.addEventListener('focusout',function(){track(900);});
-  window.__bbVvApply=apply;
   apply();
 })();
 </script>
@@ -17127,61 +17126,10 @@ html{overflow:hidden!important;overscroll-behavior:none}
 (function(){
   var root=document.documentElement, vv=window.visualViewport, vk=navigator.virtualKeyboard;
   var ua=navigator.userAgent||'', hw=/HUAWEI|HONOR|HMSCore|HarmonyOS|EMUI|HMSBrowser|HuaweiBrowser/i.test(ua);
-  var base=Math.max(window.innerHeight,vv?vv.height:0), extra=0, fbTimer=0, overlay=false, lastW=window.innerWidth, predUntil=0, predT=0;
-  function kbKey(){ return window.innerWidth>window.innerHeight?'bbKbH_l':'bbKbH_p'; }
-  function readKb(){ var c=0; try{ c=parseInt(localStorage.getItem(kbKey()),10)||0; }catch(_){} return (c>=120&&c<=window.innerHeight*0.7)?c:0; }
-  function cacheKb(h){ h=Math.round(h); if(h<120) return; try{ if(readKb()!==h) localStorage.setItem(kbKey(),String(h)); }catch(_){} }
-  var animRaf=0, animTarget=-1;
-  /* رفع تدريجي لحقل الكتابة يوازي حركة الكيبورد حتى يستقر على ارتفاعه */
-  function animateExtra(to,dur){
-    cancelAnimationFrame(animRaf);
-    animTarget=to;
-    var from=extra; if(from===to) return;
-    extra=to; window.__bbKbExtra=to;
-    root.style.setProperty('--bb-kb-extra',to+'px');
-    root.classList.toggle('bb-kb-overlay',to>0);
-    if(to>0) root.classList.add('kb-open');
-    /* تغيير التخطيط مرة واحدة فقط (بدون إعادة ترتيب المحادثة كل إطار) ثم تحريك حقل الكتابة وحده */
-    try{ if(window.__bbVvApply) window.__bbVvApply(); }catch(_){}
-    try{window.dispatchEvent(new Event('resize'));}catch(_){}
-    var bar=document.querySelector('#chatView .chat-input-container');
-    if(bar){
-      bar.style.transition='none';
-      bar.style.transform='translateY('+(to-from)+'px)';
-      void bar.offsetHeight;
-      bar.style.transition='transform '+dur+'ms cubic-bezier(.2,.8,.2,1)';
-      bar.style.transform='translateY(0)';
-      clearTimeout(bar.__bbT);
-      bar.__bbT=setTimeout(function(){ bar.style.transition=''; bar.style.transform=''; },dur+40);
-    }
-  }
-  /* كيبورد عائم: أصغر عرضاً من الشاشة أو غير ملاصق لأسفلها => لا نرفع الحقل */
-  function vkFloating(){
-    try{
-      var r=vk&&vk.boundingRect; if(!r||r.height<=0) return false;
-      return r.width<window.innerWidth*0.8;   /* العائم المتحرك فقط: أضيق بوضوح من الشاشة */
-    }catch(_){ return false; }
-  }
-  try{ localStorage.removeItem('bbKbFloat'); }catch(_){}   /* حالة قديمة خاطئة من نسخ سابقة */
-  function markFloat(on){ try{ if(on) localStorage.setItem('bbKbFloat2',String(Date.now())); else localStorage.removeItem('bbKbFloat2'); }catch(_){} }
-  function wasFloat(){ try{ var t=parseInt(localStorage.getItem('bbKbFloat2'),10)||0; return t>0 && Date.now()-t<20*60*1000; }catch(_){ return false; } }
-  /* قياس الكيبورد الحقيقي بعد الرفع المسبق: تكرار حتى يستقر بدل محاولة واحدة مبكرة */
-  var pollTimers=[];
-  function pollMeasure(){
-    pollTimers.forEach(clearTimeout); pollTimers=[];
-    [120,250,400,600,900,1300,1800].forEach(function(t){ pollTimers.push(setTimeout(function(){
-      if(!typing()) return;
-      var h=vkH(); if(h>80) applyKb(h);
-    },t)); });
-  }
-  function applyKb(h){
-    if(vkFloating()){ markFloat(true); animTarget=0; if(extra>0) animateExtra(0,150); return; }
-    markFloat(false); cacheKb(h); if(h===animTarget) return; animateExtra(h, 150);
-  }
+  var base=Math.max(window.innerHeight,vv?vv.height:0), extra=0, fbTimer=0, overlay=false, lastW=window.innerWidth;
   function typing(){var a=document.activeElement;return !!(a&&(a.id==='messageInput'||a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable));}
   function curH(){return Math.min(window.innerHeight, vv?vv.height:window.innerHeight);}
   function setExtra(px){
-    cancelAnimationFrame(animRaf); animTarget=Math.max(0,Math.round(px));
     px=Math.max(0,Math.round(px)); if(px===extra) return;
     extra=px; window.__bbKbExtra=px;
     root.style.setProperty('--bb-kb-extra',px+'px');
@@ -17193,7 +17141,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
     if(!vk||overlay===on) return;
     try{ vk.overlaysContent=on; overlay=on; }catch(_){}
   }
-  function reset(){ clearTimeout(fbTimer); cancelAnimationFrame(animRaf); animTarget=-1; setOverlay(false); setExtra(0); }
+  function reset(){ clearTimeout(fbTimer); setOverlay(false); setExtra(0); }
   function vkH(){ try{ return (vk&&vk.boundingRect)?vk.boundingRect.height:0; }catch(_){ return 0; } }
   function update(){
     /* تغيّر العرض (تدوير الشاشة) => أعد حساب الأساس */
@@ -17205,75 +17153,49 @@ html{overflow:hidden!important;overscroll-behavior:none}
     }
     var cur=curH();
     /* النظام صغّر الصفحة بنفسه => لا نفعل شيئاً */
-    if(!overlay && base-cur>120){ cacheKb(base-cur); setExtra(0); return; }
+    if(!overlay && base-cur>120){ setExtra(0); return; }
     /* وضع القياس: الكيبورد فوق الصفحة */
     if(overlay){
       var h=vkH();
-      if(h>80){ applyKb(h); return; }
+      if(h>80){ setExtra(h); return; }
       /* الكيبورد اختفى مع بقاء المؤشر في الحقل */
-      if(extra>0){ if(Date.now()<predUntil) return; reset(); }
+      if(extra>0){ reset(); }
     }
   }
   function probeAfterFocus(){
     clearTimeout(fbTimer);
     fbTimer=setTimeout(function(){
       if(!typing()) return;
-      if(Date.now()<predUntil){ pollMeasure(); return; }        /* رفع الحقل المتوقع قيد الانتظار */
-      if(readKb()>0 && extra>0) return;       /* الارتفاع محفوظ محلياً: لا حاجة للقياس */
       if(base-curH()>120) return;            /* النظام صغّر الصفحة */
       if(vk){                                  /* قياس مباشر */
         setOverlay(true);
         setTimeout(function(){
           if(!typing()) return;
           var h=vkH();
-          if(h>80){ applyKb(h); }
+          if(h>80) setExtra(h);
           else if(hw && !window.__BB_NO_KB_FALLBACK) setExtra(Math.round(window.innerHeight*0.38));
-          else pollMeasure();
-        },30);
+          else setOverlay(false);
+        },80);
       }else if(hw && !window.__BB_NO_KB_FALLBACK){
         setExtra(Math.round(window.innerHeight*0.38));   /* تقدير احتياطي */
       }
-    },20);
+    },60);
   }
   try{ if(vk){ vk.addEventListener('geometrychange',update); } }catch(_){}
   if(vv) vv.addEventListener('resize',update);
   window.addEventListener('resize',function(){ if(extra===0||!typing()) update(); });
   window.addEventListener('orientationchange',function(){ reset(); setTimeout(function(){ base=Math.max(window.innerHeight,vv?vv.height:0); update(); },400); });
   /* سرعة الظهور: فعّل وضع القياس فور لمس حقل الكتابة (قبل فتح الكيبورد) كي يُرفع الحقل مع أول لحظة لظهور الكيبورد بدل انتظار الفحص */
-  function predictLift(){
-    try{
-      if(window.innerWidth>=1100) return;
-      if(!vk && !/Android/i.test(ua)) return;
-      setOverlay(true);
-      if(wasFloat()) return;                 /* آخر كيبورد كان عائماً: لا رفع مسبق */
-      var c=readKb(), known=c>0;
-      if(!known) c=Math.round(window.innerHeight*0.4);
-      predUntil=Date.now()+2500;
-      if(extra===0 && animTarget!==c) animateExtra(c,200);   /* 0.2s: يصعد الحقل مع الكيبورد معاً */
-      clearTimeout(predT);
-      predT=setTimeout(function(){ if(extra>0 && vkH()<=80 && !readKb()) reset(); },2500);
-      pollMeasure();
-    }catch(_){}
-  }
-  function earlyOverlay(e){ try{ if(e.target && e.target.id==='messageInput') predictLift(); }catch(_){} }
+  function earlyOverlay(e){ try{ if(vk && window.innerWidth<1100 && e.target && e.target.id==='messageInput') setOverlay(true); }catch(_){} }
   document.addEventListener('touchstart',earlyOverlay,{capture:true,passive:true});
   document.addEventListener('pointerdown',earlyOverlay,{capture:true,passive:true});
   document.addEventListener('focusin',function(){ update(); probeAfterFocus(); });
   document.addEventListener('focusout',function(){ setTimeout(update,150); });
   document.addEventListener('visibilitychange',function(){ if(document.hidden) reset(); });
-
-  /* ظهور فوري: عند التركيز على الحقل نرفعه مباشرة بآخر ارتفاع معروف للكيبورد (محفوظ من المرة السابقة)
-     فيصعد الحقل مع الكيبورد بدل انتظار قياسه بعد اكتمال حركته، ثم يُصحَّح الارتفاع بالقياس الحقيقي */
-  document.addEventListener('focusin',function(e){
-    try{
-      if(!e.target||e.target.id!=='messageInput') return;
-      predictLift();
-    }catch(_){}
-  });
   /* إبقاء حقل الكتابة ظاهراً دائماً فوق الكيبورد */
   document.addEventListener('focusin',function(e){
     if(!e.target||e.target.id!=='messageInput') return;
-    [0,120,300,700].forEach(function(t){ setTimeout(function(){
+    [300,700,1100].forEach(function(t){ setTimeout(function(){
       try{ var bar=document.getElementById('textInputBar'); if(bar&&bar.scrollIntoView) bar.scrollIntoView({block:'nearest'});
            var a=document.getElementById('messagesArea'); if(a&&(a.scrollHeight-a.scrollTop-a.clientHeight)<260) a.scrollTop=a.scrollHeight; }catch(_){}
     },t); });
