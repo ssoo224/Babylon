@@ -17090,14 +17090,37 @@ html{overflow:hidden!important;overscroll-behavior:none}
   .app-container{height:var(--vv-h,100dvh)!important;max-height:var(--vv-h,100dvh)!important}
 }
 #chatView #messagesArea{overscroll-behavior:contain}
+/* رفع فوري مع الكيبورد خلال 0.1 ثانية */
+html.bb-kb-pred body,html.bb-kb-pred .app-container{transition:height .1s ease-out,max-height .1s ease-out!important}
 </style>
 <script id="babylon-viewport-lock-js">
 (function(){
   var vv=window.visualViewport,root=document.documentElement,raf=0,until=0;
+  var KEY='bb_kb_h',pred=0,predUntil=0,predTimer=0;
+  function drop(){return window.innerHeight-(vv?vv.height:window.innerHeight);}
+  function typing(){var a=document.activeElement;return !!(a&&a.id==='messageInput');}
+  function saved(){try{var v=parseFloat(localStorage.getItem(KEY));if(v>150&&v<window.innerHeight*.7)return v;}catch(e){}return Math.round(window.innerHeight*.4);}
+  function learn(px){try{px=Math.round(px);if(px>150&&px<window.innerHeight*.7&&px!==parseFloat(localStorage.getItem(KEY)))localStorage.setItem(KEY,String(px));}catch(e){}}
+  function endPred(){pred=0;root.classList.remove('bb-kb-pred');}
+  /* توقّع ارتفاع الكيبورد (آخر ارتفاع حقيقي محفوظ) ورفع الواجهة فوراً دون انتظار المتصفح */
+  function predict(){
+    if(window.innerWidth>=1100||pred)return;
+    if(drop()>120||(window.__bbKbExtra||0)>0)return;   /* الكيبورد مفتوح أصلاً */
+    pred=saved();predUntil=Date.now()+1500;
+    root.classList.add('bb-kb-pred');
+    clearTimeout(predTimer);
+    predTimer=setTimeout(function(){if(!typing())endPred();},450);  /* لم يحدث تركيز: إلغاء التوقّع */
+    track(1700);
+  }
   function apply(){
     try{
       if(window.innerWidth>=1100){root.style.removeProperty('--vv-h');root.style.removeProperty('--vv-top');return;}
-      var h=Math.min(window.innerHeight,(vv?vv.height:window.innerHeight))-(window.__bbKbExtra||0),t=vv?vv.offsetTop:0;if(h<200)h=window.innerHeight;
+      var d=drop(),ex=window.__bbKbExtra||0;
+      if(typing()){if(d>120)learn(d);else if(ex>80)learn(ex);}
+      if(pred&&(d>120||ex>80||Date.now()>predUntil))endPred();   /* وصل القياس الحقيقي */
+      var h=Math.min(window.innerHeight,(vv?vv.height:window.innerHeight))-ex,t=vv?vv.offsetTop:0;
+      if(pred)h=Math.min(h,window.innerHeight-pred);
+      if(h<200)h=window.innerHeight;
       root.style.setProperty('--vv-h',Math.round(h)+'px');
       root.style.setProperty('--vv-top',Math.round(t)+'px');
       if(window.scrollX||window.scrollY)window.scrollTo(0,0);
@@ -17106,15 +17129,18 @@ html{overflow:hidden!important;overscroll-behavior:none}
     }catch(e){}
   }
   function track(ms){
-    until=Date.now()+(ms||1200);
+    until=Math.max(until,Date.now()+(ms||1200));
     if(raf)return;
     (function loop(){apply();if(Date.now()<until)raf=requestAnimationFrame(loop);else raf=0;})();
   }
+  function early(e){if(e.target&&e.target.id==='messageInput')predict();}
+  document.addEventListener('touchstart',early,{capture:true,passive:true});
+  document.addEventListener('pointerdown',early,{capture:true,passive:true});
   if(vv){vv.addEventListener('resize',function(){track(900);});vv.addEventListener('scroll',apply);}
   window.addEventListener('resize',function(){track(900);});
   window.addEventListener('scroll',function(){if(window.scrollY||window.scrollX)apply();},{passive:true});
-  document.addEventListener('focusin',function(){track(1400);});
-  document.addEventListener('focusout',function(){track(900);});
+  document.addEventListener('focusin',function(){if(typing())predict();track(1400);});
+  document.addEventListener('focusout',function(){setTimeout(function(){if(!typing())endPred();},0);track(900);});
   apply();
 })();
 </script>
