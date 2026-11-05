@@ -20922,8 +20922,14 @@ html:has(.app-container[data-app-theme="dark"]),body:has(.app-container[data-app
 </style>
 <style id="bb-scroll-down-night">
 /* زر الانتقال لآخر المحادثة في الطور الليلي: رمادي داكن + إطار 1px رمادي فاتح + سهم ذهبي */
-.app-container[data-app-theme="dark"] #chatScrollDownBtn{background:#262f3a!important;border:1px solid #d0d5dd!important;box-sizing:border-box;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.app-container[data-app-theme="dark"] #chatScrollDownBtn{background:#262f3a!important;border:1px solid #6b7686!important;box-sizing:border-box;box-shadow:0 4px 14px rgba(0,0,0,.45)}
 .app-container[data-app-theme="dark"] #chatScrollDownBtn svg{stroke:#e4c45b!important}
+</style>
+<style id="bb-scroll-down-noflash">
+/* سبب الومضة: حركة الدخول (bb-pop / bb-fab-in) كانت تُطبَّق على كل الأزرار ومنها زر النزول المخفي فتُظهره لحظة */
+#chatScrollDownBtn,#chatScrollDownBtn.bb-pop,#chatScrollDownBtn.bb-rise,#chatScrollDownBtn.bb-fab-in,.bb-playing #chatScrollDownBtn,#chatView.bb-chat-grow #chatScrollDownBtn{animation:none!important}
+#chatScrollDownBtn:not(.show){opacity:0!important;visibility:hidden!important}
+#chatScrollDownBtn.show{visibility:visible!important}
 </style>
 <script id="bb-entrance-anim-js">
 (function(){
