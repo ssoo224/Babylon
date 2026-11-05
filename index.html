@@ -5900,21 +5900,44 @@ async function deleteSelectedMessageForEveryone() {
   }
 }
 
+function _bbReleaseMic() {
+  try { if (window.__bbMic) { window.__bbMic.stream.getTracks().forEach(t => t.stop()); try { window.__bbMic.ctx.close(); } catch (_) {} window.__bbMic = null; } } catch (_) {}
+}
 function startRecording() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     return showToast("المتصفح لا يدعم تسجيل الصوت");
   }
 
+  /* آيباد/آيفون: ميكروفون الجهاز خافت أصلاً، وإيقاف التحكم التلقائي بالتعزيز وإلغاء الضوضاء يجعل التسجيل ضعيفاً ومتقطعاً؛ كما أن فرض sampleRate يجبر Safari على إعادة أخذ العينات. لذلك نترك المعالجة للنظام هناك */
+  const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const _audioCons = _isIOS
+    ? { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: true }
+    : { channelCount: 1, sampleRate: 48000, sampleSize: 16, echoCancellation: false, noiseSuppression: false, autoGainControl: false };
   navigator.mediaDevices.getUserMedia({
-    audio: { channelCount: 1, sampleRate: 48000, sampleSize: 16, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    audio: _audioCons
   }).then(stream => {
     /* OGG/Opus أولاً (48kHz، 96kbps)، مع بدائل للمتصفحات التي لا تدعمه */
     const mime = ['audio/ogg;codecs=opus', 'audio/ogg', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
       .find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
     const opts = { audioBitsPerSecond: 96000 };
     if (mime) opts.mimeType = mime;
-    try { mediaRecorder = new MediaRecorder(stream, opts); }
-    catch (_) { mediaRecorder = new MediaRecorder(stream); }
+    /* iOS (سفاري وكروم على الآيباد يستخدمان نفس محرك WebKit): نرفع مستوى الصوت ونضيف ضاغطاً يمنع التشويه، بدل الاعتماد على معالجة المكالمات التي تجعل الصوت مكتوماً */
+    let recStream = stream;
+    if (_isIOS) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AC(); if (ctx.state === 'suspended') ctx.resume();
+        const src = ctx.createMediaStreamSource(stream);
+        const gain = ctx.createGain(); gain.gain.value = 2.4;
+        const comp = ctx.createDynamicsCompressor();
+        comp.threshold.value = -18; comp.knee.value = 12; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.2;
+        const dst = ctx.createMediaStreamDestination();
+        src.connect(gain); gain.connect(comp); comp.connect(dst);
+        recStream = dst.stream; window.__bbMic = { stream: stream, ctx: ctx };
+      } catch (_) { recStream = stream; window.__bbMic = null; }
+    }
+    try { mediaRecorder = new MediaRecorder(recStream, opts); }
+    catch (_) { mediaRecorder = new MediaRecorder(recStream); }
     audioChunks = [];
 
     mediaRecorder.ondataavailable = e => { if (e.data && e.data.size) audioChunks.push(e.data); };
@@ -5950,7 +5973,7 @@ function _voiceResetPreview() {
 function cancelRecording() {
   try { if (mediaRecorder) mediaRecorder.onstop = null; } catch (_) {}
   if (mediaRecorder && mediaRecorder.state !== 'inactive') { try { mediaRecorder.stop(); } catch (_) {} }
-  if (mediaRecorder && mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  if (mediaRecorder && mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop()); _bbReleaseMic();
   clearInterval(recordInterval);
   _voiceResetPreview();
   const bar = document.getElementById("recordingBar");
@@ -5963,7 +5986,7 @@ function stopRecordingPreview() {
   if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
   clearInterval(recordInterval);
   mediaRecorder.onstop = () => {
-    if (mediaRecorder && mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    if (mediaRecorder && mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop()); _bbReleaseMic();
     const type = ((mediaRecorder && mediaRecorder.mimeType) || 'audio/webm').split(';')[0];
     voicePreviewBlob = new Blob(audioChunks, { type: type });
     try { voicePreviewUrl = URL.createObjectURL(voicePreviewBlob); voicePreviewAudio = new Audio(voicePreviewUrl); } catch (_) { voicePreviewAudio = null; }
