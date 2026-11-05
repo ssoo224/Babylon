@@ -5916,8 +5916,8 @@ function startRecording() {
   navigator.mediaDevices.getUserMedia({
     audio: _audioCons
   }).then(stream => {
-    /* OGG/Opus أولاً (48kHz، 96kbps)، مع بدائل للمتصفحات التي لا تدعمه */
-    const mime = ['audio/ogg;codecs=opus', 'audio/ogg', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
+    /* AAC/MP4 أولاً لأن آيباد/آيفون يشغّله بشكل سليم (WebM/Opus من أندرويد يصبح صوته روبوتياً على سفاري)، ثم بدائل أخرى */
+    const mime = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/aac', 'audio/ogg;codecs=opus', 'audio/ogg', 'audio/webm;codecs=opus', 'audio/webm']
       .find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
     const opts = { audioBitsPerSecond: 96000 };
     if (mime) opts.mimeType = mime;
@@ -5981,6 +5981,36 @@ function cancelRecording() {
   document.getElementById("textInputBar").classList.remove("hidden");
 }
 
+/* تحويل تسجيل WebM/Opus (أندرويد) إلى WAV عادي يشغّله سفاري/آيباد بوضوح، مع تقوية الصوت الخافت */
+function bbBlobToWav(blob, dur) {
+  return blob.arrayBuffer().then(function (buf) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var ctx = new AC();
+    return new Promise(function (res, rej) { ctx.decodeAudioData(buf, res, rej); }).then(function (ab) {
+      try { ctx.close(); } catch (_) {}
+      var d = ab.duration || dur || 1;
+      var rate = Math.min(16000, Math.floor(700000 / (2 * d)));
+      if (rate < 8000) throw new Error('too long');
+      var off = new OAC(1, Math.ceil(d * rate), rate);
+      var src = off.createBufferSource(); src.buffer = ab; src.connect(off.destination); src.start(0);
+      return off.startRendering().then(function (r) {
+        var f = r.getChannelData(0), n = f.length, peak = 0, i;
+        for (i = 0; i < n; i++) { var a = Math.abs(f[i]); if (a > peak) peak = a; }
+        var g = peak > 0.001 ? Math.min(4, 0.9 / peak) : 1;
+        var dv = new DataView(new ArrayBuffer(44 + n * 2));
+        function w(o, t) { for (var k = 0; k < t.length; k++) dv.setUint8(o + k, t.charCodeAt(k)); }
+        w(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+        dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+        dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+        w(36, 'data'); dv.setUint32(40, n * 2, true);
+        for (i = 0; i < n; i++) { var v = Math.max(-1, Math.min(1, f[i] * g)); dv.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7FFF, true); }
+        return new Blob([dv], { type: 'audio/wav' });
+      });
+    });
+  });
+}
+
 /* إيقاف التسجيل والانتقال إلى وضع الاستماع قبل الإرسال */
 function stopRecordingPreview() {
   if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
@@ -5988,7 +6018,10 @@ function stopRecordingPreview() {
   mediaRecorder.onstop = () => {
     if (mediaRecorder && mediaRecorder.stream) mediaRecorder.stream.getTracks().forEach(t => t.stop()); _bbReleaseMic();
     const type = ((mediaRecorder && mediaRecorder.mimeType) || 'audio/webm').split(';')[0];
-    voicePreviewBlob = new Blob(audioChunks, { type: type });
+    const _rawBlob = new Blob(audioChunks, { type: type });
+    const _needWav = !/mp4|aac/i.test(type);
+    (_needWav ? bbBlobToWav(_rawBlob, recordSeconds).catch(function () { return _rawBlob; }) : Promise.resolve(_rawBlob)).then(function (_finalBlob) {
+    voicePreviewBlob = _finalBlob;
     try { voicePreviewUrl = URL.createObjectURL(voicePreviewBlob); voicePreviewAudio = new Audio(voicePreviewUrl); } catch (_) { voicePreviewAudio = null; }
     const total = Math.max(1, recordSeconds);
     const timerEl = document.getElementById('recordTimer'), bar = document.getElementById('recordingBar'), pb = document.getElementById('recordPreviewPlay');
@@ -6000,6 +6033,7 @@ function stopRecordingPreview() {
       voicePreviewAudio.addEventListener('play', () => { pb.classList.add('playing'); bar.classList.add('rec-playing'); });
     }
     bar.classList.add('rec-preview');
+    });
   };
   mediaRecorder.stop();
 }
