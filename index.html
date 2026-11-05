@@ -17180,10 +17180,18 @@ html{overflow:hidden!important;overscroll-behavior:none}
     btn.style.bottom=Math.round(ir&&ir.height?(cr.bottom-ir.top+12):80)+'px';
   }
   /* فترة هدوء عند فتح المحادثة: الرسائل تُرسم ثم تُمرَّر لآخرها، فلا نُظهر الزر خلالها (كان يومض ثم يختفي) */
-  var calmUntil=0, calmT=0, wasOpen=false, lastChat=null, userMoved=false;
+  var calmUntil=0, calmT=0, wasOpen=false, lastChat=null, userMoved=false, openedAtSD=0;
+  /* عند فتح/تبديل المحادثة: أخفِ الزر فورًا بلا حركة، وابدأ فترة هدوء تمتد ما دامت الرسائل تُحمَّل */
+  function resetCalm(){
+    userMoved=false; openedAtSD=Date.now(); calmUntil=openedAtSD+1500;
+    btn.style.transition='none'; btn.classList.remove('show');
+    clearTimeout(calmT); calmT=setTimeout(function(){ btn.style.transition=''; render(); },1550);
+  }
+  try{ new MutationObserver(function(){ if(Date.now()-openedAtSD<6000){ calmUntil=Math.max(calmUntil,Date.now()+700); userMoved=false; clearTimeout(calmT); calmT=setTimeout(function(){ btn.style.transition=''; render(); },750); } }).observe(area,{childList:true}); }catch(_){}
+  setInterval(function(){ var c=(typeof activeChatId!=='undefined')?activeChatId:null; if(chatOpen()&&c!==lastChat){ lastChat=c; resetCalm(); } },80);
   function render(){
     var open=chatOpen(), chat=(typeof activeChatId!=='undefined')?activeChatId:null;
-    if(open&&(!wasOpen||chat!==lastChat)){ userMoved=false; calmUntil=Date.now()+1200; clearTimeout(calmT); calmT=setTimeout(render,1250); }
+    if(open&&(!wasOpen||chat!==lastChat)){ resetCalm(); }
     wasOpen=open; lastChat=chat;
     var far=dist()>200;
     if(!far) count=0;
@@ -17201,7 +17209,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
   });
   btn.addEventListener('pointerdown',function(e){ e.preventDefault(); });
   /* لمس/عجلة/لوحة مفاتيح من المستخدم فقط (التمرير البرمجي عند فتح المحادثة لا يُحتسب) */
-  function markUser(){ if(!userMoved){ userMoved=true; } }
+  function markUser(){ if(!userMoved&&Date.now()>=calmUntil){ userMoved=true; } }
   area.addEventListener('touchmove',markUser,{passive:true});
   area.addEventListener('wheel',markUser,{passive:true});
   area.addEventListener('keydown',markUser,{passive:true});
@@ -20911,6 +20919,11 @@ html:has(.app-container[data-app-theme="dark"]),body:has(.app-container[data-app
 .app-container[data-app-theme="light"] #settingsView .sx-group-danger{background:#fff!important;border-color:#e1e7ef!important}
 .app-container[data-app-theme="dark"] #settingsView .sx-danger,.app-container[data-app-theme="dark"] #settingsView .sx-danger .sx-t{color:#f1f5f9!important;font-weight:600!important}
 .app-container[data-app-theme="light"] #settingsView .sx-danger,.app-container[data-app-theme="light"] #settingsView .sx-danger .sx-t{color:#17212b!important;font-weight:600!important}
+</style>
+<style id="bb-scroll-down-night">
+/* زر الانتقال لآخر المحادثة في الطور الليلي: رمادي داكن + إطار 1px رمادي فاتح + سهم ذهبي */
+.app-container[data-app-theme="dark"] #chatScrollDownBtn{background:#262f3a!important;border:1px solid #d0d5dd!important;box-sizing:border-box;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.app-container[data-app-theme="dark"] #chatScrollDownBtn svg{stroke:#e4c45b!important}
 </style>
 <script id="bb-entrance-anim-js">
 (function(){
