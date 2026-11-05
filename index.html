@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <script id="bb-early-theme">try{var __bt=localStorage.getItem('babylon_chat_app_theme');if(__bt==='light'||__bt==='dark')document.documentElement.setAttribute('data-app-theme',__bt);}catch(e){}</script>
 <style id="bb-early-bg">
 html[data-app-theme="light"],html[data-app-theme="light"] body{background:#edf2f8}
@@ -481,7 +481,7 @@ html,body{min-width:0}
 </style>
 
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <script src="/update-gate.js?v=3"></script>
 <title>Babylon Chat</title>
 
@@ -11177,7 +11177,7 @@ button:focus, button:focus-visible, a:focus, a:focus-visible, [role="button"]:fo
    - داخل المحادثة: مسافة سفلية أقل، وتصغر أكثر عند ظهور الكيبورد
    ============================================================ */
 :root{
-  --sab-real:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px),var(--bb-nav-inset,0px));
+  --sab-real:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px),var(--bb-nav-inset,0px),var(--bb-nav-fb,0px));
 }
 /* شريط التنقل: أنحف بدرجة واحدة (66px -> 60px) */
 .app-container #bottomNav.telegram-bottom-nav{
@@ -12605,6 +12605,52 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
   new MutationObserver(function(){ clearTimeout(timer); timer=setTimeout(function(){ document.querySelectorAll('.msg-text').forEach(function(t){t._bbG=0;}); scan(); },120); })
     .observe(document.documentElement,{childList:true,subtree:true,characterData:true});
   scan();
+})();
+</script>
+<style id="bb-header-top-gap">
+/* مسافة علوية دنيا للهيدر حتى لو كانت safe-area = 0 (Custom Tab / متصفحات) */
+.app-container #chatView#chatView header.telegram-chat-header{padding-top:max(8px,calc(4px + var(--sat,0px)))!important}
+</style>
+<script id="bb-gesture-inset-fallback">
+/* مساحة إيماءات/أزرار الهاتف السفلية: إذا لم يعطِ الجهاز أي قيمة (env=0 ولا جسر أندرويد)
+   وكان التطبيق ممتداً لحافة الشاشة (PWA/WebView/ملء الشاشة) نضيف مسافة احتياطية أسفل حقل الكتابة. */
+(function(){
+  var root=document.documentElement;
+  function envBottom(){
+    try{
+      var p=document.createElement('div');
+      p.style.cssText='position:fixed;left:0;bottom:0;width:1px;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none';
+      document.body.appendChild(p); var h=p.getBoundingClientRect().height; p.remove(); return h;
+    }catch(_){return 0;}
+  }
+  function nativeInset(){
+    try{var n=window.BabylonAndroidNative;if(n&&typeof n.getNavInsetDp==='function')return parseFloat(n.getNavInsetDp())||0;}catch(_){}
+    return 0;
+  }
+  function edgeToEdge(){
+    try{
+      if(window.Capacitor||window.BabylonAndroidNative) return true;
+      var mq=function(q){return window.matchMedia&&window.matchMedia(q).matches;};
+      if(mq('(display-mode: standalone)')||mq('(display-mode: fullscreen)')||mq('(display-mode: minimal-ui)')||window.navigator.standalone) return true;
+      var vvH=(window.visualViewport?window.visualViewport.height:window.innerHeight);
+      var sh=Math.max(screen.height,screen.width>screen.height?screen.width:0);
+      /* ارتفاع الصفحة يقارب ارتفاع الشاشة كاملة => لا يوجد شريط متصفح */
+      return (screen.height-vvH)<=Math.max(60,screen.height*0.04) && !!(/Android/i.test(navigator.userAgent));
+    }catch(_){return false;}
+  }
+  function apply(){
+    try{
+      if(root.classList.contains('kb-open')) return;
+      var have=Math.max(envBottom(),nativeInset(),parseFloat(getComputedStyle(root).getPropertyValue('--safe-area-inset-bottom'))||0,parseFloat(getComputedStyle(root).getPropertyValue('--bb-nav-inset'))||0);
+      if(have>0||!edgeToEdge()){ root.style.removeProperty('--bb-nav-fb'); return; }
+      root.style.setProperty('--bb-nav-fb','20px');
+    }catch(_){}
+  }
+  apply();
+  [300,1000,2500].forEach(function(t){setTimeout(apply,t);});
+  window.addEventListener('load',apply);
+  window.addEventListener('orientationchange',function(){setTimeout(apply,300);});
+  window.addEventListener('resize',function(){setTimeout(apply,150);});
 })();
 </script>
 </body>
@@ -16971,7 +17017,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
   function apply(){
     try{
       if(window.innerWidth>=1100){root.style.removeProperty('--vv-h');root.style.removeProperty('--vv-top');return;}
-      var h=(vv?vv.height:window.innerHeight)-(window.__bbKbExtra||0),t=vv?vv.offsetTop:0;
+      var h=Math.min(window.innerHeight,(vv?vv.height:window.innerHeight))-(window.__bbKbExtra||0),t=vv?vv.offsetTop:0;if(h<200)h=window.innerHeight;
       root.style.setProperty('--vv-h',Math.round(h)+'px');
       root.style.setProperty('--vv-top',Math.round(t)+'px');
       if(window.scrollX||window.scrollY)window.scrollTo(0,0);
@@ -16993,13 +17039,16 @@ html{overflow:hidden!important;overscroll-behavior:none}
 })();
 </script>
 <script id="bb-kb-universal">
-/* الكيبورد على كل الأجهزة: بعض الهواتف (هواوي/هونر وغيرها) لا تُصغّر الصفحة عند ظهور الكيبورد فيغطي حقل الكتابة.
-   الحل: نقيس ارتفاع الكيبورد بأكثر من طريقة ونُنقص الصفحة بمقداره فقط إذا لم ينقصه النظام. */
+/* الكيبورد على كل الأجهزة والمتصفحات.
+   القاعدة: الأصل أن المتصفح يصغّر الصفحة بنفسه (visualViewport). لا نتدخل إلا إذا لم يفعل.
+   في تلك الحالة فقط نفعّل virtualKeyboard.overlaysContent مؤقتاً لقياس الكيبورد، ونُلغيه عند الإغلاق،
+   ونُعيد الإضافة extra إلى 0 فور اختفاء الكيبورد (حتى لو بقي الحقل focused). */
 (function(){
   var root=document.documentElement, vv=window.visualViewport, vk=navigator.virtualKeyboard;
   var ua=navigator.userAgent||'', hw=/HUAWEI|HONOR|HMSCore|HarmonyOS|EMUI|HMSBrowser|HuaweiBrowser/i.test(ua);
-  var base=window.innerHeight, extra=0, fbTimer=0, fbUsed=false;
+  var base=Math.max(window.innerHeight,vv?vv.height:0), extra=0, fbTimer=0, overlay=false, lastW=window.innerWidth;
   function typing(){var a=document.activeElement;return !!(a&&(a.id==='messageInput'||a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable));}
+  function curH(){return Math.min(window.innerHeight, vv?vv.height:window.innerHeight);}
   function setExtra(px){
     px=Math.max(0,Math.round(px)); if(px===extra) return;
     extra=px; window.__bbKbExtra=px;
@@ -17008,36 +17057,61 @@ html{overflow:hidden!important;overscroll-behavior:none}
     if(px>0) root.classList.add('kb-open');
     try{window.dispatchEvent(new Event('resize'));}catch(_){}
   }
+  function setOverlay(on){
+    if(!vk||overlay===on) return;
+    try{ vk.overlaysContent=on; overlay=on; }catch(_){}
+  }
+  function reset(){ clearTimeout(fbTimer); setOverlay(false); setExtra(0); }
+  function vkH(){ try{ return (vk&&vk.boundingRect)?vk.boundingRect.height:0; }catch(_){ return 0; } }
   function update(){
+    /* تغيّر العرض (تدوير الشاشة) => أعد حساب الأساس */
+    if(window.innerWidth!==lastW){ lastW=window.innerWidth; base=Math.max(window.innerHeight,vv?vv.height:0); }
     if(!typing()){
-      clearTimeout(fbTimer); fbUsed=false; setExtra(0);
-      if(window.innerHeight>0) base=Math.max(window.innerHeight, vv?vv.height:0) || base;
+      reset();
+      base=Math.max(window.innerHeight,vv?vv.height:0)||base;
       return;
     }
-    var cur=Math.min(window.innerHeight, vv?vv.height:window.innerHeight);
-    if(base-cur>120){ setExtra(0); return; }          /* النظام صغّر الصفحة بنفسه */
-    var h=0; try{ if(vk&&vk.boundingRect) h=vk.boundingRect.height; }catch(_){}
-    if(h>80){ setExtra(h); return; }                  /* قياس مباشر للكيبورد */
-    if(hw&&!window.__BB_NO_KB_FALLBACK){              /* هواوي بلا أي إشارة: تقدير احتياطي */
-      clearTimeout(fbTimer);
-      fbTimer=setTimeout(function(){
-        if(!typing()) return;
-        var c2=Math.min(window.innerHeight, vv?vv.height:window.innerHeight), h2=0;
-        try{ if(vk&&vk.boundingRect) h2=vk.boundingRect.height; }catch(_){}
-        if(base-c2>120||h2>80) return update();
-        fbUsed=true; setExtra(Math.round(window.innerHeight*0.38));
-      },450);
+    var cur=curH();
+    /* النظام صغّر الصفحة بنفسه => لا نفعل شيئاً */
+    if(!overlay && base-cur>120){ setExtra(0); return; }
+    /* وضع القياس: الكيبورد فوق الصفحة */
+    if(overlay){
+      var h=vkH();
+      if(h>80){ setExtra(h); return; }
+      /* الكيبورد اختفى مع بقاء المؤشر في الحقل */
+      if(extra>0){ reset(); }
     }
   }
-  try{ if(vk){ vk.overlaysContent=true; vk.addEventListener('geometrychange',update); } }catch(_){}
+  function probeAfterFocus(){
+    clearTimeout(fbTimer);
+    fbTimer=setTimeout(function(){
+      if(!typing()) return;
+      if(base-curH()>120) return;            /* النظام صغّر الصفحة */
+      if(vk){                                  /* قياس مباشر */
+        setOverlay(true);
+        setTimeout(function(){
+          if(!typing()) return;
+          var h=vkH();
+          if(h>80) setExtra(h);
+          else if(hw && !window.__BB_NO_KB_FALLBACK) setExtra(Math.round(window.innerHeight*0.38));
+          else setOverlay(false);
+        },200);
+      }else if(hw && !window.__BB_NO_KB_FALLBACK){
+        setExtra(Math.round(window.innerHeight*0.38));   /* تقدير احتياطي */
+      }
+    },450);
+  }
+  try{ if(vk){ vk.addEventListener('geometrychange',update); } }catch(_){}
   if(vv) vv.addEventListener('resize',update);
   window.addEventListener('resize',function(){ if(extra===0||!typing()) update(); });
-  document.addEventListener('focusin',function(){ update(); setTimeout(update,250); setTimeout(update,600); });
+  window.addEventListener('orientationchange',function(){ reset(); setTimeout(function(){ base=Math.max(window.innerHeight,vv?vv.height:0); update(); },400); });
+  document.addEventListener('focusin',function(){ update(); probeAfterFocus(); });
   document.addEventListener('focusout',function(){ setTimeout(update,150); });
+  document.addEventListener('visibilitychange',function(){ if(document.hidden) reset(); });
   /* إبقاء حقل الكتابة ظاهراً دائماً فوق الكيبورد */
   document.addEventListener('focusin',function(e){
     if(!e.target||e.target.id!=='messageInput') return;
-    [300,700].forEach(function(t){ setTimeout(function(){
+    [300,700,1100].forEach(function(t){ setTimeout(function(){
       try{ var bar=document.getElementById('textInputBar'); if(bar&&bar.scrollIntoView) bar.scrollIntoView({block:'nearest'});
            var a=document.getElementById('messagesArea'); if(a&&(a.scrollHeight-a.scrollTop-a.clientHeight)<260) a.scrollTop=a.scrollHeight; }catch(_){}
     },t); });
