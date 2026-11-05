@@ -17101,13 +17101,14 @@ html.bb-kb-pred body,html.bb-kb-pred .app-container{transition:height .1s ease-o
   function typing(){var a=document.activeElement;return !!(a&&a.id==='messageInput');}
   function saved(){try{var v=parseFloat(localStorage.getItem(KEY));if(v>150&&v<window.innerHeight*.7)return v;}catch(e){}return Math.round(window.innerHeight*.4);}
   function learn(px){try{px=Math.round(px);if(px>150&&px<window.innerHeight*.7&&px!==parseFloat(localStorage.getItem(KEY)))localStorage.setItem(KEY,String(px));}catch(e){}}
-  function endPred(){pred=0;root.classList.remove('bb-kb-pred');}
+  function endPred(){pred=0;root.classList.remove('bb-kb-pred');root.style.removeProperty('background-color');}
   /* توقّع ارتفاع الكيبورد (آخر ارتفاع حقيقي محفوظ) ورفع الواجهة فوراً دون انتظار المتصفح */
   function predict(){
     if(window.innerWidth>=1100||pred)return;
     if(drop()>120||(window.__bbKbExtra||0)>0)return;   /* الكيبورد مفتوح أصلاً */
-    pred=saved();predUntil=Date.now()+1500;
+    pred=saved();predUntil=Date.now()+900;
     root.classList.add('bb-kb-pred');
+    try{var cv=document.getElementById('chatView');var bg=cv&&getComputedStyle(cv).backgroundColor;if(bg&&bg!=='rgba(0, 0, 0, 0)')root.style.setProperty('background-color',bg,'important');}catch(e){}
     clearTimeout(predTimer);
     predTimer=setTimeout(function(){if(!typing())endPred();},450);  /* لم يحدث تركيز: إلغاء التوقّع */
     track(1700);
@@ -17134,8 +17135,6 @@ html.bb-kb-pred body,html.bb-kb-pred .app-container{transition:height .1s ease-o
     (function loop(){apply();if(Date.now()<until)raf=requestAnimationFrame(loop);else raf=0;})();
   }
   function early(e){if(e.target&&e.target.id==='messageInput')predict();}
-  document.addEventListener('touchstart',early,{capture:true,passive:true});
-  document.addEventListener('pointerdown',early,{capture:true,passive:true});
   if(vv){vv.addEventListener('resize',function(){track(900);});vv.addEventListener('scroll',apply);}
   window.addEventListener('resize',function(){track(900);});
   window.addEventListener('scroll',function(){if(window.scrollY||window.scrollX)apply();},{passive:true});
