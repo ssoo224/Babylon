@@ -1,6 +1,6 @@
 {
-  "minVersion": 59,
-  "latest": 59,
+  "minVersion": 60,
+  "latest": 60,
   "url": "/api/apk",
   "notes": ""
 }
