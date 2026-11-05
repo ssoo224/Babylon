@@ -72,6 +72,22 @@
     '@keyframes updBreath{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}' +
     '@keyframes updTw{0%{opacity:.35}100%{opacity:.7}}' +
     '@keyframes updShine{0%{left:-80px}55%,100%{left:120%}}' +
+    /* ===== الطور النهاري دائماً ===== */
+    '#updPage{color:#16202b;background:radial-gradient(120% 80% at 50% -10%,#fff6dc 0%,#ffffff 46%,#edf2f8 100%);color-scheme:light}' +
+    '#updPage:before{display:none}' +
+    '#updPage .u-glow{background:radial-gradient(circle,rgba(232,190,70,.30),rgba(232,190,70,0) 68%)}' +
+    '#updPage .u-orb:before,#updPage .u-orb:after{border-color:rgba(201,154,28,.5)}' +
+    '#updPage .u-track{stroke:rgba(22,32,43,.10)}' +
+    '#updPage .u-fill{filter:drop-shadow(0 0 5px rgba(201,154,28,.45))}' +
+    '#updPage .u-chip{color:#8a6200;background:rgba(201,154,28,.12);border-color:rgba(201,154,28,.4)}' +
+    '#updPage h1{background:linear-gradient(180deg,#e3ae2c,#b47f00 75%);-webkit-background-clip:text;background-clip:text;color:transparent}' +
+    '#updPage .u-msg{color:rgba(22,32,43,.72)}' +
+    '#updPage .u-card{background:#ffffff;border:1px solid rgba(22,32,43,.08);box-shadow:0 6px 20px rgba(22,32,43,.06);-webkit-backdrop-filter:none;backdrop-filter:none}' +
+    '#updPage .u-card b{color:#a8790f}' +
+    '#updPage .u-card div{color:#16202b}' +
+    '#updPage .u-later,#updPage .u-alt{color:rgba(22,32,43,.55)}' +
+    '#updPage .u-link{background:rgba(22,32,43,.05);border-color:rgba(22,32,43,.10);color:#16202b}' +
+    '#updPage .u-copy{border-color:rgba(201,154,28,.55);color:#8a6200;background:#fff}' +
     '@media (prefers-reduced-motion:reduce){#updPage *,#updPage:before{animation:none!important}}';
 
   function save(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
