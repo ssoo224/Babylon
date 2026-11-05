@@ -17162,8 +17162,18 @@ html{overflow:hidden!important;overscroll-behavior:none}
       return r.width<window.innerWidth*0.8;   /* العائم المتحرك فقط: أضيق بوضوح من الشاشة */
     }catch(_){ return false; }
   }
-  function markFloat(on){ try{ localStorage.setItem('bbKbFloat',on?'1':'0'); }catch(_){} }
-  function wasFloat(){ try{ return localStorage.getItem('bbKbFloat')==='1'; }catch(_){ return false; } }
+  try{ localStorage.removeItem('bbKbFloat'); }catch(_){}   /* حالة قديمة خاطئة من نسخ سابقة */
+  function markFloat(on){ try{ if(on) localStorage.setItem('bbKbFloat2',String(Date.now())); else localStorage.removeItem('bbKbFloat2'); }catch(_){} }
+  function wasFloat(){ try{ var t=parseInt(localStorage.getItem('bbKbFloat2'),10)||0; return t>0 && Date.now()-t<20*60*1000; }catch(_){ return false; } }
+  /* قياس الكيبورد الحقيقي بعد الرفع المسبق: تكرار حتى يستقر بدل محاولة واحدة مبكرة */
+  var pollTimers=[];
+  function pollMeasure(){
+    pollTimers.forEach(clearTimeout); pollTimers=[];
+    [120,250,400,600,900,1300,1800].forEach(function(t){ pollTimers.push(setTimeout(function(){
+      if(!typing()) return;
+      var h=vkH(); if(h>80) applyKb(h);
+    },t)); });
+  }
   function applyKb(h){
     if(vkFloating()){ markFloat(true); animTarget=0; if(extra>0) animateExtra(0,150); return; }
     markFloat(false); cacheKb(h); if(h===animTarget) return; animateExtra(h, 150);
@@ -17208,7 +17218,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
     clearTimeout(fbTimer);
     fbTimer=setTimeout(function(){
       if(!typing()) return;
-      if(Date.now()<predUntil) return;        /* رفع الحقل المتوقع قيد الانتظار */
+      if(Date.now()<predUntil){ pollMeasure(); return; }        /* رفع الحقل المتوقع قيد الانتظار */
       if(readKb()>0 && extra>0) return;       /* الارتفاع محفوظ محلياً: لا حاجة للقياس */
       if(base-curH()>120) return;            /* النظام صغّر الصفحة */
       if(vk){                                  /* قياس مباشر */
@@ -17218,7 +17228,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
           var h=vkH();
           if(h>80){ applyKb(h); }
           else if(hw && !window.__BB_NO_KB_FALLBACK) setExtra(Math.round(window.innerHeight*0.38));
-          else setOverlay(false);
+          else pollMeasure();
         },30);
       }else if(hw && !window.__BB_NO_KB_FALLBACK){
         setExtra(Math.round(window.innerHeight*0.38));   /* تقدير احتياطي */
@@ -17238,10 +17248,11 @@ html{overflow:hidden!important;overscroll-behavior:none}
       if(wasFloat()) return;                 /* آخر كيبورد كان عائماً: لا رفع مسبق */
       var c=readKb(), known=c>0;
       if(!known) c=Math.round(window.innerHeight*0.4);
-      predUntil=Date.now()+1000;
+      predUntil=Date.now()+2500;
       if(extra===0 && animTarget!==c) animateExtra(c,200);   /* 0.2s: يصعد الحقل مع الكيبورد معاً */
       clearTimeout(predT);
-      predT=setTimeout(function(){ if(extra>0 && vkH()<=80) reset(); },1000);
+      predT=setTimeout(function(){ if(extra>0 && vkH()<=80 && !readKb()) reset(); },2500);
+      pollMeasure();
     }catch(_){}
   }
   function earlyOverlay(e){ try{ if(e.target && e.target.id==='messageInput') predictLift(); }catch(_){} }
