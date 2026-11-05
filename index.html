@@ -8685,7 +8685,7 @@ function updateGroupHeader(d){
   const t=document.getElementById('chatTitleText');if(t)t.textContent=d.name||'مجموعة';
   document.getElementById('chatBadgeBox')?.classList.add('hidden');
   const av=document.getElementById('chatAvatar');
-  if(av){av.className='telegram-avatar';av.style.background=d.photo?'#223':gGroupGrad();av.innerHTML=d.photo?'<img src="'+esc(d.photo)+'">':esc((d.name||'؟').charAt(0));}
+  if(av){av.className='telegram-avatar g-hd-av';av.style.background=d.photo?'#223':gGroupGrad();av.innerHTML=d.photo?'<img src="'+esc(d.photo)+'">':esc((d.name||'؟').charAt(0));}
   const sub=document.getElementById('chatSub');
   if(sub){
     const tp=groupTypingText(d);
@@ -8950,7 +8950,7 @@ function compressSquare(file,size,cb){
 function renderPickerStep2(){
   const ov=document.getElementById('grpPick');if(!ov)return;
   ov.innerHTML='<div class="gx-top"><button type="button" class="gx-ib" id="gpBack2" aria-label="رجوع"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button><div class="gx-title"><b>مجموعة جديدة</b><span>أدخل اسم المجموعة</span></div></div>'
-    +'<div class="gx-scroll"><div class="gc-hero"><label class="gc-photo" id="gpPhoto" for="gpFile">'+(GP.photo?'<img src="'+esc(GP.photo)+'" alt="">':'<svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l1.6-2.2h6.8L17 8.5h3V19H4z"/><circle cx="12" cy="13.3" r="3.6"/></svg>')+'<span class="gc-plus"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></label><input type="file" id="gpFile" accept="image/*" class="hidden"><div class="gc-hint">صورة المجموعة (اختياري)</div></div>'
+    +'<div class="gx-scroll"><div class="gc-hero"><label class="gc-photo" id="gpPhoto" for="gpFile">'+(GP.photo?'<img src="'+esc(GP.photo)+'" alt="">':'<svg class="gc-cam-ic" viewBox="0 0 24 24" width="38" height="38" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M9.3 4h5.4c.35 0 .67.18.86.47L16.7 6.3H19A2.5 2.5 0 0 1 21.5 8.8v8.7A2.5 2.5 0 0 1 19 20H5a2.5 2.5 0 0 1-2.5-2.5V8.8A2.5 2.5 0 0 1 5 6.3h2.3l1.14-1.83A1 1 0 0 1 9.3 4ZM12 8.9a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2ZM12 11.2a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6Z"/></svg>')+'<span class="gc-plus"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></label><input type="file" id="gpFile" accept="image/*" class="hidden"><div class="gc-hint">صورة المجموعة (اختياري)</div></div>'
     +'<div class="gc-field"><span class="gc-fic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8.5" r="3.2"/><path d="M20 20v-1.4a3.5 3.5 0 0 0-2.6-3.4M15.5 5.3a3.2 3.2 0 0 1 0 6.2"/></svg></span><input id="gpName" class="gc-in" type="text" maxlength="40" placeholder="اسم المجموعة" value="'+esc(GP.name)+'" autocomplete="off"><span class="gc-cnt" id="gpCnt">'+(GP.name||'').length+'/40</span></div>'
     +'<div class="gc-card"><div class="gc-head"><span class="gc-hic"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8.5" r="3.2"/><path d="M20 20v-1.4a3.5 3.5 0 0 0-2.6-3.4M15.5 5.3a3.2 3.2 0 0 1 0 6.2"/></svg></span><b>'+memberWord(GP.selected.length+1)+'</b></div>'
     +GP.selected.map(u=>{const g=GU[u]||{};return '<div class="gx-row static">'+userAvHtml(u,'gx-av')+'<div class="gx-t"><b>'+esc(g.displayName||'مستخدم')+'</b><span>'+(g.username?'@'+esc(g.username):'')+'</span></div></div>';}).join('')+'</div></div>'
@@ -20882,7 +20882,7 @@ window.bbTinyThumb = function (file) {
 <style id="bb-night-unify">
 /* الوضع الليلي: توحيد الخلفيات والحقول في الإعدادات وكل الأقسام والملف الشخصي مع خلفية صفحة المحادثات */
 .app-container[data-app-theme="dark"],.blk-ov[data-app-theme="dark"],.gp-ov,#giftSend{--babylon-dark:#0e1621;--babylon-surface:#17212b;--babylon-surface-card:#17212b;--babylon-surface-hover:#1d2a38;--babylon-border:rgba(255,255,255,.08);--pf-bg:#0e1621;--pf-card:#17212b;--cl-bg:#0e1621;--cl-card:#17212b;--cl-chip:#1d2a38;--card-bg:#17212b;--border-color:rgba(255,255,255,.08)}
-.app-container[data-app-theme="dark"] #settingsView,.app-container[data-app-theme="dark"] #privacySettingsView,.app-container[data-app-theme="dark"] #notificationSettingsView,.app-container[data-app-theme="dark"] #chatSettingsView,.app-container[data-app-theme="dark"] #profileView,.app-container[data-app-theme="dark"] #otherUserProfileView,.app-container[data-app-theme="dark"] #editProfileView,.app-container[data-app-theme="dark"] #searchView{background-color:#0e1621!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180' fill='none' stroke='%23e4c45b' stroke-opacity='.11' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 52h36M16 52v-7h28v7M20 45v-7h20v7M24 38v-7h12v7M30 31v-5'/%3E%3Cg transform='translate%28125 38%29'%3E%3Ccircle r='13'/%3E%3Ccircle r='3'/%3E%3Cpath d='M0-18V18M-18 0H18M-12.7-12.7L12.7 12.7M12.7-12.7L-12.7 12.7'/%3E%3C/g%3E%3Cpath d='M30 108l11 3-7 11zM48 118l11 3-7 11zM24 128l11 3-7 11z'/%3E%3Cpath d='M140 120a15 15 0 1 0 8 23a12 12 0 0 1-8-23z'/%3E%3Ccircle cx='152' cy='124' r='2'/%3E%3Cpath d='M90 82l6 6-6 6-6-6z'/%3E%3Cpath d='M88 150v22M88 158c-5-4-10-4-14-2M88 158c5-4 10-4 14-2M88 164c-4-3-8-3-11-1M88 164c4-3 8-3 11-1'/%3E%3C/svg%3E")!important;background-size:180px 180px!important;background-repeat:repeat!important}
+.app-container[data-app-theme="dark"] #settingsView,.app-container[data-app-theme="dark"] #privacySettingsView,.app-container[data-app-theme="dark"] #notificationSettingsView,.app-container[data-app-theme="dark"] #chatSettingsView,.app-container[data-app-theme="dark"] #profileView,.app-container[data-app-theme="dark"] #otherUserProfileView,.app-container[data-app-theme="dark"] #editProfileView,.app-container[data-app-theme="dark"] #searchView{background-color:#0e1621!important;background-image:none!important}
 html:has(.app-container[data-app-theme="dark"]),body:has(.app-container[data-app-theme="dark"]){background:#0e1621!important}
 .blk-ov[data-app-theme="dark"]{background:#0e1621!important}
 .app-container[data-app-theme="dark"] :is(.sx-hero,.sx-group,.set-card,.set-row,.notification-intro,.notification-setting-card,.pf-card,.edit-profile-card,.edit-profile-header,.blk-row,.profile-card,.profile-row,.settings-card,.chat-settings-card,.appearance-setting-row){background:#17212b!important;border-color:rgba(255,255,255,.08)!important}
@@ -20893,6 +20893,24 @@ html:has(.app-container[data-app-theme="dark"]),body:has(.app-container[data-app
 .app-container[data-app-theme="dark"] :is(#settingsView,#privacySettingsView,#notificationSettingsView,#chatSettingsView,#profileView,#otherUserProfileView,#editProfileView) :is(input,textarea,select,.babylon-input){background:#1d2a38!important;border-color:rgba(255,255,255,.1)!important;color:#f1f5f9!important}
 .app-container[data-app-theme="dark"] :is(.sx-seg,.notification-toggle,.settings-theme-switch){background:#1d2a38!important;border-color:rgba(255,255,255,.08)!important}
 .app-container[data-app-theme="dark"] #editProfileView .edit-profile-header{background:#0e1621!important}
+</style>
+<style id="bb-group-ring-cam">
+/* حلقة صورة المجموعة في الهيدر: رمادي فاتح، 1px، في الطورين */
+#chatView#chatView .telegram-chat-header .telegram-avatar.g-hd-av{box-shadow:0 0 0 1px #d0d5dd!important}
+/* كاميرا إنشاء المجموعة: نفس كاميرا إعدادات المجموعة (ممتلئة بيضاء) */
+.gc-photo>svg.gc-cam-ic{fill:#fff!important;stroke:none!important;color:#fff!important}
+</style>
+<style id="bb-no-pattern">
+/* بدون نقوش: الإعدادات والملف الشخصي وكل أقسامهما وحقولهما */
+#settingsView,#privacySettingsView,#notificationSettingsView,#chatSettingsView,#profileView,#otherUserProfileView,#editProfileView,#searchView,.blk-ov,
+:is(#settingsView,#privacySettingsView,#notificationSettingsView,#chatSettingsView,#profileView,#otherUserProfileView,#editProfileView,.blk-ov) :is(.sx-scroll,.sx-hero,.sx-group,.sx-item,.set-card,.pf-card,.notification-intro,.notification-setting-card,.edit-profile-card,input,textarea,select,.babylon-input){background-image:none!important}
+</style>
+<style id="bb-danger-plain">
+/* تسجيل الخروج وحذف الحساب: مثل باقي الأزرار، بدون خلفية أو نص أحمر */
+.app-container[data-app-theme="dark"] #settingsView .sx-group-danger{background:#17212b!important;border-color:rgba(255,255,255,.08)!important}
+.app-container[data-app-theme="light"] #settingsView .sx-group-danger{background:#fff!important;border-color:#e1e7ef!important}
+.app-container[data-app-theme="dark"] #settingsView .sx-danger,.app-container[data-app-theme="dark"] #settingsView .sx-danger .sx-t{color:#f1f5f9!important;font-weight:600!important}
+.app-container[data-app-theme="light"] #settingsView .sx-danger,.app-container[data-app-theme="light"] #settingsView .sx-danger .sx-t{color:#17212b!important;font-weight:600!important}
 </style>
 <script id="bb-entrance-anim-js">
 (function(){
