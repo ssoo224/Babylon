@@ -17118,16 +17118,20 @@ html{overflow:hidden!important;overscroll-behavior:none}
           if(h>80) setExtra(h);
           else if(hw && !window.__BB_NO_KB_FALLBACK) setExtra(Math.round(window.innerHeight*0.38));
           else setOverlay(false);
-        },200);
+        },80);
       }else if(hw && !window.__BB_NO_KB_FALLBACK){
         setExtra(Math.round(window.innerHeight*0.38));   /* تقدير احتياطي */
       }
-    },450);
+    },60);
   }
   try{ if(vk){ vk.addEventListener('geometrychange',update); } }catch(_){}
   if(vv) vv.addEventListener('resize',update);
   window.addEventListener('resize',function(){ if(extra===0||!typing()) update(); });
   window.addEventListener('orientationchange',function(){ reset(); setTimeout(function(){ base=Math.max(window.innerHeight,vv?vv.height:0); update(); },400); });
+  /* سرعة الظهور: فعّل وضع القياس فور لمس حقل الكتابة (قبل فتح الكيبورد) كي يُرفع الحقل مع أول لحظة لظهور الكيبورد بدل انتظار الفحص */
+  function earlyOverlay(e){ try{ if(vk && window.innerWidth<1100 && e.target && e.target.id==='messageInput') setOverlay(true); }catch(_){} }
+  document.addEventListener('touchstart',earlyOverlay,{capture:true,passive:true});
+  document.addEventListener('pointerdown',earlyOverlay,{capture:true,passive:true});
   document.addEventListener('focusin',function(){ update(); probeAfterFocus(); });
   document.addEventListener('focusout',function(){ setTimeout(update,150); });
   document.addEventListener('visibilitychange',function(){ if(document.hidden) reset(); });
