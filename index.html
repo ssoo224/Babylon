@@ -135,7 +135,7 @@ html,body{min-width:0}
 
   /* نفس تنسيق update-gate.js حرفياً + حركة دوران للحالة «جارٍ فتح التطبيق» */
   var CSS =
-    'html,body{margin:0;height:100%;background:#07090f}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Arabic",Tahoma,sans-serif;-webkit-tap-highlight-color:transparent}' +
+    'html,body{margin:0;height:100%;background:#edf2f8}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Arabic",Tahoma,sans-serif;-webkit-tap-highlight-color:transparent}' +
     '#updPage{position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
     'padding:calc(env(safe-area-inset-top,0px) + 20px) 22px calc(env(safe-area-inset-bottom,0px) + 22px);box-sizing:border-box;' +
     'font-family:inherit;text-align:center;color:#f4efe0;overflow:hidden;overflow-y:auto;' +
@@ -183,6 +183,22 @@ html,body{min-width:0}
     '@keyframes updTw{0%{opacity:.35}100%{opacity:.7}}' +
     '@keyframes updShine{0%{left:-80px}55%,100%{left:120%}}' +
     '@keyframes updSpin{to{transform:rotate(360deg)}}' +
+    /* ===== الطور النهاري دائماً ===== */
+    '#updPage{color:#16202b;background:radial-gradient(120% 80% at 50% -10%,#fff6dc 0%,#ffffff 46%,#edf2f8 100%);color-scheme:light}' +
+    '#updPage:before{display:none}' +
+    '#updPage .u-glow{background:radial-gradient(circle,rgba(232,190,70,.30),rgba(232,190,70,0) 68%)}' +
+    '#updPage .u-orb:before,#updPage .u-orb:after{border-color:rgba(201,154,28,.5)}' +
+    '#updPage .u-track{stroke:rgba(22,32,43,.10)}' +
+    '#updPage .u-fill{filter:drop-shadow(0 0 5px rgba(201,154,28,.45))}' +
+    '#updPage .u-chip{color:#8a6200;background:rgba(201,154,28,.12);border-color:rgba(201,154,28,.4)}' +
+    '#updPage h1{background:linear-gradient(180deg,#e3ae2c,#b47f00 75%);-webkit-background-clip:text;background-clip:text;color:transparent}' +
+    '#updPage .u-msg{color:rgba(22,32,43,.72)}' +
+    '#updPage .u-card{background:#ffffff;border:1px solid rgba(22,32,43,.08);box-shadow:0 6px 20px rgba(22,32,43,.06);-webkit-backdrop-filter:none;backdrop-filter:none}' +
+    '#updPage .u-card b{color:#a8790f}' +
+    '#updPage .u-card div{color:#16202b}' +
+    '#updPage .u-later,#updPage .u-alt{color:rgba(22,32,43,.55)}' +
+    '#updPage .u-link{background:rgba(22,32,43,.05);border-color:rgba(22,32,43,.10);color:#16202b}' +
+    '#updPage .u-copy{border-color:rgba(201,154,28,.55);color:#8a6200;background:#fff}' +
     '@media (prefers-reduced-motion:reduce){#updPage *,#updPage:before{animation:none!important}}';
 
   var page = null, mounted = false;
@@ -195,7 +211,7 @@ html,body{min-width:0}
        (window.stop() لا تصلح: تترك المتصفح بلا رسم).
      - بعد اكتمال التحميل (مهلة WebView): نستبدل المستند بالكامل. */
   var HEAD = '<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">' +
-    '<meta name="theme-color" content="#07090f"><meta name="robots" content="noindex"><title>Babylon Chat</title>' +
+    '<meta name="theme-color" content="#edf2f8"><meta name="robots" content="noindex"><title>Babylon Chat</title>' +
     '<style>' + CSS + '</style>';
   var BODY = '<div id="updPage" dir="rtl"></div>';
   function mount() {
@@ -5069,9 +5085,11 @@ function openChatRoom(otherUserId, keepLimit) {
       for (let _i = 0; _i < _ds.length; _i += 400) { const _b = db.batch(); _ds.slice(_i, _i + 400).forEach(d => _b.update(d.ref, { read: true })); _b.commit().catch(() => {}); }
     });
 
+  try { if (!keepLimit && window.bbLocalPaint) window.bbLocalPaint(activeChatId, false); } catch (e) {}
   messagesUnsubscribe = db.collection("chats").doc(activeChatId).collection("messages")
     .orderBy("createdAt", "desc").limit(msgLimit)
     .onSnapshot({ includeMetadataChanges: true }, window.__bbMsgH = snap => {
+      try { if (window.bbLocalSaveSnap) window.bbLocalSaveSnap(activeChatId, snap); } catch (e) {}
       try { const __sg = bbSnapSig(snap); if (__sg === window.__bbMsgSig && !window.__pendingJump && !loadingOlder) return; window.__bbMsgSig = __sg; } catch (e) {}
       try { const __m = (window.__bbSnapMem = window.__bbSnapMem || {}); __m[activeChatId] = { snap: snap, limit: msgLimit }; const __k = Object.keys(__m); if (__k.length > 8) delete __m[__k[0]]; } catch (e) {}
       const box = document.getElementById("messagesArea");
@@ -8743,8 +8761,10 @@ function openGroupRoom(chatId,keepLimit){
       if(miss.length)loadUsers(miss).then(()=>updateGroupHeader(d));
       updateGroupHeader(d);refreshGroupTicks();
     });
+    try{if(!keepLimit&&window.bbLocalPaint)window.bbLocalPaint(chatId,true);}catch(e){}
     messagesUnsubscribe=db.collection('chats').doc(chatId).collection('messages').orderBy('createdAt','desc').limit(msgLimit).onSnapshot({includeMetadataChanges:true},snap=>{
       if(activeChatId!==chatId)return;
+      try{if(window.bbLocalSaveSnap)window.bbLocalSaveSnap(chatId,snap);}catch(e){}
       try{const __sg=bbSnapSig(snap);if(__sg===window.__bbMsgSig&&!window.__pendingJump&&!loadingOlder){markGroupRead(chatId,snap.docs[0]&&snap.docs[0].data());return;}window.__bbMsgSig=__sg;}catch(e){}
       if(__bbFastApply(snap,box,null))return;
       const prevH=box.scrollHeight;const __pt=box.scrollTop,__pc=box.clientHeight;
@@ -12653,6 +12673,21 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
   window.addEventListener('resize',function(){setTimeout(apply,150);});
 })();
 </script>
+<style id="bb-splash-always-light">
+/* شاشة تحميل التطبيق: نهارية دائماً بغض النظر عن ثيم التطبيق أو الهاتف */
+html #splashPage.splash-page,
+html[data-app-theme="dark"] #splashPage.splash-page,
+html[data-app-theme="light"] #splashPage.splash-page,
+.app-container[data-app-theme="dark"] #splashPage.splash-page,
+.app-container[data-app-theme="light"] #splashPage.splash-page{
+  background:radial-gradient(circle at center,#ffffff 0%,#edf2f8 100%)!important;
+  color-scheme:light}
+#splashPage .splash-title,
+.app-container[data-app-theme="dark"] #splashPage .splash-title,
+.app-container[data-app-theme="light"] #splashPage .splash-title{
+  background-image:linear-gradient(100deg,#7a5a0a 0%,#b08718 20%,#e8c555 40%,#b08718 60%,#7a5a0a 80%,#7a5a0a 100%)!important}
+#splashPage .splash-dots i{background:#a8841f!important}
+</style>
 </body>
 </html>
 
@@ -15921,6 +15956,7 @@ body.light #viewersModal .viewer-item {
 </script>
 <script src="calls/calls.js?v=8"></script>
 <script src="chat-enhance.js?v=1"></script>
+<script src="local-store.js?v=1"></script>
 
 <style id="chat-glass-composer-and-cream-nav">
 /* =====================================================================
