@@ -17115,6 +17115,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
   window.addEventListener('scroll',function(){if(window.scrollY||window.scrollX)apply();},{passive:true});
   document.addEventListener('focusin',function(){track(1400);});
   document.addEventListener('focusout',function(){track(900);});
+  window.__bbVvApply=apply;
   apply();
 })();
 </script>
@@ -17135,23 +17136,30 @@ html{overflow:hidden!important;overscroll-behavior:none}
   function animateExtra(to,dur){
     cancelAnimationFrame(animRaf);
     animTarget=to;
-    var from=extra, t0=performance.now();
-    root.classList.add('kb-open');
-    try{window.dispatchEvent(new Event('resize'));}catch(_){}   /* يبدأ حلقة التتبع في viewport-lock */
-    (function step(now){
-      var k=Math.min(1,Math.max(0,(now-t0)/dur)), e=1-Math.pow(1-k,3);
-      var v=Math.round(from+(to-from)*e);
-      extra=v; window.__bbKbExtra=v;
-      root.style.setProperty('--bb-kb-extra',v+'px');
-      root.classList.toggle('bb-kb-overlay',v>0);
-      if(k<1) animRaf=requestAnimationFrame(step);
-    })(t0);
+    var from=extra; if(from===to) return;
+    extra=to; window.__bbKbExtra=to;
+    root.style.setProperty('--bb-kb-extra',to+'px');
+    root.classList.toggle('bb-kb-overlay',to>0);
+    if(to>0) root.classList.add('kb-open');
+    /* تغيير التخطيط مرة واحدة فقط (بدون إعادة ترتيب المحادثة كل إطار) ثم تحريك حقل الكتابة وحده */
+    try{ if(window.__bbVvApply) window.__bbVvApply(); }catch(_){}
+    try{window.dispatchEvent(new Event('resize'));}catch(_){}
+    var bar=document.querySelector('#chatView .chat-input-container');
+    if(bar){
+      bar.style.transition='none';
+      bar.style.transform='translateY('+(to-from)+'px)';
+      void bar.offsetHeight;
+      bar.style.transition='transform '+dur+'ms cubic-bezier(.2,.8,.2,1)';
+      bar.style.transform='translateY(0)';
+      clearTimeout(bar.__bbT);
+      bar.__bbT=setTimeout(function(){ bar.style.transition=''; bar.style.transform=''; },dur+40);
+    }
   }
   /* كيبورد عائم: أصغر عرضاً من الشاشة أو غير ملاصق لأسفلها => لا نرفع الحقل */
   function vkFloating(){
     try{
       var r=vk&&vk.boundingRect; if(!r||r.height<=0) return false;
-      return r.width<window.innerWidth*0.85 || (r.y+r.height)<window.innerHeight-48;
+      return r.width<window.innerWidth*0.8;   /* العائم المتحرك فقط: أضيق بوضوح من الشاشة */
     }catch(_){ return false; }
   }
   function markFloat(on){ try{ localStorage.setItem('bbKbFloat',on?'1':'0'); }catch(_){} }
@@ -17224,7 +17232,8 @@ html{overflow:hidden!important;overscroll-behavior:none}
   /* سرعة الظهور: فعّل وضع القياس فور لمس حقل الكتابة (قبل فتح الكيبورد) كي يُرفع الحقل مع أول لحظة لظهور الكيبورد بدل انتظار الفحص */
   function predictLift(){
     try{
-      if(!vk||window.innerWidth>=1100) return;
+      if(window.innerWidth>=1100) return;
+      if(!vk && !/Android/i.test(ua)) return;
       setOverlay(true);
       if(wasFloat()) return;                 /* آخر كيبورد كان عائماً: لا رفع مسبق */
       var c=readKb(), known=c>0;
