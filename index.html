@@ -12673,21 +12673,6 @@ html body:has(.app-container[data-app-theme]) :is(#mainPage,#chatView,body) :is(
   window.addEventListener('resize',function(){setTimeout(apply,150);});
 })();
 </script>
-<style id="bb-splash-always-light">
-/* شاشة تحميل التطبيق: نهارية دائماً بغض النظر عن ثيم التطبيق أو الهاتف */
-html #splashPage.splash-page,
-html[data-app-theme="dark"] #splashPage.splash-page,
-html[data-app-theme="light"] #splashPage.splash-page,
-.app-container[data-app-theme="dark"] #splashPage.splash-page,
-.app-container[data-app-theme="light"] #splashPage.splash-page{
-  background:radial-gradient(circle at center,#ffffff 0%,#edf2f8 100%)!important;
-  color-scheme:light}
-#splashPage .splash-title,
-.app-container[data-app-theme="dark"] #splashPage .splash-title,
-.app-container[data-app-theme="light"] #splashPage .splash-title{
-  background-image:linear-gradient(100deg,#7a5a0a 0%,#b08718 20%,#e8c555 40%,#b08718 60%,#7a5a0a 80%,#7a5a0a 100%)!important}
-#splashPage .splash-dots i{background:#a8841f!important}
-</style>
 </body>
 </html>
 
