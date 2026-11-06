@@ -154,13 +154,14 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * IME compatibility bridge: Android 9-10 may resize the WebView, while
-     * Android 11+ can report IME insets in edge-to-edge mode. Send the inset
-     * to HTML so the composer can follow the keyboard in either case.
+     * جسر الكيبورد: نرفع المحتوى مرة واحدة فقط بالحالة النهائية للكيبورد
+     * (بدون إعادة تخطيط للصفحة في كل إطار — كان هذا سبب البطء).
      */
     private boolean imeAnimating = false;
+    private boolean imeApplied = false;
+    private int lastImeHeight = -1;
+    private boolean lastImeVisible = false;
 
-    /** يرفع المحتوى كله (WebView) بمقدار ارتفاع الكيبورد فيصعد حقل الكتابة ويهبط معه. */
     private void applyImePadding(int bottom) {
         try {
             View content = findViewById(android.R.id.content);
@@ -174,6 +175,8 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void notifyKeyboard(boolean shown, int height) {
+        if (shown == lastImeVisible && height == lastImeHeight) return;   // لا نكرر الحدث نفسه
+        lastImeVisible = shown; lastImeHeight = height;
         try {
             final String js = "window.dispatchEvent(new CustomEvent('babylonNativeKeyboard',{detail:{visible:"
                 + shown + ",height:" + height + "}}));";
@@ -184,35 +187,41 @@ public class MainActivity extends BridgeActivity {
 
     private void installKeyboardInsetsBridge(View decor) {
         try {
-            // الحالة النهائية (بدون أنيميشن: أندرويد 5-10، أو الأجهزة التي لا تنفذ أنيميشن الكيبورد)
             ViewCompat.setOnApplyWindowInsetsListener(decor, (view, insets) -> {
                 int imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
                 boolean visible = insets.isVisible(WindowInsetsCompat.Type.ime()) && imeBottom > 0;
-                if (!imeAnimating) applyImePadding(imeBottom);
+                // أثناء الأنيميشن: أول استدعاء = الحالة النهائية، نطبّقه مرة واحدة ونتجاهل الباقي
+                if (imeAnimating && imeApplied) return insets;
+                if (imeAnimating) imeApplied = true;
+                applyImePadding(imeBottom);
                 notifyKeyboard(visible, imeBottom);
                 return insets;
             });
-            // أندرويد 11+: حركة سلسة تتبع الكيبورد إطاراً بإطار
             ViewCompat.setWindowInsetsAnimationCallback(decor,
                 new androidx.core.view.WindowInsetsAnimationCompat.Callback(
                     androidx.core.view.WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
                     @Override
                     public void onPrepare(androidx.core.view.WindowInsetsAnimationCompat animation) {
-                        if ((animation.getTypeMask() & WindowInsetsCompat.Type.ime()) != 0) imeAnimating = true;
+                        if ((animation.getTypeMask() & WindowInsetsCompat.Type.ime()) != 0) {
+                            imeAnimating = true; imeApplied = false;
+                        }
                     }
                     @Override
                     public WindowInsetsCompat onProgress(WindowInsetsCompat insets,
                             java.util.List<androidx.core.view.WindowInsetsAnimationCompat> running) {
-                        applyImePadding(insets.getInsets(WindowInsetsCompat.Type.ime()).bottom);
-                        return insets;
+                        return insets;   // عمداً لا نفعل شيئاً: لا إعادة تخطيط لكل إطار
                     }
                     @Override
                     public void onEnd(androidx.core.view.WindowInsetsAnimationCompat animation) {
                         if ((animation.getTypeMask() & WindowInsetsCompat.Type.ime()) == 0) return;
-                        imeAnimating = false;
+                        imeAnimating = false; imeApplied = false;
                         try {
                             WindowInsetsCompat root = ViewCompat.getRootWindowInsets(getWindow().getDecorView());
-                            if (root != null) applyImePadding(root.getInsets(WindowInsetsCompat.Type.ime()).bottom);
+                            if (root != null) {
+                                int h = root.getInsets(WindowInsetsCompat.Type.ime()).bottom;
+                                applyImePadding(h);
+                                notifyKeyboard(root.isVisible(WindowInsetsCompat.Type.ime()) && h > 0, h);
+                            }
                         } catch (Throwable ignored) {}
                     }
                 });
