@@ -11282,6 +11282,7 @@ html.kb-open #chatView .chat-input-container{padding-bottom:4px!important}
   var root=document.documentElement;
   function set(on){ root.classList.toggle('kb-open',!!on); }
   function check(){
+    if(window.BabylonAndroidNative) return;   /* الجسر الأصلي هو المصدر الوحيد */
     try{
       var vv=window.visualViewport;
       var shrunk=vv && (window.innerHeight-vv.height)>120;
@@ -17105,6 +17106,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
   var vv=window.visualViewport,root=document.documentElement,raf=0,until=0;
   function apply(){
     try{
+      if(window.BabylonAndroidNative){root.style.removeProperty('--vv-h');root.style.removeProperty('--vv-top');return;}
       if(window.innerWidth>=1100){root.style.removeProperty('--vv-h');root.style.removeProperty('--vv-top');return;}
       var h=Math.min(window.innerHeight,(vv?vv.height:window.innerHeight))-(window.__bbKbExtra||0),t=vv?vv.offsetTop:0;if(h<200)h=window.innerHeight;
       root.style.setProperty('--vv-h',Math.round(h)+'px');
@@ -17115,6 +17117,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
     }catch(e){}
   }
   function track(ms){
+    if(window.BabylonAndroidNative) return;
     until=Date.now()+(ms||1200);
     if(raf)return;
     (function loop(){apply();if(Date.now()<until)raf=requestAnimationFrame(loop);else raf=0;})();
@@ -17133,6 +17136,7 @@ html{overflow:hidden!important;overscroll-behavior:none}
    في تلك الحالة فقط نفعّل virtualKeyboard.overlaysContent مؤقتاً لقياس الكيبورد، ونُلغيه عند الإغلاق،
    ونُعيد الإضافة extra إلى 0 فور اختفاء الكيبورد (حتى لو بقي الحقل focused). */
 (function(){
+  if(window.BabylonAndroidNative) return;   /* النظام يصغّر الـWebView أصلاً؛ لا نقيس ولا نضيف extra */
   var root=document.documentElement, vv=window.visualViewport, vk=navigator.virtualKeyboard;
   var ua=navigator.userAgent||'', hw=/HUAWEI|HONOR|HMSCore|HarmonyOS|EMUI|HMSBrowser|HuaweiBrowser/i.test(ua);
   var base=Math.max(window.innerHeight,vv?vv.height:0), extra=0, fbTimer=0, overlay=false, lastW=window.innerWidth;
@@ -21403,5 +21407,34 @@ html:has(.app-container[data-app-theme="dark"]),body:has(.app-container[data-app
     bind();var b=box();if(b)atBottom=near(b);
   });
   var mo=new MutationObserver(bind);mo.observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+<style id="babylon-kb-final">
+/* عند ظهور الكيبورد: لا مسافة سفلية لأزرار النظام (الجسر الأصلي يحتسبها ضمن ارتفاع الكيبورد) */
+html.kb-open{--sab-real:0px;--bb-nav-fb:0px;--bb-nav-inset:0px}
+html.kb-open #chatView .chat-input-container,
+html.kb-open #chatView.bb-blk-on .chat-input-container{padding-bottom:4px!important}
+html.kb-open #bbGestureFill{display:none!important}
+#chatView .chat-input-container{will-change:transform}
+</style>
+<script id="babylon-kb-final-js">
+/* حركة ناعمة للحقل: الصفحة تُصغَّر مرة واحدة (سريع)، والحقل ينزلق من مكانه القديم لمكانه الجديد */
+(function(){
+  if(!window.BabylonAndroidNative) return;
+  var last=0;
+  window.addEventListener('babylonNativeKeyboard',function(e){
+    var d=(e&&e.detail)||{}, h=d.visible?(d.height||0):0, delta=h-last; last=h;
+    if(!delta) return;
+    var c=document.querySelector('#chatView .chat-input-container');
+    if(!c||!c.offsetParent) return;
+    c.style.transition='none';
+    c.style.transform='translate3d(0,'+delta+'px,0)';
+    void c.offsetHeight;
+    requestAnimationFrame(function(){
+      c.style.transition='transform .26s cubic-bezier(.2,.8,.2,1)';
+      c.style.transform='translate3d(0,0,0)';
+    });
+  });
 })();
 </script>
