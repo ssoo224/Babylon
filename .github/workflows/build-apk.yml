@@ -1,0 +1,50 @@
+name: Build APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate android project
+        run: |
+          flutter create --org com.babylon --project-name chat --platforms=android .
+          sed -i 's/^name: .*/name: babylon_chat/' pubspec.yaml
+          cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "1022301130899",
+              "project_id": "aj-chat-df534",
+              "storage_bucket": "aj-chat-df534.firebasestorage.app"
+            },
+            "client": [{
+              "client_info": {
+                "mobilesdk_app_id": "1:1022301130899:android:f384a37f10cb49efb6bd66",
+                "android_client_info": { "package_name": "com.babylon.chat" }
+              },
+              "oauth_client": [],
+              "api_key": [{ "current_key": "AIzaSyCNl4rxtMyStQ2_OihJGONJZzlIBwzQCos" }],
+              "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+            }],
+            "configuration_version": "1"
+          }
+          JSON
+          sed -i '/id("org.jetbrains.kotlin.android")/a\    id("com.google.gms.google-services") version "4.4.2" apply false' android/settings.gradle.kts
+          sed -i '/id("dev.flutter.flutter-gradle-plugin")/a\    id("com.google.gms.google-services")' android/app/build.gradle.kts
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' android/app/src/main/AndroidManifest.xml
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: babylon-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
