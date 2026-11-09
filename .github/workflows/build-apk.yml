@@ -54,7 +54,20 @@ jobs:
       - run: flutter pub get
       - name: App launcher icon
         run: dart run flutter_launcher_icons
-      - run: flutter build apk --release
+      - name: Build APK
+        run: |
+          set -o pipefail
+          flutter build apk --release 2>&1 | tee build.log
+      - name: Show build errors
+        if: failure()
+        run: |
+          grep -n -E "Error|error:|FAILURE|What went wrong|Execution failed|Could not|e: " build.log | head -60 > errors.txt || true
+          { echo '### Build errors'; echo '~~~'; cat errors.txt; echo '~~~'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-log
+          path: build.log
       - uses: actions/upload-artifact@v4
         with:
           name: babylon-apk
