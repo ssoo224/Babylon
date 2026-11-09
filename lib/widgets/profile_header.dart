@@ -1,6 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../core/prefs.dart';
 import '../core/theme.dart';
+import 'pattern_layer.dart';
 import '../core/utils.dart';
 import 'avatar.dart';
 
@@ -13,6 +14,8 @@ class ProfileHeader extends StatelessWidget {
   final bool online;
   final bool verified;
   final VoidCallback? onAvatarTap;
+  final String coverKey;
+  final VoidCallback? onCoverTap;
   const ProfileHeader({
     super.key,
     required this.avatarUrl,
@@ -22,32 +25,41 @@ class ProfileHeader extends StatelessWidget {
     this.online = false,
     this.verified = false,
     this.onAvatarTap,
+    this.coverKey = 'babylon',
+    this.onCoverTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final p = BP.of(context);
-    final img = imageFromUrl(avatarUrl);
     return Column(children: [
       SizedBox(
         height: 176,
         width: double.infinity,
         child: Stack(fit: StackFit.expand, children: [
-          if (img != null)
-            ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: Image(image: img, fit: BoxFit.cover),
-            )
-          else
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFC29D30), Color(0xFF6B4F10)]),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: chatThemeBase(coverKey).cover),
+            ),
+          ),
+          PatternLayer(theme: chatThemeBase(coverKey), cell: 64),
+          Container(color: Colors.black.withOpacity(.12)),
+          if (onCoverTap != null)
+            Positioned(
+              top: 40,
+              left: 10,
+              child: Material(
+                color: Colors.black38,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  icon: const Icon(Icons.palette_outlined, color: Colors.white, size: 20),
+                  onPressed: onCoverTap,
+                ),
               ),
             ),
-          Container(color: Colors.black.withOpacity(.25)),
           Positioned(
             bottom: 0,
             left: 0,

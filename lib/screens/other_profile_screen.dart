@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../widgets/profile_header.dart';
 import 'chat_screen.dart';
+import 'profile_screen.dart';
 
 class OtherProfileScreen extends StatelessWidget {
   final String uid;
@@ -38,6 +39,7 @@ class OtherProfileScreen extends StatelessWidget {
               status: statusOf(u),
               online: isOnline(u),
               verified: u['isVerified'] == true,
+              coverKey: (u['cover'] as String?) ?? 'babylon',
               onAvatarTap: () {
                 final img = imageFromUrl(av);
                 if (img == null) return;
@@ -102,7 +104,12 @@ class OtherProfileScreen extends StatelessWidget {
                       title: const Text('النبذة'),
                       subtitle: Text(u['bio']),
                     ),
+                  if ((u['province'] as String?)?.isNotEmpty == true)
+                    ListTile(leading: Icon(Icons.location_on_outlined, color: p.gold), title: const Text('المحافظة'), subtitle: Text(u['province'])),
+                  if (joinedLabel(u).isNotEmpty)
+                    ListTile(leading: Icon(Icons.calendar_today_outlined, color: p.gold), title: const Text('تاريخ الانضمام'), subtitle: Text(joinedLabel(u))),
                 ]),
+                PinnedStoriesSection(uid: uid, owner: u, mine: false),
               ]),
             ),
           ]);

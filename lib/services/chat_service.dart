@@ -18,8 +18,17 @@ class Msg {
   String? get replyTo => d['replyTo'];
   String get type => d['type'] ?? '';
   bool get system => d['system'] == true;
+  bool get forwarded => d['forwarded'] == true;
+  String? get posterUrl => d['posterUrl'];
+  bool get storyReply => d['storyReply'] == true;
+  Map<String, dynamic>? get storyReplyData =>
+      d['storyReplyData'] is Map ? Map<String, dynamic>.from(d['storyReplyData']) : null;
+  List<String> get deletedFor => ((d['deletedFor'] as List?) ?? []).cast<String>();
+  bool get isMedia => imageUrl != null || videoUrl != null || audioUrl != null;
   int get duration => (d['duration'] as num?)?.toInt() ?? 0;
-  String get preview => audioUrl != null
+  String get preview => storyReply
+      ? '↩ ${text.isEmpty ? 'رد على قصة' : text}'
+      : audioUrl != null
       ? '♬ بصمة صوتية'
       : imageUrl != null
           ? '▧ صورة'
@@ -136,6 +145,61 @@ class ChatService {
           }
         : const {});
   }
+
+  /// حذف لدي فقط: deletedFor = [uid]
+  Future<void> deleteForMe(String chatId, String id, String me) => _chats
+      .doc(chatId)
+      .collection('messages')
+      .doc(id)
+      .update({'deletedFor': FieldValue.arrayUnion([me])});
+
+  /// إعادة توجيه (نفس حقول الأصل: forwarded:true)
+  Future<void> forward(String targetChatId, String me, List<Msg> msgs, {bool group = false}) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    var last = '';
+    for (var i = 0; i < msgs.length; i++) {
+      final m = msgs[i];
+      final n = <String, dynamic>{
+        'senderId': me,
+        'forwarded': true,
+        'read': false,
+        'createdAt': now + i,
+      };
+      if (m.text.isNotEmpty) n['text'] = m.text;
+      if (m.imageUrl != null) n['imageUrl'] = m.imageUrl;
+      if (m.videoUrl != null) {
+        n['videoUrl'] = m.videoUrl;
+        if (m.posterUrl != null) n['posterUrl'] = m.posterUrl;
+      }
+      if (m.audioUrl != null) n['audioUrl'] = m.audioUrl;
+      if (m.duration > 0) n['duration'] = m.duration;
+      if (m.d['thumb'] != null) n['thumb'] = m.d['thumb'];
+      if (m.type == 'sticker') {
+        n['type'] = 'sticker';
+        if (m.d['sticker'] != null) n['sticker'] = m.d['sticker'];
+      }
+      await _chats.doc(targetChatId).collection('messages').add(n);
+      last = m.preview;
+    }
+    await _chats.doc(targetChatId).set({
+      'updatedAt': now + msgs.length,
+      if (group) 'lastMsg': {'text': last, 'senderId': me, 'at': now},
+    }, SetOptions(merge: true));
+  }
+
+  /// عدد غير المقروء (رسائل الطرف الآخر read=false)
+  Stream<int> unreadCount(String chatId, String me) => _chats
+      .doc(chatId)
+      .collection('messages')
+      .where('read', isEqualTo: false)
+      .limit(60)
+      .snapshots()
+      .map((s) => s.docs.where((d) {
+            final m = d.data();
+            return m['senderId'] != me &&
+                m['system'] != true &&
+                !(((m['deletedFor'] as List?) ?? []).contains(me));
+          }).length);
 
   // ---------- المجموعات (نفس بنية الأصل) ----------
   Future<String> createGroup(
@@ -266,9 +330,12 @@ class ChatService {
 
   Future<String?> postStory(
     String me, {
-    required String imageDataUrl,
+    String? imageDataUrl,
+    String? videoUrl,
+    String? posterUrl,
     String caption = '',
     int hours = 24,
+    bool pinned = false,
   }) async {
     final mine = await _db.collection('stories').where('userId', isEqualTo: me).get();
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -276,15 +343,57 @@ class ChatService {
     if (active.length >= 3) return 'وصلت إلى الحد الأقصى: 3 قصص نشطة';
     await _db.collection('stories').add({
       'userId': me,
-      'imageUrl': imageDataUrl,
+      if (videoUrl != null) 'videoUrl': videoUrl,
+      'imageUrl': imageDataUrl ?? posterUrl ?? '',
       'caption': caption,
       'createdAt': now,
       'expiresAt': now + hours * 3600000,
-      'pinned': false,
+      'pinned': pinned,
     });
     final until = now + hours * 3600000;
     await _users.doc(me).set({'storyUntil': until, 'storyAt': now}, SetOptions(merge: true));
     return null;
+  }
+
+  Future<void> updateStory(String id, Json data) => _db.collection('stories').doc(id).update(data);
+
+  /// قصص مثبتة (تبقى بعد انتهاء المدة) لمستخدم معيّن
+  Future<List<Json>> pinnedStories(String uid) async {
+    final q = await _db.collection('stories').where('userId', isEqualTo: uid).get();
+    return q.docs.map((d) => {...d.data(), 'id': d.id}).where((s) => s['pinned'] == true).toList();
+  }
+
+  Stream<List<Json>> storyViews(String storyId) => _db
+      .collection('stories')
+      .doc(storyId)
+      .collection('views')
+      .snapshots()
+      .map((s) => s.docs.map((d) => {...d.data(), 'id': d.id}).toList());
+
+  Future<void> setStoryReaction(String storyId, String me, String? emoji) => _db
+      .collection('stories')
+      .doc(storyId)
+      .collection('views')
+      .doc(me)
+      .set({'react': emoji ?? FieldValue.delete()}, SetOptions(merge: true));
+
+  /// رد/تفاعل على قصة = رسالة بالمحادثة (storyReply:true) مثل الأصل
+  Future<void> replyToStory(String me, String owner, String text, Json story) async {
+    final chatId = pairChatId(me, owner);
+    await _chats.doc(chatId).set({'participants': [me, owner], 'updatedAt': DateTime.now().millisecondsSinceEpoch}, SetOptions(merge: true));
+    await _chats.doc(chatId).collection('messages').add({
+      'senderId': me,
+      'text': text,
+      'storyReply': true,
+      'storyReplyData': {
+        'imageUrl': story['imageUrl'] ?? '',
+        'videoUrl': story['videoUrl'] ?? '',
+        'caption': story['caption'] ?? '',
+        'storyId': story['id'] ?? '',
+      },
+      'read': false,
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    });
   }
 
   Future<void> markStoryViewed(String storyId, String me, String name) => _db

@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../services/push_service.dart';
 import '../widgets/avatar.dart';
+import '../widgets/bicon.dart';
 import 'chat_screen.dart';
 import 'group_screens.dart';
 import 'profile_screen.dart';
@@ -51,17 +52,23 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'المحادثات'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'الإعدادات'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'الملف الشخصي'),
+          NavigationDestination(icon: BIcon('chat'), label: 'المحادثات'),
+          NavigationDestination(icon: BIcon('sliders'), label: 'الإعدادات'),
+          NavigationDestination(icon: BIcon('user'), label: 'الملف الشخصي'),
         ],
       ),
     );
   }
 }
 
-class _ChatsTab extends StatelessWidget {
+class _ChatsTab extends StatefulWidget {
   const _ChatsTab();
+  @override
+  State<_ChatsTab> createState() => _ChatsTabState();
+}
+
+class _ChatsTabState extends State<_ChatsTab> {
+  bool _unreadOnly = false;
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +114,14 @@ class _ChatsTab extends StatelessWidget {
               .toList();
           return Column(children: [
             StoriesBar(partnerIds: partnerIds),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+              child: Row(children: [
+                ChoiceChip(label: const Text('الكل'), selected: !_unreadOnly, onSelected: (_) => setState(() => _unreadOnly = false)),
+                const SizedBox(width: 8),
+                ChoiceChip(label: const Text('غير المقروءة'), selected: _unreadOnly, onSelected: (_) => setState(() => _unreadOnly = true)),
+              ]),
+            ),
             Expanded(
               child: chats.isEmpty
                   ? const Center(
@@ -121,8 +136,8 @@ class _ChatsTab extends StatelessWidget {
                   : ListView.builder(
                       itemCount: chats.length,
                       itemBuilder: (_, i) => chats[i].data()['type'] == 'group'
-                          ? _GroupTile(chat: chats[i], me: me)
-                          : _ChatTile(chat: chats[i], me: me),
+                          ? _GroupTile(chat: chats[i], me: me, unreadOnly: _unreadOnly)
+                          : _ChatTile(chat: chats[i], me: me, unreadOnly: _unreadOnly),
                     ),
             ),
           ]);
@@ -166,6 +181,7 @@ Widget _tileShell(BuildContext context,
     required Widget subtitle,
     required String time,
     required String chatId,
+    int unread = 0,
     required VoidCallback onTap}) {
   final pal = BP.of(context);
   final prefs = context.watch<AppPrefs>();
@@ -185,6 +201,13 @@ Widget _tileShell(BuildContext context,
         Text(time, style: TextStyle(fontSize: 12, color: pal.muted)),
         const SizedBox(height: 4),
         Row(mainAxisSize: MainAxisSize.min, children: [
+          if (unread > 0)
+            Container(
+              margin: const EdgeInsetsDirectional.only(end: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(color: pal.gold, borderRadius: BorderRadius.circular(12)),
+              child: Text(unread > 99 ? '99+' : '$unread', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: pal.dark ? pal.bg : Colors.white)),
+            ),
           if (prefs.isMuted(chatId)) Icon(Icons.notifications_off, size: 15, color: pal.muted),
           if (prefs.isPinned(chatId)) Icon(Icons.push_pin, size: 15, color: pal.gold),
         ]),
@@ -198,7 +221,8 @@ Widget _tileShell(BuildContext context,
 class _GroupTile extends StatelessWidget {
   final QueryDocumentSnapshot<Json> chat;
   final String me;
-  const _GroupTile({required this.chat, required this.me});
+  final bool unreadOnly;
+  const _GroupTile({required this.chat, required this.me, this.unreadOnly = false});
 
   @override
   Widget build(BuildContext context) {
@@ -208,9 +232,11 @@ class _GroupTile extends StatelessWidget {
     final at = (last?['at'] as num?)?.toInt() ?? ((d['updatedAt'] as num?)?.toInt() ?? 0);
     final readAt = ((d['readAt'] as Map?)?[me] as num?)?.toInt() ?? 0;
     final unread = last != null && last['senderId'] != me && at > readAt;
+    if (unreadOnly && !unread) return const SizedBox.shrink();
     return _tileShell(
       context,
       chatId: chat.id,
+      unread: unread ? 1 : 0,
       leading: Avatar(size: 56, url: d['photo'] as String?, name: name),
       title: Text(name,
           maxLines: 1,
@@ -230,7 +256,8 @@ class _GroupTile extends StatelessWidget {
 class _ChatTile extends StatelessWidget {
   final QueryDocumentSnapshot<Json> chat;
   final String me;
-  const _ChatTile({required this.chat, required this.me});
+  final bool unreadOnly;
+  const _ChatTile({required this.chat, required this.me, this.unreadOnly = false});
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +269,12 @@ class _ChatTile extends StatelessWidget {
     if (other.isEmpty) return const SizedBox.shrink();
     final updated = (data['updatedAt'] as num?)?.toInt() ?? 0;
 
-    return StreamBuilder<Json?>(
+    return StreamBuilder<int>(
+      stream: svc.unreadCount(chat.id, me),
+      builder: (context, un) {
+        final unread = un.data ?? 0;
+        if (unreadOnly && unread == 0) return const SizedBox.shrink();
+        return StreamBuilder<Json?>(
       stream: svc.userStream(other),
       builder: (context, s) {
         final u = s.data ?? {};
@@ -252,6 +284,7 @@ class _ChatTile extends StatelessWidget {
         return _tileShell(
           context,
           chatId: chat.id,
+          unread: unread,
           leading: Avatar(size: 56, url: avatarOf(u), name: name, online: isOnline(u)),
           title: Row(children: [
             Flexible(
@@ -293,6 +326,8 @@ class _ChatTile extends StatelessWidget {
             MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id, otherId: other)),
           ),
         );
+      },
+    );
       },
     );
   }

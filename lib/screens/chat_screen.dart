@@ -3,19 +3,28 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import '../core/api.dart';
+import '../core/cloudinary.dart';
 import '../core/prefs.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../widgets/avatar.dart';
+import '../widgets/emoji_panel.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/pattern_layer.dart';
+import '../widgets/voice_player.dart';
+import 'forward_screen.dart';
 import 'group_screens.dart';
 import 'other_profile_screen.dart';
+import 'video_screen.dart';
+
+const _selEmojis = ['😂', '❤️', '👍🏻', '😭', '✨'];
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -32,6 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scroll = ScrollController();
   final _rec = AudioRecorder();
   final _picker = ImagePicker();
+  final _focus = FocusNode();
 
   late final ChatService _svc;
   late final AuthService _auth;
@@ -40,14 +50,25 @@ class _ChatScreenState extends State<ChatScreen> {
   Msg? _editing;
   bool _typingSent = false;
   Timer? _typingTimer;
+
   bool _searching = false;
   String _q = '';
+  String _filter = 'all'; // all | mine | others
+
+  bool _selecting = false;
+  final Set<String> _selected = {};
+  List<Msg> _current = [];
+
+  bool _emojiOpen = false;
+  bool _uploading = false;
 
   bool _recording = false;
   int _recSeconds = 0;
   Timer? _recTimer;
+  String? _voiceData; // معاينة الصوت قبل الإرسال
+  int _voiceSecs = 0;
 
-  final Map<String, Json> _users = {}; // أسماء المرسلين بالمجموعات
+  final Map<String, Json> _users = {};
   final Set<String> _fetching = {};
   Json _meta = {};
 
@@ -61,6 +82,9 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() => _limit += 50);
       }
     });
+    _focus.addListener(() {
+      if (_focus.hasFocus && _emojiOpen) setState(() => _emojiOpen = false);
+    });
   }
 
   @override
@@ -72,6 +96,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _text.dispose();
     _search.dispose();
     _scroll.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -116,8 +141,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendPayload(Json payload, String preview) async {
     final reply = _reply;
     setState(() => _reply = null);
-    await _svc.send(widget.chatId, _auth.uid, payload,
-        replyTo: reply, group: widget.isGroup);
+    await _svc.send(widget.chatId, _auth.uid, payload, replyTo: reply, group: widget.isGroup);
     _notify(preview);
   }
 
@@ -135,11 +159,37 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendImage(ImageSource src) async {
-    final x = await _picker.pickImage(
-        source: src, maxWidth: 1280, maxHeight: 1280, imageQuality: 70);
+    final x = await _picker.pickImage(source: src, maxWidth: 1600, maxHeight: 1600, imageQuality: 78);
     if (x == null) return;
-    final bytes = await x.readAsBytes();
-    await _sendPayload({'imageUrl': toDataUrl(bytes)}, '▧ صورة');
+    setState(() => _uploading = true);
+    try {
+      var url = await Cloudinary.upload(File(x.path), video: false);
+      url ??= toDataUrl(await x.readAsBytes());
+      await _sendPayload({'imageUrl': url}, '▧ صورة');
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Future<void> _sendVideo() async {
+    final x = await _picker.pickVideo(source: ImageSource.gallery, maxDuration: const Duration(minutes: 3));
+    if (x == null) return;
+    final f = File(x.path);
+    if (await f.length() > 100 * 1024 * 1024) {
+      if (mounted) toast(context, 'الفيديو أكبر من 100MB');
+      return;
+    }
+    setState(() => _uploading = true);
+    try {
+      final url = await Cloudinary.upload(f, video: true);
+      if (url == null) {
+        if (mounted) toast(context, 'تعذر رفع الفيديو');
+        return;
+      }
+      await _sendPayload({'videoUrl': url, 'posterUrl': Cloudinary.posterOf(url)}, '▶ فيديو');
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   Future<void> _startRec() async {
@@ -160,102 +210,190 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  Future<void> _stopRec({required bool send}) async {
+  /// يوقف التسجيل ويعرض معاينة قبل الإرسال
+  Future<void> _stopRec({required bool keep}) async {
     _recTimer?.cancel();
     final secs = _recSeconds;
     final path = await _rec.stop();
     setState(() => _recording = false);
     if (path == null) return;
     final f = File(path);
-    if (!send || secs < 1) {
+    if (!keep || secs < 1) {
       f.delete().catchError((_) => f);
       return;
     }
     final bytes = await f.readAsBytes();
     f.delete().catchError((_) => f);
-    await _sendPayload(
-        {'audioUrl': toDataUrl(bytes, mime: 'audio/mp4'), 'duration': secs}, '♬ بصمة صوتية');
+    setState(() {
+      _voiceData = toDataUrl(bytes, mime: 'audio/mp4');
+      _voiceSecs = secs;
+    });
   }
 
-  void _msgMenu(Msg m) {
-    final mine = m.senderId == _auth.uid;
-    final myReaction = m.reactions[_auth.uid] as String?;
+  Future<void> _sendVoice() async {
+    final d = _voiceData;
+    if (d == null) return;
+    final secs = _voiceSecs;
+    setState(() => _voiceData = null);
+    await _sendPayload({'audioUrl': d, 'duration': secs}, '♬ بصمة صوتية');
+  }
+
+  // ---------------- التحديد والإجراءات ----------------
+  void _enterSel(Msg m) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _selecting = true;
+      _selected
+        ..clear()
+        ..add(m.id);
+    });
+  }
+
+  void _toggleSel(Msg m) {
+    setState(() {
+      _selected.contains(m.id) ? _selected.remove(m.id) : _selected.add(m.id);
+      if (_selected.isEmpty) _selecting = false;
+    });
+  }
+
+  void _exitSel() => setState(() {
+        _selecting = false;
+        _selected.clear();
+      });
+
+  List<Msg> get _selMsgs =>
+      _current.where((m) => _selected.contains(m.id)).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  Future<void> _react(Msg m, String emoji) async {
+    final cur = m.reactions[_auth.uid] as String?;
+    await _svc.react(widget.chatId, m.id, _auth.uid, cur == emoji ? null : emoji);
+  }
+
+  void _fullEmojiForReaction(Msg m) {
     showModalBottomSheet(
+      context: context,
+      builder: (_) => EmojiPanel(
+        height: 340,
+        onPick: (e) {
+          Navigator.pop(context);
+          _react(m, e);
+          _exitSel();
+        },
+      ),
+    );
+  }
+
+  void _reactors(Msg m) {
+    final entries = m.reactions.entries.where((e) => e.value is String).toList();
+    for (final e in entries) {
+      _loadUser(e.key);
+    }
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: entries.map((e) {
+            final u = _users[e.key] ?? {};
+            final isMe = e.key == _auth.uid;
+            return ListTile(
+              leading: Avatar(url: avatarOf(u), name: (u['displayName'] as String?) ?? '?'),
+              title: Text(isMe ? 'أنت' : ((u['displayName'] as String?) ?? '...')),
+              subtitle: isMe ? const Text('اضغط لإزالة تفاعلك') : null,
+              trailing: Text(e.value as String, style: const TextStyle(fontSize: 24)),
+              onTap: isMe
+                  ? () {
+                      Navigator.pop(context);
+                      _svc.react(widget.chatId, m.id, _auth.uid, null);
+                    }
+                  : null,
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  void _replySel() {
+    final m = _selMsgs.first;
+    setState(() {
+      _reply = m;
+      _editing = null;
+    });
+    _exitSel();
+    _focus.requestFocus();
+  }
+
+  void _copySel() {
+    final t = _selMsgs.map((m) => m.text).where((t) => t.isNotEmpty).join('\n');
+    if (t.isNotEmpty) {
+      Clipboard.setData(ClipboardData(text: t));
+      toast(context, 'تم النسخ');
+    }
+    _exitSel();
+  }
+
+  void _editSel() {
+    final m = _selMsgs.first;
+    setState(() {
+      _editing = m;
+      _reply = null;
+      _text.text = m.text;
+    });
+    _exitSel();
+    _focus.requestFocus();
+  }
+
+  Future<void> _forwardSel() async {
+    final msgs = _selMsgs;
+    final targets = await Navigator.push<List<ForwardTarget>>(
+        context, MaterialPageRoute(builder: (_) => const ForwardScreen()));
+    if (targets == null || targets.isEmpty) return;
+    for (final t in targets) {
+      await _svc.forward(t.chatId, _auth.uid, msgs, group: t.group);
+    }
+    if (mounted) toast(context, 'تمت إعادة التوجيه ✓');
+    _exitSel();
+  }
+
+  Future<void> _deleteSel() async {
+    final msgs = _selMsgs;
+    final allMine = msgs.every((m) => m.senderId == _auth.uid);
+    final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       builder: (_) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: ['❤️', '😂', '😮', '😢', '👍', '🔥'].map((e) {
-                return InkWell(
-                  borderRadius: BorderRadius.circular(30),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _svc.react(widget.chatId, m.id, _auth.uid, myReaction == e ? null : e);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: myReaction == e
-                          ? Theme.of(context).colorScheme.primary.withOpacity(.3)
-                          : null,
-                    ),
-                    child: Text(e, style: const TextStyle(fontSize: 26)),
-                  ),
-                );
-              }).toList(),
-            ),
+            padding: const EdgeInsets.all(8),
+            child: Text(msgs.length > 1 ? 'حذف ${msgs.length} رسائل' : 'حذف الرسالة',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ),
           ListTile(
-            leading: const Icon(Icons.reply),
-            title: const Text('رد'),
-            onTap: () {
-              Navigator.pop(context);
-              setState(() {
-                _reply = m;
-                _editing = null;
-              });
-            },
+            leading: const Icon(Icons.person_outline),
+            title: const Text('حذف لدي فقط'),
+            onTap: () => Navigator.pop(context, 'me'),
           ),
-          if (m.text.isNotEmpty)
+          if (allMine)
             ListTile(
-              leading: const Icon(Icons.copy),
-              title: const Text('نسخ'),
-              onTap: () {
-                Clipboard.setData(ClipboardData(text: m.text));
-                Navigator.pop(context);
-                toast(context, 'تم النسخ');
-              },
+              leading: const Icon(Icons.delete_forever, color: Colors.redAccent),
+              title: const Text('حذف لدى الكل', style: TextStyle(color: Colors.redAccent)),
+              onTap: () => Navigator.pop(context, 'all'),
             ),
-          if (mine && m.text.isNotEmpty && m.audioUrl == null && m.imageUrl == null)
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('تعديل'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() {
-                  _editing = m;
-                  _reply = null;
-                  _text.text = m.text;
-                });
-              },
-            ),
-          if (mine)
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              title: const Text('حذف', style: TextStyle(color: Colors.redAccent)),
-              onTap: () {
-                Navigator.pop(context);
-                _svc.deleteMessage(widget.chatId, m.id);
-              },
-            ),
+          ListTile(title: const Center(child: Text('إلغاء')), onTap: () => Navigator.pop(context)),
         ]),
       ),
     );
+    if (choice == null) return;
+    for (final m in msgs) {
+      if (choice == 'all') {
+        await _svc.deleteMessage(widget.chatId, m.id);
+      } else {
+        await _svc.deleteForMe(widget.chatId, m.id, _auth.uid);
+      }
+    }
+    _exitSel();
   }
 
   void _viewImage(String url) {
@@ -271,7 +409,29 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void _openVideo(String url) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => VideoScreen(url: url)));
+
+  // ---------------- الواجهة ----------------
   PreferredSizeWidget _appBar(BP pal, AppPrefs prefs, Json other, Json meta) {
+    if (_selecting) {
+      final one = _selected.length == 1 && _selMsgs.isNotEmpty;
+      final m = one ? _selMsgs.first : null;
+      final mine = m != null && m.senderId == _auth.uid;
+      return AppBar(
+        leading: IconButton(icon: const Icon(Icons.close), onPressed: _exitSel),
+        title: Text('${_selected.length}'),
+        actions: [
+          if (one) IconButton(icon: const Icon(Icons.reply), tooltip: 'رد', onPressed: _replySel),
+          if (_selMsgs.any((x) => x.text.isNotEmpty))
+            IconButton(icon: const Icon(Icons.copy), tooltip: 'نسخ', onPressed: _copySel),
+          if (one && mine && m.text.isNotEmpty && !m.isMedia)
+            IconButton(icon: const Icon(Icons.edit), tooltip: 'تعديل', onPressed: _editSel),
+          IconButton(icon: const Icon(Icons.shortcut), tooltip: 'إعادة توجيه', onPressed: _forwardSel),
+          IconButton(icon: const Icon(Icons.delete_outline), tooltip: 'حذف', onPressed: _deleteSel),
+        ],
+      );
+    }
     if (_searching) {
       return AppBar(
         leading: IconButton(
@@ -279,6 +439,7 @@ class _ChatScreenState extends State<ChatScreen> {
           onPressed: () => setState(() {
             _searching = false;
             _q = '';
+            _filter = 'all';
             _search.clear();
           }),
         ),
@@ -303,15 +464,14 @@ class _ChatScreenState extends State<ChatScreen> {
     final name = isG ? ((meta['name'] as String?) ?? 'مجموعة') : ((other['displayName'] as String?) ?? '...');
     final photo = isG ? meta['photo'] as String? : avatarOf(other);
     final count = ((meta['participants'] as List?) ?? []).length;
+    final typing = !isG && meta['typing_${widget.otherId}'] == true;
     return AppBar(
       titleSpacing: 0,
       title: InkWell(
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => isG
-                ? GroupInfoScreen(chatId: widget.chatId)
-                : OtherProfileScreen(uid: widget.otherId!),
+            builder: (_) => isG ? GroupInfoScreen(chatId: widget.chatId) : OtherProfileScreen(uid: widget.otherId!),
           ),
         ),
         child: Row(children: [
@@ -320,26 +480,31 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(name, style: const TextStyle(fontSize: 16), overflow: TextOverflow.ellipsis),
-              Text(
-                isG
-                    ? '$count أعضاء'
-                    : (meta['typing_${widget.otherId}'] == true ? 'يكتب الآن...' : statusOf(other)),
-                style: TextStyle(
-                    fontSize: 12,
-                    color: (!isG && meta['typing_${widget.otherId}'] == true) ? pal.gold : pal.muted),
-              ),
+              Text(isG ? '$count أعضاء' : (typing ? 'يكتب الآن...' : statusOf(other)),
+                  style: TextStyle(fontSize: 12, color: typing ? pal.gold : pal.muted)),
             ]),
           ),
         ]),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.search),
-          onPressed: () => setState(() => _searching = true),
-        ),
+        IconButton(icon: const Icon(Icons.search), onPressed: () => setState(() => _searching = true)),
         PopupMenuButton<String>(
-          onSelected: (v) {
+          onSelected: (v) async {
             if (v == 'mute') prefs.toggleMute(widget.chatId);
+            if (v == 'clear') {
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('مسح المحادثة'),
+                  content: const Text('سيتم مسح الرسائل الحالية من عندك فقط. الطرف الآخر ما يتأثر.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('مسح')),
+                  ],
+                ),
+              );
+              if (ok == true) prefs.clearChat(widget.chatId);
+            }
             if (v == 'block' && !isG) {
               _svc.blocks(_auth.uid).first.then((b) => b.contains(widget.otherId)
                   ? _svc.unblock(_auth.uid, widget.otherId!)
@@ -347,14 +512,27 @@ class _ChatScreenState extends State<ChatScreen> {
             }
           },
           itemBuilder: (_) => [
-            PopupMenuItem(
-                value: 'mute',
-                child: Text(prefs.isMuted(widget.chatId) ? 'إلغاء كتم المحادثة' : 'كتم المحادثة')),
+            PopupMenuItem(value: 'mute', child: Text(prefs.isMuted(widget.chatId) ? 'إلغاء كتم المحادثة' : 'كتم المحادثة')),
+            const PopupMenuItem(value: 'clear', child: Text('مسح المحادثة')),
             if (!isG) const PopupMenuItem(value: 'block', child: Text('حظر / إلغاء الحظر')),
           ],
         ),
       ],
     );
+  }
+
+  bool _sameDay(int a, int b) {
+    final x = DateTime.fromMillisecondsSinceEpoch(a), y = DateTime.fromMillisecondsSinceEpoch(b);
+    return x.year == y.year && x.month == y.month && x.day == y.day;
+  }
+
+  String _dayLabel(int ms) {
+    final d = DateTime.fromMillisecondsSinceEpoch(ms);
+    final n = DateTime.now();
+    final diff = DateTime(n.year, n.month, n.day).difference(DateTime(d.year, d.month, d.day)).inDays;
+    if (diff == 0) return 'اليوم';
+    if (diff == 1) return 'أمس';
+    return DateFormat('EEEE d MMMM yyyy', 'ar').format(d);
   }
 
   @override
@@ -372,62 +550,145 @@ class _ChatScreenState extends State<ChatScreen> {
           stream: widget.isGroup ? Stream<Json?>.empty() : _svc.userStream(widget.otherId!),
           builder: (context, us) {
             final other = us.data ?? {};
-            return Scaffold(
-              backgroundColor: ct.chatBg,
-              appBar: _appBar(pal, prefs, other, _meta),
-              body: Column(children: [
-                Expanded(
-                  child: StreamBuilder<List<Msg>>(
-                    stream: _svc.messages(widget.chatId, limit: _limit),
-                    builder: (context, ms) {
-                      if (!ms.hasData) return const Center(child: CircularProgressIndicator());
-                      var list = ms.data!;
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (widget.isGroup) {
-                          _svc.markGroupRead(widget.chatId, me);
-                        } else {
-                          _svc.markRead(widget.chatId, me, list);
-                        }
-                      });
-                      if (_q.isNotEmpty) {
-                        list = list.where((m) => m.text.toLowerCase().contains(_q.toLowerCase())).toList();
-                      }
-                      if (list.isEmpty) {
-                        return Center(
-                            child: Text(_q.isNotEmpty ? 'لا توجد نتائج' : 'ابدأ المحادثة بإرسال رسالة',
-                                style: TextStyle(color: ct.textOther)));
-                      }
-                      return ListView.builder(
-                        controller: _scroll,
-                        reverse: true,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: list.length,
-                        itemBuilder: (_, i) {
-                          final m = list[i];
-                          if (widget.isGroup && !m.system && m.senderId != me) _loadUser(m.senderId);
-                          return MessageBubble(
-                            msg: m,
-                            mine: m.senderId == me,
-                            theme: ct,
-                            font: prefs.font,
-                            radius: prefs.radius,
-                            isGroup: widget.isGroup,
-                            senderName: _users[m.senderId]?['displayName'] as String?,
-                            query: _q,
-                            onLongPress: () => _msgMenu(m),
-                            onImageTap: _viewImage,
+            return PopScope(
+              canPop: !_selecting && !_emojiOpen,
+              onPopInvokedWithResult: (didPop, _) {
+                if (didPop) return;
+                if (_selecting) _exitSel();
+                if (_emojiOpen) setState(() => _emojiOpen = false);
+              },
+              child: Scaffold(
+                backgroundColor: ct.chatBg,
+                appBar: _appBar(pal, prefs, other, _meta),
+                body: Column(children: [
+                  if (_searching)
+                    Container(
+                      color: pal.surface,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      child: Row(children: [
+                        for (final f in const [['all', 'الكل'], ['mine', 'رسائلي'], ['others', 'من الآخرين']])
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(end: 8),
+                            child: ChoiceChip(
+                              label: Text(f[1]),
+                              selected: _filter == f[0],
+                              onSelected: (_) => setState(() => _filter = f[0]),
+                            ),
+                          ),
+                      ]),
+                    ),
+                  Expanded(
+                    child: Stack(children: [
+                      Positioned.fill(child: PatternLayer(theme: ct)),
+                      StreamBuilder<List<Msg>>(
+                        stream: _svc.messages(widget.chatId, limit: _limit),
+                        builder: (context, ms) {
+                          if (!ms.hasData) return const Center(child: CircularProgressIndicator());
+                          final all = ms.data!;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (widget.isGroup) {
+                              _svc.markGroupRead(widget.chatId, me);
+                            } else {
+                              _svc.markRead(widget.chatId, me, all);
+                            }
+                          });
+                          final clearedAt = prefs.cleared[widget.chatId] ?? 0;
+                          var list = all.where((m) => !m.deletedFor.contains(me) && m.createdAt > clearedAt).toList();
+                          _current = list;
+                          if (_q.isNotEmpty) {
+                            list = list.where((m) => m.text.toLowerCase().contains(_q.toLowerCase())).toList();
+                          }
+                          if (_searching && _filter == 'mine') list = list.where((m) => m.senderId == me).toList();
+                          if (_searching && _filter == 'others') list = list.where((m) => m.senderId != me).toList();
+                          if (list.isEmpty) {
+                            return Center(
+                                child: Text(_q.isNotEmpty ? 'لا توجد نتائج' : 'ابدأ المحادثة بإرسال رسالة',
+                                    style: TextStyle(color: ct.textOther)));
+                          }
+                          return ListView.builder(
+                            controller: _scroll,
+                            reverse: true,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: list.length,
+                            itemBuilder: (_, i) {
+                              final m = list[i];
+                              if (widget.isGroup && !m.system && m.senderId != me) _loadUser(m.senderId);
+                              final older = i + 1 < list.length ? list[i + 1] : null;
+                              final newDay = older == null || !_sameDay(m.createdAt, older.createdAt);
+                              final bubble = MessageBubble(
+                                msg: m,
+                                mine: m.senderId == me,
+                                myUid: me,
+                                theme: ct,
+                                font: prefs.font,
+                                radius: prefs.radius,
+                                isGroup: widget.isGroup,
+                                senderName: _users[m.senderId]?['displayName'] as String?,
+                                query: _q,
+                                selected: _selected.contains(m.id),
+                                selecting: _selecting,
+                                onLongPress: () => _selecting ? _toggleSel(m) : _enterSel(m),
+                                onTap: () => _toggleSel(m),
+                                onDoubleTap: () => _react(m, '❤️'),
+                                onReactionsTap: () => _reactors(m),
+                                onImageTap: _viewImage,
+                                onVideoTap: _openVideo,
+                              );
+                              if (!newDay) return bubble;
+                              return Column(children: [
+                                Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                      color: ct.other.withOpacity(.75), borderRadius: BorderRadius.circular(12)),
+                                  child: Text(_dayLabel(m.createdAt),
+                                      style: TextStyle(fontSize: 12, color: ct.textOther)),
+                                ),
+                                bubble,
+                              ]);
+                            },
                           );
                         },
-                      );
-                    },
+                      ),
+                    ]),
                   ),
-                ),
-                if (!_searching) _composer(me, pal),
-              ]),
+                  if (_selecting && _selected.length == 1 && _selMsgs.isNotEmpty) _selEmojiBar(pal),
+                  if (!_searching && !_selecting) _composer(me, pal),
+                ]),
+              ),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _selEmojiBar(BP pal) {
+    final m = _selMsgs.first;
+    final cur = m.reactions[_auth.uid] as String?;
+    return Container(
+      color: pal.surface,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SafeArea(
+        top: false,
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+          for (final e in _selEmojis)
+            InkWell(
+              borderRadius: BorderRadius.circular(30),
+              onTap: () {
+                _react(m, e);
+                _exitSel();
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle, color: cur == e ? pal.gold.withOpacity(.3) : null),
+                child: Text(e, style: const TextStyle(fontSize: 26)),
+              ),
+            ),
+          IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: () => _fullEmojiForReaction(m)),
+        ]),
+      ),
     );
   }
 
@@ -469,9 +730,88 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void _insertEmoji(String e) {
+    final sel = _text.selection;
+    final t = _text.text;
+    final start = sel.isValid ? sel.start : t.length;
+    final end = sel.isValid ? sel.end : t.length;
+    _text.value = TextEditingValue(
+      text: t.replaceRange(start, end, e),
+      selection: TextSelection.collapsed(offset: start + e.length),
+    );
+    setState(() {});
+  }
+
   Widget _composerBox(BP pal) {
     final cs = Theme.of(context).colorScheme;
     final hasText = _text.text.trim().isNotEmpty;
+    Widget row;
+    if (_voiceData != null) {
+      row = Row(children: [
+        IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => setState(() => _voiceData = null)),
+        Expanded(child: VoicePlayer(key: ValueKey(_voiceData.hashCode), url: _voiceData!, seconds: _voiceSecs)),
+        IconButton.filled(onPressed: _sendVoice, icon: const Icon(Icons.send)),
+      ]);
+    } else if (_recording) {
+      row = Row(children: [
+        const Icon(Icons.fiber_manual_record, color: Colors.red),
+        const SizedBox(width: 8),
+        Text('${_recSeconds ~/ 60}:${(_recSeconds % 60).toString().padLeft(2, '0')}'),
+        const Spacer(),
+        TextButton(onPressed: () => _stopRec(keep: false), child: const Text('إلغاء')),
+        IconButton.filled(onPressed: () => _stopRec(keep: true), icon: const Icon(Icons.stop)),
+      ]);
+    } else {
+      row = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.attach_file),
+          onSelected: (v) {
+            if (v == 'gallery') _sendImage(ImageSource.gallery);
+            if (v == 'camera') _sendImage(ImageSource.camera);
+            if (v == 'video') _sendVideo();
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'gallery', child: Text('معرض الصور')),
+            PopupMenuItem(value: 'camera', child: Text('الكاميرا')),
+            PopupMenuItem(value: 'video', child: Text('فيديو')),
+          ],
+        ),
+        IconButton(
+          icon: Icon(_emojiOpen ? Icons.keyboard : Icons.emoji_emotions_outlined),
+          onPressed: () {
+            if (_emojiOpen) {
+              setState(() => _emojiOpen = false);
+              _focus.requestFocus();
+            } else {
+              _focus.unfocus();
+              setState(() => _emojiOpen = true);
+            }
+          },
+        ),
+        Expanded(
+          child: TextField(
+            controller: _text,
+            focusNode: _focus,
+            minLines: 1,
+            maxLines: 5,
+            onChanged: _onChanged,
+            textInputAction: TextInputAction.newline,
+            decoration: const InputDecoration(
+              hintText: 'اكتب رسالة...',
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        hasText
+            ? IconButton.filled(onPressed: _sendText, icon: Icon(_editing != null ? Icons.check : Icons.send))
+            : IconButton.filled(onPressed: _startRec, icon: const Icon(Icons.mic)),
+      ]);
+    }
     return Container(
       decoration: BoxDecoration(
         color: pal.surface,
@@ -479,6 +819,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       child: SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (_uploading) const LinearProgressIndicator(minHeight: 2),
           if (_reply != null || _editing != null)
             Container(
               color: pal.surface,
@@ -487,8 +828,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Icon(_editing != null ? Icons.edit : Icons.reply, size: 18, color: cs.primary),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text((_editing ?? _reply)!.text.isNotEmpty ? (_editing ?? _reply)!.text : '🎤 / 📷',
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  child: Text((_editing ?? _reply)!.preview, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, size: 18),
@@ -500,51 +840,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ]),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-            child: _recording
-                ? Row(children: [
-                    const Icon(Icons.fiber_manual_record, color: Colors.red),
-                    const SizedBox(width: 8),
-                    Text('${_recSeconds ~/ 60}:${(_recSeconds % 60).toString().padLeft(2, '0')}'),
-                    const Spacer(),
-                    TextButton(onPressed: () => _stopRec(send: false), child: const Text('إلغاء')),
-                    IconButton.filled(onPressed: () => _stopRec(send: true), icon: const Icon(Icons.send)),
-                  ])
-                : Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    PopupMenuButton<ImageSource>(
-                      icon: const Icon(Icons.attach_file),
-                      onSelected: _sendImage,
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: ImageSource.gallery, child: Text('معرض الصور')),
-                        PopupMenuItem(value: ImageSource.camera, child: Text('الكاميرا')),
-                      ],
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _text,
-                        minLines: 1,
-                        maxLines: 5,
-                        onChanged: _onChanged,
-                        textInputAction: TextInputAction.newline,
-                        decoration: const InputDecoration(
-                          hintText: 'اكتب رسالة...',
-                          filled: false,
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    hasText
-                        ? IconButton.filled(
-                            onPressed: _sendText,
-                            icon: Icon(_editing != null ? Icons.check : Icons.send))
-                        : IconButton.filled(onPressed: _startRec, icon: const Icon(Icons.mic)),
-                  ]),
-          ),
+          Padding(padding: const EdgeInsets.fromLTRB(4, 6, 8, 6), child: row),
+          if (_emojiOpen) EmojiPanel(onPick: _insertEmoji),
         ]),
       ),
     );
