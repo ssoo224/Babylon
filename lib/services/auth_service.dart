@@ -5,13 +5,16 @@ import 'package:flutter/widgets.dart';
 import '../core/api.dart';
 import '../core/utils.dart';
 
+enum Gate { loading, signedOut, verifyEmail, otp, ready }
+
 class AuthService extends ChangeNotifier with WidgetsBindingObserver {
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseFirestore.instance;
 
   User? user;
   Map<String, dynamic>? me; // بيانات users/{uid}
-  bool ready = false;
+  Gate gate = Gate.loading;
+  bool get ready => gate != Gate.loading;
 
   StreamSubscription<User?>? _authSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _meSub;
@@ -31,18 +34,154 @@ class AuthService extends ChangeNotifier with WidgetsBindingObserver {
     _heartbeat?.cancel();
     me = null;
     if (u == null) {
-      ready = true;
+      gate = Gate.signedOut;
       notifyListeners();
       return;
     }
+    _evaluateGate();
+  }
+
+  /// نفس منطق الأصل: بريد مؤكَّد ثم رمز OTP (claim: otpAuthTime == auth_time)
+  Future<void> _evaluateGate() async {
+    var u = _auth.currentUser;
+    if (u == null) return;
+    try {
+      if (!u.emailVerified) {
+        await u.reload();
+        u = _auth.currentUser;
+        if (u == null) return;
+      }
+      if (!u.emailVerified) {
+        gate = Gate.verifyEmail;
+        notifyListeners();
+        sendVerification(auto: true);
+        return;
+      }
+      final r = await u.getIdTokenResult(true);
+      final c = r.claims ?? {};
+      final otp = c['otpAuthTime'];
+      final at = c['auth_time'];
+      if (otp != null && at != null && num.parse('$otp') == num.parse('$at')) {
+        _startSession();
+      } else {
+        gate = Gate.otp;
+        notifyListeners();
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'network-request-failed') {
+        _startSession(); // بدون إنترنت: مثل الأصل ندخل بالحساب المخزَّن
+      } else {
+        gate = Gate.otp;
+        notifyListeners();
+      }
+    } catch (_) {
+      gate = Gate.otp;
+      notifyListeners();
+    }
+  }
+
+  void _startSession() {
+    final u = _auth.currentUser;
+    if (u == null) return;
+    _meSub?.cancel();
     _meSub = _db.collection('users').doc(u.uid).snapshots().listen((d) {
       me = d.data();
-      ready = true;
       notifyListeners();
     });
+    gate = Gate.ready;
+    notifyListeners();
     _setPresence(true);
-    _heartbeat = Timer.periodic(
-        const Duration(seconds: 20), (_) => _setPresence(true));
+    _heartbeat?.cancel();
+    _heartbeat =
+        Timer.periodic(const Duration(seconds: 20), (_) => _setPresence(true));
+  }
+
+  DateTime? _lastVerifySent;
+
+  /// رابط تأكيد البريد (مرة كل 60 ثانية عند الإرسال التلقائي)
+  Future<String?> sendVerification({bool auto = false}) async {
+    final u = _auth.currentUser;
+    if (u == null) return null;
+    final now = DateTime.now();
+    if (auto &&
+        _lastVerifySent != null &&
+        now.difference(_lastVerifySent!).inSeconds < 60) {
+      return null;
+    }
+    _lastVerifySent = now;
+    try {
+      final r = await BabylonApi.post('/api/send-mail', {'type': 'verify'}, user: u);
+      if (r.status == 200) return null;
+      if (r.status == 429) return 'انتظر دقيقة ثم أعد المحاولة';
+      await u.sendEmailVerification();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return e.code == 'too-many-requests'
+          ? 'محاولات كثيرة، انتظر دقائق وجرّب مرة ثانية'
+          : 'تعذر إرسال رابط التحقق (${e.code})';
+    } catch (_) {
+      return 'تعذر الاتصال، تأكد من الإنترنت';
+    }
+  }
+
+  /// بعد ما يفتح المستخدم رابط التأكيد من بريده
+  Future<String?> checkVerified() async {
+    final u = _auth.currentUser;
+    if (u == null) return null;
+    try {
+      await u.reload();
+      await _auth.currentUser?.getIdToken(true);
+    } catch (_) {
+      return 'تعذر الفحص، حاول مرة ثانية';
+    }
+    if (_auth.currentUser?.emailVerified != true) {
+      return 'لم يتم التحقق بعد، افتح الرابط من بريدك أولاً';
+    }
+    await _evaluateGate();
+    return null;
+  }
+
+  /// إرسال رمز الدخول (6 أرقام) إلى البريد
+  Future<({bool ok, String msg})> sendOtp() async {
+    final u = _auth.currentUser;
+    if (u == null) return (ok: false, msg: '');
+    try {
+      final r = await BabylonApi.post('/api/send-mail', {'type': 'login-send'}, user: u);
+      if (r.status == 200) {
+        return (ok: true, msg: 'تم إرسال الرمز، شيّك بريدك (وصندوق السبام)');
+      }
+      if (r.status == 429) {
+        return (ok: true, msg: 'الرمز انرسل قبل شوي، شيّك بريدك أو انتظر قليلاً');
+      }
+      return (ok: false, msg: 'تعذر إرسال الرمز، جرّب مرة ثانية');
+    } catch (_) {
+      return (ok: false, msg: 'تعذر الاتصال، تأكد من الإنترنت');
+    }
+  }
+
+  /// يرجع null عند النجاح، أو رسالة الخطأ
+  Future<String?> verifyOtp(String code) async {
+    final u = _auth.currentUser;
+    if (u == null) return null;
+    try {
+      final r = await BabylonApi.post(
+          '/api/send-mail', {'type': 'login-verify', 'code': code}, user: u);
+      if (r.status == 200) {
+        await u.getIdToken(true);
+        _startSession();
+        return null;
+      }
+      final e = r.data['error'];
+      if (e == 'invalid') {
+        final left = r.data['left'];
+        return 'الرمز غلط${left != null ? ' (باقي $left محاولات)' : ''}';
+      }
+      if (e == 'locked') return 'تجاوزت عدد المحاولات، اطلب رمز جديد';
+      if (e == 'expired') return 'انتهت صلاحية الرمز، اطلب رمز جديد';
+      return 'تعذر التحقق، جرّب مرة ثانية';
+    } catch (_) {
+      return 'تعذر الاتصال، جرّب مرة ثانية';
+    }
   }
 
   Future<void> _setPresence(bool online) async {
@@ -130,9 +269,6 @@ class AuthService extends ChangeNotifier with WidgetsBindingObserver {
       await u.delete().catchError((_) {});
       throw 'اسم المستخدم مستخدم بالفعل!';
     }
-    try {
-      await u.sendEmailVerification();
-    } catch (_) {}
   }
 
   Future<void> resetPassword(String email) async {

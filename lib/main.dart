@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'core/theme.dart';
 import 'firebase_options.dart';
 import 'screens/auth_screen.dart';
+import 'screens/gate_screens.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
 import 'services/chat_service.dart';
@@ -60,22 +61,30 @@ class _Root extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
-    if (!auth.ready) {
-      return Scaffold(
-        body: Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('بابيلون',
-                style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary)),
-            const SizedBox(height: 16),
-            const CircularProgressIndicator(),
-          ]),
-        ),
-      );
+    switch (auth.gate) {
+      case Gate.loading:
+        return Scaffold(
+          body: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('Babylon',
+                  style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary)),
+              const SizedBox(height: 16),
+              const CircularProgressIndicator(),
+            ]),
+          ),
+        );
+      case Gate.signedOut:
+        return const AuthScreen();
+      case Gate.verifyEmail:
+        return const VerifyEmailScreen();
+      case Gate.otp:
+        return const OtpScreen();
+      case Gate.ready:
+        break;
     }
-    if (auth.user == null) return const AuthScreen();
     return HomeScreen(key: ValueKey(auth.user!.uid));
   }
 }
