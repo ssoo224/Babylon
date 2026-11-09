@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/chat_service.dart';
 import '../widgets/avatar.dart';
@@ -11,6 +12,7 @@ class OtherProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: BP.of(context).chatListBg,
       appBar: AppBar(title: const Text('الملف الشخصي')),
       body: StreamBuilder<Json?>(
         stream: context.read<ChatService>().userStream(uid),

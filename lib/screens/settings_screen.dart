@@ -13,6 +13,7 @@ class SettingsScreen extends StatelessWidget {
     final theme = context.watch<ThemeController>();
     final auth = context.read<AuthService>();
     return Scaffold(
+      backgroundColor: BP.of(context).chatListBg,
       appBar: AppBar(title: const Text('الإعدادات')),
       body: ListView(children: [
         const Padding(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../widgets/avatar.dart';
@@ -43,6 +44,7 @@ class ProfileScreen extends StatelessWidget {
     final me = context.watch<AuthService>().me ?? {};
     final name = (me['displayName'] as String?) ?? '';
     return Scaffold(
+      backgroundColor: BP.of(context).chatListBg,
       appBar: AppBar(title: const Text('ملفي الشخصي')),
       body: ListView(padding: const EdgeInsets.all(20), children: [
         Center(

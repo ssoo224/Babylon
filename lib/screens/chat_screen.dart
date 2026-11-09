@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import '../core/api.dart';
+import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
@@ -316,6 +317,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           ),
+          backgroundColor: BP.of(context).chatListBg,
           body: Column(children: [
             Expanded(
               child: StreamBuilder<List<Msg>>(
@@ -370,12 +372,18 @@ class _ChatScreenState extends State<ChatScreen> {
             );
           }
           final cs = Theme.of(context).colorScheme;
+          final pal = BP.of(context);
           final hasText = _text.text.trim().isNotEmpty;
-          return SafeArea(
+          return Container(
+            decoration: BoxDecoration(
+              color: pal.surface,
+              border: Border(top: BorderSide(color: pal.dark ? const Color(0x33000000) : pal.border)),
+            ),
+            child: SafeArea(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               if (_reply != null || _editing != null)
                 Container(
-                  color: cs.surface,
+                  color: pal.surface,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: Row(children: [
                     Icon(_editing != null ? Icons.edit : Icons.reply, size: 18, color: cs.primary),
@@ -430,8 +438,12 @@ class _ChatScreenState extends State<ChatScreen> {
                             textInputAction: TextInputAction.newline,
                             decoration: const InputDecoration(
                               hintText: 'اكتب رسالة...',
+                              filled: false,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
                               contentPadding:
-                                  EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             ),
                           ),
                         ),
@@ -445,7 +457,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ]),
               ),
             ]),
-          );
+          ));
         },
       ),
     );

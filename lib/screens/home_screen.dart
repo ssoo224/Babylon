@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
@@ -30,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = const [_ChatsTab(), ProfileScreen(), SettingsScreen()];
+    final pages = const [_ChatsTab(), SettingsScreen(), ProfileScreen()];
     return Scaffold(
       body: pages[_tab],
       bottomNavigationBar: NavigationBar(
@@ -38,8 +39,8 @@ class _HomeScreenState extends State<HomeScreen> {
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'المحادثات'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'ملفي'),
           NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'الإعدادات'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'الملف الشخصي'),
         ],
       ),
     );
@@ -55,11 +56,9 @@ class _ChatsTab extends StatelessWidget {
     final svc = context.read<ChatService>();
     final me = auth.uid;
     return Scaffold(
+      backgroundColor: BP.of(context).chatListBg,
       appBar: AppBar(
-        title: Text('بابيلون',
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary)),
+        title: const Text('Babylon'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -130,8 +129,18 @@ class _ChatTile extends StatelessWidget {
         final u = s.data ?? {};
         final name = (u['displayName'] as String?) ?? '...';
         final typing = data['typing_$other'] == true;
-        return ListTile(
+        final pal = BP.of(context);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: ListTile(
+          tileColor: pal.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: pal.dark ? const Color(0x0AFFFFFF) : pal.border),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           leading: Avatar(
+            size: 56,
             url: u['avatarUrl'],
             name: name,
             online: u['online'] == true &&
@@ -144,7 +153,7 @@ class _ChatTile extends StatelessWidget {
                 child: Text(name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600))),
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16.5))),
             if (u['isVerified'] == true)
               Padding(
                 padding: const EdgeInsetsDirectional.only(start: 4),
@@ -179,13 +188,13 @@ class _ChatTile extends StatelessWidget {
             },
           ),
           trailing: Text(updated == 0 ? '' : formatChatTime(updated),
-              style: const TextStyle(fontSize: 12)),
+              style: TextStyle(fontSize: 12, color: pal.muted)),
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (_) => ChatScreen(chatId: chat.id, otherId: other)),
           ),
-        );
+        ));
       },
     );
   }

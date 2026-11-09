@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 import '../core/utils.dart';
 
+/// مثل .telegram-avatar: خلفية ذهبية وحرف داكن
 class Avatar extends StatelessWidget {
   final String? url;
   final String name;
@@ -18,23 +20,23 @@ class Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gold = Theme.of(context).colorScheme.primary;
+    final p = BP.of(context);
     final img = imageFromUrl(url);
     Widget a = CircleAvatar(
       radius: size / 2,
-      backgroundColor: gold.withOpacity(.25),
+      backgroundColor: p.gold,
       backgroundImage: img,
       child: img == null
           ? Text(name.isEmpty ? '?' : name.characters.first.toUpperCase(),
               style: TextStyle(
-                  fontSize: size * .4, fontWeight: FontWeight.bold, color: gold))
+                  fontSize: size * .4, fontWeight: FontWeight.bold, color: p.dark ? p.bg : Colors.white))
           : null,
     );
     if (storyRing) {
       a = Container(
         padding: const EdgeInsets.all(2.5),
         decoration: BoxDecoration(
-            shape: BoxShape.circle, border: Border.all(color: gold, width: 2)),
+            shape: BoxShape.circle, border: Border.all(color: p.gold, width: 2)),
         child: a,
       );
     }
@@ -48,10 +50,9 @@ class Avatar extends StatelessWidget {
             width: size * .26,
             height: size * .26,
             decoration: BoxDecoration(
-              color: Colors.green,
+              color: const Color(0xFF4ADE80),
               shape: BoxShape.circle,
-              border: Border.all(
-                  color: Theme.of(context).scaffoldBackgroundColor, width: 2),
+              border: Border.all(color: p.surface, width: 2),
             ),
           ),
         ),

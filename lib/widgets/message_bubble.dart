@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/chat_service.dart';
 import 'voice_player.dart';
@@ -18,14 +19,9 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final bg = mine
-        ? cs.primary.withOpacity(dark ? .88 : .95)
-        : (dark ? const Color(0xFF1F2937) : Colors.white);
-    final fg = mine
-        ? (dark ? Colors.black : Colors.white)
-        : (dark ? Colors.white : Colors.black87);
+    final pal = BP.of(context);
+    final bg = mine ? pal.bubbleMine : pal.bubbleOther;
+    final fg = mine ? pal.bubbleMineText : pal.bubbleOtherText;
     final reactions = msg.reactions.values.whereType<String>().toList();
 
     Widget content;
@@ -52,26 +48,33 @@ class MessageBubble extends StatelessWidget {
     } else if (msg.type == 'sticker' && msg.imageUrl != null) {
       content = Image(image: imageFromUrl(msg.imageUrl)!, width: 120);
     } else {
-      content = Text(msg.text, style: TextStyle(color: fg, fontSize: 16, height: 1.35));
+      content = Text(msg.text, style: TextStyle(color: fg, fontSize: 14.5, height: 1.4));
     }
 
     return Align(
-      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      // مثل الأصل (RTL): رسائلي flex-end = جهة اليسار، رسائل الطرف الآخر جهة اليمين
+      alignment: mine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
       child: GestureDetector(
         onLongPress: onLongPress,
         child: Container(
           constraints:
               BoxConstraints(maxWidth: MediaQuery.of(context).size.width * .78),
-          margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 10),
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+          margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 10),
+          padding: const EdgeInsets.fromLTRB(10, 6, 10, 5),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(16),
-              topRight: const Radius.circular(16),
-              bottomLeft: Radius.circular(mine ? 16 : 4),
-              bottomRight: Radius.circular(mine ? 4 : 16),
+              topLeft: const Radius.circular(12),
+              topRight: const Radius.circular(12),
+              bottomRight: Radius.circular(mine ? 4 : 12),
+              bottomLeft: Radius.circular(mine ? 12 : 4),
             ),
+            border: mine
+                ? null
+                : Border.all(color: pal.dark ? const Color(0x0FFFFFFF) : pal.border),
+            boxShadow: const [
+              BoxShadow(color: Color(0x4D000000), blurRadius: 2, offset: Offset(0, 1))
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
