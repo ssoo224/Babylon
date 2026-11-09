@@ -5,6 +5,7 @@ import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../widgets/avatar.dart';
+import '../widgets/profile_header.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -41,56 +42,84 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final me = context.watch<AuthService>().me ?? {};
+    final auth = context.watch<AuthService>();
+    final me = auth.me ?? {};
+    final p = BP.of(context);
     final name = (me['displayName'] as String?) ?? '';
+    final history = ((me['avatarHistory'] as List?) ?? []).cast<String>();
     return Scaffold(
-      backgroundColor: BP.of(context).chatListBg,
-      appBar: AppBar(title: const Text('ملفي الشخصي')),
-      body: ListView(padding: const EdgeInsets.all(20), children: [
-        Center(
-          child: GestureDetector(
-            onTap: () => _pickAvatar(context),
-            child: Stack(children: [
-              Avatar(url: me['avatarUrl'], name: name, size: 110),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  child: const Icon(Icons.camera_alt, size: 18, color: Colors.black),
-                ),
+      backgroundColor: p.chatListBg,
+      body: ListView(padding: EdgeInsets.zero, children: [
+        ProfileHeader(
+          avatarUrl: me['avatarUrl'] as String?,
+          name: name,
+          username: (me['username'] as String?) ?? '',
+          status: 'متصل الآن',
+          online: true,
+          verified: me['isVerified'] == true,
+          onAvatarTap: () => _pickAvatar(context),
+        ),
+        Transform.translate(
+          offset: const Offset(0, -46),
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 9),
+              child: Row(children: [
+                QuickAction(icon: Icons.camera_alt_outlined, label: 'الصورة', onTap: () => _pickAvatar(context)),
+                QuickAction(icon: Icons.edit_outlined, label: 'الاسم', onTap: () => _edit(context, 'اسم العرض', 'displayName')),
+                QuickAction(icon: Icons.info_outline, label: 'النبذة', onTap: () => _edit(context, 'النبذة', 'bio', max: 150)),
+              ]),
+            ),
+            const SizedBox(height: 8),
+            InfoCard(children: [
+              ListTile(
+                leading: Icon(Icons.alternate_email, color: p.gold),
+                title: const Text('اسم المستخدم'),
+                subtitle: Text('@${me['username'] ?? ''}', textDirection: TextDirection.ltr),
+              ),
+              ListTile(
+                leading: Icon(Icons.info_outline, color: p.gold),
+                title: const Text('النبذة'),
+                subtitle: Text((me['bio'] as String?)?.isNotEmpty == true ? me['bio'] : 'أضف نبذة عنك'),
+                onTap: () => _edit(context, 'النبذة', 'bio', max: 150),
+              ),
+              ListTile(
+                leading: Icon(Icons.mail_outline, color: p.gold),
+                title: const Text('البريد'),
+                subtitle: Text('${me['email'] ?? ''}', textDirection: TextDirection.ltr),
               ),
             ]),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Card(
-          child: Column(children: [
-            ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('اسم العرض'),
-              subtitle: Text(name),
-              trailing: const Icon(Icons.edit, size: 18),
-              onTap: () => _edit(context, 'اسم العرض', 'displayName'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.alternate_email),
-              title: const Text('اسم المستخدم'),
-              subtitle: Text('@${me['username'] ?? ''}', textDirection: TextDirection.ltr),
-            ),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('النبذة'),
-              subtitle: Text((me['bio'] as String?)?.isNotEmpty == true ? me['bio'] : 'أضف نبذة عنك'),
-              trailing: const Icon(Icons.edit, size: 18),
-              onTap: () => _edit(context, 'النبذة', 'bio', max: 150),
-            ),
-            ListTile(
-              leading: const Icon(Icons.mail_outline),
-              title: const Text('البريد'),
-              subtitle: Text('${me['email'] ?? ''}', textDirection: TextDirection.ltr),
-            ),
+            if (history.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text('صور سابقة', style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
+                ),
+              ),
+              SizedBox(
+                height: 74,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  children: history
+                      .map((u) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: GestureDetector(
+                              onTap: () async {
+                                final cur = (me['avatarUrl'] as String?) ?? '';
+                                final h = history.where((e) => e != u).toList();
+                                if (cur.isNotEmpty) h.insert(0, cur);
+                                await auth.updateProfile({'avatarUrl': u, 'avatarHistory': h.take(5).toList()});
+                              },
+                              child: Avatar(url: u, name: name, size: 64),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
           ]),
         ),
       ]),

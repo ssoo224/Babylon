@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
+import 'core/prefs.dart';
 import 'core/theme.dart';
 import 'firebase_options.dart';
 import 'screens/auth_screen.dart';
@@ -21,9 +22,12 @@ Future<void> main() async {
   await initializeDateFormatting('ar');
   final theme = ThemeController();
   await theme.load();
+  final prefs = AppPrefs();
+  await prefs.load();
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider.value(value: theme),
+      ChangeNotifierProvider.value(value: prefs),
       ChangeNotifierProvider(create: (_) => AuthService()),
       Provider(create: (_) => ChatService()),
     ],

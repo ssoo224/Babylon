@@ -17,6 +17,7 @@ class Msg {
   String? get caption => d['caption'];
   String? get replyTo => d['replyTo'];
   String get type => d['type'] ?? '';
+  bool get system => d['system'] == true;
   int get duration => (d['duration'] as num?)?.toInt() ?? 0;
   String get preview => audioUrl != null
       ? '♬ بصمة صوتية'
@@ -110,6 +111,7 @@ class ChatService {
     String me,
     Json payload, {
     Msg? replyTo,
+    bool group = false,
   }) async {
     final data = <String, dynamic>{
       'senderId': me,
@@ -125,8 +127,81 @@ class ChatService {
       data['replyToSenderId'] = replyTo.senderId;
     }
     await _chats.doc(chatId).collection('messages').add(data);
-    await _touch(chatId, me);
+    final preview = (payload['text'] as String?) ??
+        (payload['audioUrl'] != null ? '♬ بصمة صوتية' : '▧ صورة');
+    await _touch(chatId, me, extra: group
+        ? {
+            'lastMsg': {'text': preview, 'senderId': me, 'at': data['createdAt']},
+            'readAt': {me: data['createdAt']},
+          }
+        : const {});
   }
+
+  // ---------- المجموعات (نفس بنية الأصل) ----------
+  Future<String> createGroup(
+      String me, String name, String photo, List<String> selected) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final ref = _chats.doc();
+    final members = [me, ...selected];
+    final readAt = {for (final u in members) u: now};
+    const text = 'تم إنشاء المجموعة';
+    await ref.set({
+      'type': 'group',
+      'name': name,
+      'photo': photo,
+      'ownerId': me,
+      'participants': members,
+      'createdAt': now,
+      'updatedAt': now,
+      'readAt': readAt,
+      'lastMsg': {'system': true, 'text': text, 'senderId': me, 'at': now},
+    });
+    await ref.collection('messages').add({
+      'system': true,
+      'sys': {'k': 'create', 'by': me},
+      'text': text,
+      'senderId': me,
+      'createdAt': now,
+    });
+    return ref.id;
+  }
+
+  Future<void> addMembers(String chatId, String me, List<String> ids) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _chats.doc(chatId).collection('messages').add({
+      'system': true,
+      'sys': {'k': 'add', 'by': me, 'to': ids},
+      'text': 'تمت إضافة أعضاء جدد',
+      'senderId': me,
+      'createdAt': now,
+    });
+    await _chats.doc(chatId).update({
+      'participants': FieldValue.arrayUnion(ids),
+      'updatedAt': now,
+      for (final u in ids) 'readAt.$u': now,
+      'lastMsg': {'system': true, 'text': 'تمت إضافة أعضاء جدد', 'senderId': me, 'at': now},
+    });
+  }
+
+  Future<void> leaveGroup(String chatId, String me, Json meta) async {
+    final rest = ((meta['participants'] as List?) ?? []).cast<String>().where((x) => x != me).toList();
+    final upd = <String, dynamic>{
+      'participants': FieldValue.arrayRemove([me]),
+      'admins.$me': FieldValue.delete(),
+    };
+    if (meta['ownerId'] == me && rest.isNotEmpty) upd['ownerId'] = rest.first;
+    await _chats.doc(chatId).update(upd);
+  }
+
+  Future<void> markGroupRead(String chatId, String me) => _chats
+      .doc(chatId)
+      .update({'readAt.$me': DateTime.now().millisecondsSinceEpoch}).catchError((_) {});
+
+  Future<void> renameGroup(String chatId, String name) =>
+      _chats.doc(chatId).update({'name': name});
+
+  Future<void> setGroupPhoto(String chatId, String photo) =>
+      _chats.doc(chatId).update({'photo': photo});
 
   Future<void> editMessage(String chatId, String id, String text) =>
       _chats.doc(chatId).collection('messages').doc(id).update({'text': text});

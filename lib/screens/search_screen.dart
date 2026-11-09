@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../widgets/avatar.dart';
@@ -64,7 +65,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   ? const Center(child: Text('لا يوجد مستخدم بهذا اليوزر'))
                   : ListTile(
                       leading: Avatar(
-                          url: _result!['avatarUrl'],
+                          url: avatarOf(_result),
                           name: _result!['displayName'] ?? ''),
                       title: Text(_result!['displayName'] ?? ''),
                       subtitle: Text('@${_result!['username'] ?? ''}'),

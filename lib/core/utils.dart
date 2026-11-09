@@ -60,3 +60,20 @@ void toast(BuildContext c, String msg) {
 }
 
 bool isValidUsername(String u) => RegExp(r'^[a-z][a-z0-9_.]{4,}$').hasMatch(u);
+
+/// خصوصية الأصل: hideAvatar / hideLastSeen على مستند المستخدم
+String? avatarOf(Map<String, dynamic>? u) =>
+    (u == null || u['hideAvatar'] == true) ? null : u['avatarUrl'] as String?;
+
+bool isOnline(Map<String, dynamic> u) {
+  if (u['hideLastSeen'] == true) return false;
+  final ls = (u['lastSeen'] as num?)?.toInt();
+  return u['online'] == true &&
+      ls != null &&
+      DateTime.now().millisecondsSinceEpoch - ls < 60000;
+}
+
+String statusOf(Map<String, dynamic> u) {
+  if (u['hideLastSeen'] == true) return 'آخر ظهور منذ فترة';
+  return formatLastSeen(u);
+}
