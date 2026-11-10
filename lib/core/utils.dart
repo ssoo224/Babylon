@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 /// نفس صيغة الويب: [uid1, uid2].sort().join('__')
 String pairChatId(String a, String b) => ([a, b]..sort()).join('__');
