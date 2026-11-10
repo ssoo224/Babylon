@@ -1,6 +1,6 @@
 {
-  "minVersion": 72,
-  "latest": 72,
+  "minVersion": 73,
+  "latest": 73,
   "url": "/api/apk",
-  "notes": "In-app forced update, signed releases"
+  "notes": "تحسين التصميم: البروفايل والقائمة والتنقل والخط"
 }
