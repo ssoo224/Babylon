@@ -192,6 +192,9 @@ class _Item extends StatelessWidget {
       );
 }
 
+// =========================================================
+// 🚀 عارض القصص (مُحسّن جداً باستخدام AnimationController)
+// =========================================================
 class StoryViewer extends StatefulWidget {
   final List<Json> stories;
   final Json owner;
@@ -201,15 +204,16 @@ class StoryViewer extends StatefulWidget {
   State<StoryViewer> createState() => _StoryViewerState();
 }
 
-class _StoryViewerState extends State<StoryViewer> {
+class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStateMixin {
   int _i = 0;
-  double _progress = 0;
-  Timer? _t;
   bool _paused = false;
   VideoPlayerController? _vc;
   final _reply = TextEditingController();
   final _replyFocus = FocusNode();
-  static const _imgMs = 6000;
+  
+  // 🚀 استخدام AnimationController بدل Timer
+  late AnimationController _progressController;
+  static const _imgMs = Duration(seconds: 6);
 
   Json get _s => widget.stories[_i];
   String get _ownerId => (_s['userId'] as String?) ?? (widget.owner['id'] as String? ?? '');
@@ -217,41 +221,57 @@ class _StoryViewerState extends State<StoryViewer> {
   @override
   void initState() {
     super.initState();
-    _replyFocus.addListener(() => setState(() => _paused = _replyFocus.hasFocus));
+    _replyFocus.addListener(() {
+      if (mounted) setState(() => _paused = _replyFocus.hasFocus);
+      _handlePause(_replyFocus.hasFocus);
+    });
+    
+    _progressController = AnimationController(vsync: this, duration: _imgMs);
+    _progressController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) _next();
+    });
+
     _start();
   }
 
   Future<void> _start() async {
-    _t?.cancel();
+    _progressController.reset();
     await _vc?.dispose();
     _vc = null;
-    _progress = 0;
+    
     final s = _s;
     if (!widget.mine && s['id'] != null) {
       final auth = context.read<AuthService>();
       context.read<ChatService>().markStoryViewed(s['id'], auth.uid, auth.displayName);
     }
+    
     final v = s['videoUrl'] as String?;
     if (v != null && v.isNotEmpty) {
       final c = VideoPlayerController.networkUrl(Uri.parse(v));
       _vc = c;
       await c.initialize();
       if (!mounted || _vc != c) return;
+      
+      // إذا كان فيديو، نربط الأنميشن بمدة الفيديو
+      _progressController.duration = c.value.duration;
       c.play();
       setState(() {});
+      if (!_paused) _progressController.forward(from: 0);
+    } else {
+      // إذا صورة، نستخدم 6 ثواني
+      _progressController.duration = _imgMs;
+      if (!_paused) _progressController.forward(from: 0);
     }
-    _t = Timer.periodic(const Duration(milliseconds: 50), (t) {
-      if (_paused) return;
-      final c = _vc;
-      if (c != null && c.value.isInitialized) {
-        final d = c.value.duration.inMilliseconds;
-        _progress = d == 0 ? 0 : c.value.position.inMilliseconds / d;
-      } else {
-        _progress += 50 / _imgMs;
-      }
-      setState(() {});
-      if (_progress >= 1) _next();
-    });
+  }
+
+  void _handlePause(bool isPaused) {
+    if (isPaused) {
+      _progressController.stop();
+      _vc?.pause();
+    } else {
+      _progressController.forward();
+      _vc?.play();
+    }
   }
 
   void _next() {
@@ -259,34 +279,27 @@ class _StoryViewerState extends State<StoryViewer> {
       setState(() => _i++);
       _start();
     } else {
-      _t?.cancel();
+      _progressController.stop();
       if (mounted) Navigator.pop(context);
     }
   }
 
   void _prev() {
-    if (_i > 0) setState(() => _i--);
-    _start();
+    if (_i > 0) {
+      setState(() => _i--);
+      _start();
+    } else {
+      _progressController.forward(from: 0); // إعادة الحالية
+    }
   }
 
   @override
   void dispose() {
-    _t?.cancel();
+    _progressController.dispose();
     _vc?.dispose();
     _reply.dispose();
     _replyFocus.dispose();
     super.dispose();
-  }
-
-  void _pause(bool v) {
-    _paused = v;
-    final c = _vc;
-    if (c == null) return;
-    if (v) {
-      c.pause();
-    } else {
-      c.play();
-    }
   }
 
   Future<void> _sendReply(String text) async {
@@ -308,7 +321,7 @@ class _StoryViewerState extends State<StoryViewer> {
   }
 
   void _viewers() {
-    _pause(true);
+    _handlePause(true);
     final svc = context.read<ChatService>();
     showModalBottomSheet(
       context: context,
@@ -340,11 +353,11 @@ class _StoryViewerState extends State<StoryViewer> {
           );
         },
       ),
-    ).whenComplete(() => _pause(false));
+    ).whenComplete(() => _handlePause(false));
   }
 
   Future<void> _edit() async {
-    _pause(true);
+    _handlePause(true);
     final c = TextEditingController(text: (_s['caption'] as String?) ?? '');
     final v = await showDialog<String>(
       context: context,
@@ -361,7 +374,7 @@ class _StoryViewerState extends State<StoryViewer> {
       await context.read<ChatService>().updateStory(_s['id'], {'caption': v});
       setState(() => _s['caption'] = v);
     }
-    _pause(false);
+    _handlePause(false);
   }
 
   Future<void> _togglePin() async {
@@ -372,7 +385,7 @@ class _StoryViewerState extends State<StoryViewer> {
   }
 
   Future<void> _delete() async {
-    _pause(true);
+    _handlePause(true);
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -388,7 +401,7 @@ class _StoryViewerState extends State<StoryViewer> {
       await context.read<ChatService>().deleteStory(_s['id']);
       if (mounted) Navigator.pop(context);
     } else {
-      _pause(false);
+      _handlePause(false);
     }
   }
 
@@ -397,7 +410,7 @@ class _StoryViewerState extends State<StoryViewer> {
     final s = _s;
     final img = imageFromUrl(s['imageUrl'] as String?);
     final isVideo = ((s['videoUrl'] as String?) ?? '').isNotEmpty;
-    final p = BP.of(context);
+    
     return Scaffold(
       backgroundColor: Colors.black,
       resizeToAvoidBottomInset: true,
@@ -411,8 +424,8 @@ class _StoryViewerState extends State<StoryViewer> {
           d.localPosition.dx > w / 2 ? _prev() : _next();
         },
         onDoubleTap: widget.mine ? null : _heart,
-        onLongPressStart: (_) => _pause(true),
-        onLongPressEnd: (_) => _pause(false),
+        onLongPressStart: (_) => _handlePause(true),
+        onLongPressEnd: (_) => _handlePause(false),
         onVerticalDragEnd: (d) {
           if ((d.primaryVelocity ?? 0) > 500) Navigator.pop(context);
         },
@@ -421,8 +434,10 @@ class _StoryViewerState extends State<StoryViewer> {
             Center(child: AspectRatio(aspectRatio: _vc!.value.aspectRatio, child: VideoPlayer(_vc!)))
           else if (img != null)
             Image(image: img, fit: BoxFit.contain),
+            
           SafeArea(
             child: Column(children: [
+              // شريط التقدم (مبني على الأنميشن كنترولر)
               Padding(
                 padding: const EdgeInsets.all(8),
                 child: Row(
@@ -431,11 +446,18 @@ class _StoryViewerState extends State<StoryViewer> {
                     (k) => Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 2),
-                        child: LinearProgressIndicator(
-                          value: k < _i ? 1 : (k == _i ? _progress.clamp(0, 1) : 0),
-                          minHeight: 3,
-                          backgroundColor: Colors.white24,
-                          color: Colors.white,
+                        child: AnimatedBuilder(
+                          animation: _progressController,
+                          builder: (context, child) {
+                            // إذا كنا في قصة سابقة نعرض 1، التالية 0، الحالية حسب التقدم
+                            final value = k < _i ? 1.0 : (k == _i ? _progressController.value : 0.0);
+                            return LinearProgressIndicator(
+                              value: value,
+                              minHeight: 3,
+                              backgroundColor: Colors.white24,
+                              color: Colors.white,
+                            );
+                          },
                         ),
                       ),
                     ),
