@@ -4,10 +4,10 @@ import '../core/utils.dart';
 import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../services/auth_service.dart';
+import '../services/chat_service.dart' show Json;
 import '../services/gift_service.dart';
 
 
-typedef Json = Map<String, dynamic>;
 
 class GiftGrid extends StatelessWidget {
   final String uid;
