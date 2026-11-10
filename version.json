@@ -1,6 +1,6 @@
 {
-  "minVersion": 73,
-  "latest": 73,
+  "minVersion": 74,
+  "latest": 74,
   "url": "/api/apk",
-  "notes": "تحسين التصميم: البروفايل والقائمة والتنقل والخط"
+  "notes": "Update home_screen.dart"
 }
