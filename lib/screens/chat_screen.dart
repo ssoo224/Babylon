@@ -58,6 +58,9 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _selecting = false;
   final Set<String> _selected = {};
   List<Msg> _current = [];
+  
+  // 🚀 الرسائل المؤقتة (للظهور الفوري)
+  final List<Msg> _tempMsgs = [];
 
   bool _emojiOpen = false;
   bool _uploading = false;
@@ -120,7 +123,8 @@ class _ChatScreenState extends State<ChatScreen> {
         _svc.setTyping(widget.chatId, _auth.uid, false);
       });
     }
-    setState(() {});
+    // 🚀 تم إزالة setState(() {}) من هنا لأنها كانت تسبب بطء شديد عند كل حرف
+    // زر الإرسال الآن يعتمد على ValueListenableBuilder
   }
 
   void _notify(String preview) {
@@ -141,8 +145,26 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendPayload(Json payload, String preview) async {
     final reply = _reply;
     setState(() => _reply = null);
+    
+    // 🚀 إضافة الرسالة المؤقتة فوراً (Optimistic UI)
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempMsg = Msg(tempId, {
+      ...payload,
+      'senderId': _auth.uid,
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+      'read': false,
+      if (reply != null) 'replyTo': reply.text.isNotEmpty ? reply.text : '📷 صورة',
+      if (reply != null) 'replyToSenderId': reply.senderId,
+    });
+    
+    setState(() {
+      _tempMsgs.insert(0, tempMsg);
+    });
+
     await _svc.send(widget.chatId, _auth.uid, payload, replyTo: reply, group: widget.isGroup);
     _notify(preview);
+    
+    // لا نحذفها هنا، الكود في StreamBuilder سيقوم بحذفها تلقائياً لما تصل الحقيقية
   }
 
   Future<void> _sendText() async {
@@ -210,7 +232,6 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  /// يوقف التسجيل ويعرض معاينة قبل الإرسال
   Future<void> _stopRec({required bool keep}) async {
     _recTimer?.cancel();
     final secs = _recSeconds;
@@ -238,7 +259,6 @@ class _ChatScreenState extends State<ChatScreen> {
     await _sendPayload({'audioUrl': d, 'duration': secs}, '♬ بصمة صوتية');
   }
 
-  // ---------------- التحديد والإجراءات ----------------
   void _enterSel(Msg m) {
     HapticFeedback.selectionClick();
     setState(() {
@@ -412,7 +432,6 @@ class _ChatScreenState extends State<ChatScreen> {
   void _openVideo(String url) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => VideoScreen(url: url)));
 
-  // ---------------- الواجهة ----------------
   PreferredSizeWidget _appBar(BP pal, AppPrefs prefs, Json other, Json meta) {
     if (_selecting) {
       final one = _selected.length == 1 && _selMsgs.isNotEmpty;
@@ -586,16 +605,37 @@ class _ChatScreenState extends State<ChatScreen> {
                         builder: (context, ms) {
                           if (!ms.hasData) return const Center(child: CircularProgressIndicator());
                           final all = ms.data!;
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (widget.isGroup) {
-                              _svc.markGroupRead(widget.chatId, me);
-                            } else {
-                              _svc.markRead(widget.chatId, me, all);
-                            }
-                          });
+                          
+                          // 🚀 التحقق من وجود رسائل غير مقروءة قبل إرسال طلب القراءة
+                          bool hasUnread = all.any((m) => m.senderId != me && !m.read);
+                          if (hasUnread) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (widget.isGroup) {
+                                _svc.markGroupRead(widget.chatId, me);
+                              } else {
+                                _svc.markRead(widget.chatId, me, all);
+                              }
+                            });
+                          }
+
                           final clearedAt = prefs.cleared[widget.chatId] ?? 0;
                           var list = all.where((m) => !m.deletedFor.contains(me) && m.createdAt > clearedAt).toList();
+                          
+                          // 🚀 إدارة الرسائل المؤقتة (Optimistic UI)
+                          if (_tempMsgs.isNotEmpty) {
+                            // إزالة الرسائل المؤقتة التي وصلت بالفعل من السيرفر
+                            _tempMsgs.removeWhere((t) {
+                              return list.any((m) => 
+                                m.senderId == me && 
+                                (m.text == t.text || (m.imageUrl != null && t.d['imageUrl'] != null)) &&
+                                (m.createdAt - t.createdAt).abs() < 15000
+                              );
+                            });
+                            list = [..._tempMsgs, ...list];
+                          }
+
                           _current = list;
+                          
                           if (_q.isNotEmpty) {
                             list = list.where((m) => m.text.toLowerCase().contains(_q.toLowerCase())).toList();
                           }
@@ -745,7 +785,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _composerBox(BP pal) {
     final cs = Theme.of(context).colorScheme;
-    final hasText = _text.text.trim().isNotEmpty;
     Widget row;
     if (_voiceData != null) {
       row = Row(children: [
@@ -808,9 +847,16 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
         const SizedBox(width: 6),
-        hasText
-            ? IconButton.filled(onPressed: _sendText, icon: Icon(_editing != null ? Icons.check : Icons.send))
-            : IconButton.filled(onPressed: _startRec, icon: const Icon(Icons.mic)),
+        // 🚀 استخدام ValueListenableBuilder عشان نمنع الشاشة من إعادة البناء مع كل حرف
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _text,
+          builder: (context, value, child) {
+            final hasText = value.text.trim().isNotEmpty;
+            return hasText
+                ? IconButton.filled(onPressed: _sendText, icon: Icon(_editing != null ? Icons.check : Icons.send))
+                : IconButton.filled(onPressed: _startRec, icon: const Icon(Icons.mic));
+          },
+        ),
       ]);
     }
     return Container(
