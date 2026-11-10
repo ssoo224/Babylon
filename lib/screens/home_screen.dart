@@ -14,7 +14,6 @@ import '../widgets/bicon.dart';
 import '../widgets/bottom_nav.dart';
 import 'chat_screen.dart';
 import 'group_screens.dart';
-import 'profile_screen.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
 import 'stories.dart';
