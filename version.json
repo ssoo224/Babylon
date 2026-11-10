@@ -1,6 +1,6 @@
 {
-  "minVersion": 62,
-  "latest": 62,
+  "minVersion": 72,
+  "latest": 72,
   "url": "/api/apk",
-  "notes": ""
+  "notes": "In-app forced update, signed releases"
 }
