@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../core/theme.dart';
 import '../core/utils.dart';
+import '../core/theme.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../widgets/avatar.dart';
 import 'chat_screen.dart';
 
-// =================== اختيار الأعضاء ===================
+/// اختيار الأعضاء: من أصحاب محادثاتك + البحث بيوزر
 class _MemberPicker extends StatefulWidget {
   final Set<String> exclude;
   final Set<String> selected;
@@ -43,7 +43,7 @@ class _MemberPickerState extends State<_MemberPicker> {
         }
       }
       
-      // 🚀 جلب كل المستخدمين مرة واحدة بدلاً من واحد تلو الآخر
+      // جلب كل المستخدمين مرة واحدة بدلاً من واحد تلو الآخر
       final users = await Future.wait(ids.map((id) => svc.getUser(id)));
       for (int i = 0; i < ids.length; i++) {
         if (users[i] != null) _people[ids.elementAt(i)] = {...users[i]!, 'id': ids.elementAt(i)};
@@ -183,11 +183,13 @@ class _GroupCreateScreenState extends State<GroupCreateScreen> {
       appBar: AppBar(
         title: const Text('مجموعة جديدة'),
         actions: [
-          if (_busy) const Padding(padding: EdgeInsets.all(16), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-          else TextButton(
-            onPressed: _create,
-            child: const Text('إنشاء', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          )
+          if (_busy) 
+            const Padding(padding: EdgeInsets.all(16), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+          else 
+            TextButton(
+              onPressed: _create,
+              child: const Text('إنشاء', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            )
         ],
       ),
       body: Column(children: [
@@ -248,7 +250,7 @@ class GroupInfoScreen extends StatelessWidget {
           }
 
           return FutureBuilder<List<Json?>>(
-            // 🚀 جلب كل الأعضاء مرة واحدة
+            // جلب كل الأعضاء مرة واحدة
             future: Future.wait(members.map((id) => svc.getUser(id))),
             builder: (context, usersSnap) {
               final users = usersSnap.data ?? [];
@@ -344,7 +346,10 @@ class GroupInfoScreen extends StatelessWidget {
                             children: members.asMap().entries.map((entry) {
                               final idx = entry.key;
                               final id = entry.value;
-                              final u = idx < users.length && users[idx] != null ? users[idx]! : {};
+                              
+                              // 🔥 هنا تم إصلاح الخطأ (إجبار النوع ليكون Map<String, dynamic>)
+                              final Map<String, dynamic> u = (idx < users.length && users[idx] != null) ? users[idx]! : <String, dynamic>{};
+                              
                               return Column(children: [
                                 ListTile(
                                   leading: Avatar(url: avatarOf(u), name: (u['displayName'] as String?) ?? '?'),
