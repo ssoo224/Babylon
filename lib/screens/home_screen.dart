@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/prefs.dart';
@@ -44,8 +45,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _prefsSynced = true;
       final c = me['chatPrefs'];
       if (c is Map) {
-        WidgetsBinding.instance
-            .addPostFrameCallback((_) => context.read<AppPrefs>().applyMap(Map<String, dynamic>.from(c)));
+        WidgetsBinding.instance.addPostFrameCallback((_) =>
+            context.read<AppPrefs>().applyMap(Map<String, dynamic>.from(c)));
       }
     }
     final up = context.watch<UpdateController>();
@@ -53,8 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
       up.promptShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          Navigator.of(context).push(
-              MaterialPageRoute(fullscreenDialog: true, builder: (_) => const UpdateScreen(forced: false)));
+          Navigator.of(context).push(MaterialPageRoute(
+              fullscreenDialog: true, builder: (_) => const UpdateScreen(forced: false)));
         }
       });
     }
@@ -82,6 +83,7 @@ class _ChatsTabState extends State<_ChatsTab> {
     final svc = context.read<ChatService>();
     final p = BP.of(context);
     final me = auth.uid;
+
     return Scaffold(
       backgroundColor: p.chatListBg,
       appBar: AppBar(
@@ -90,12 +92,13 @@ class _ChatsTabState extends State<_ChatsTab> {
           IconButton(
             tooltip: 'مجموعة جديدة',
             icon: const Icon(Icons.group_add_outlined),
-            onPressed: () =>
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const GroupCreateScreen())),
+            onPressed: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const GroupCreateScreen())),
           ),
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
+            onPressed: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const SearchScreen())),
           ),
         ],
       ),
@@ -104,12 +107,15 @@ class _ChatsTabState extends State<_ChatsTab> {
         builder: (context, snap) {
           if (snap.hasError) return const Center(child: Text('تعذر تحميل المحادثات'));
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+
           final chats = snap.data!.toList()
             ..sort((a, b) {
               final pa = prefs.isPinned(a.id) ? 1 : 0, pb = prefs.isPinned(b.id) ? 1 : 0;
               if (pa != pb) return pb - pa;
-              return ((b.data()['updatedAt'] ?? 0) as num).compareTo((a.data()['updatedAt'] ?? 0) as num);
+              return ((b.data()['updatedAt'] ?? 0) as num)
+                  .compareTo((a.data()['updatedAt'] ?? 0) as num);
             });
+
           final partnerIds = chats
               .where((d) => d.data()['type'] != 'group')
               .map((d) => ((d.data()['participants'] as List?) ?? [])
@@ -117,15 +123,21 @@ class _ChatsTabState extends State<_ChatsTab> {
                   .firstWhere((x) => x != me, orElse: () => ''))
               .where((x) => x.isNotEmpty)
               .toList();
+
           return Column(children: [
             StoriesBar(partnerIds: partnerIds),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
               child: Row(children: [
-                _FilterChip(label: 'الكل', selected: !_unreadOnly, onTap: () => setState(() => _unreadOnly = false)),
+                _FilterChip(
+                    label: 'الكل',
+                    selected: !_unreadOnly,
+                    onTap: () => setState(() => _unreadOnly = false)),
                 const SizedBox(width: 8),
                 _FilterChip(
-                    label: 'غير المقروءة', selected: _unreadOnly, onTap: () => setState(() => _unreadOnly = true)),
+                    label: 'غير المقروءة',
+                    selected: _unreadOnly,
+                    onTap: () => setState(() => _unreadOnly = true)),
               ]),
             ),
             Expanded(
@@ -175,7 +187,9 @@ class _FilterChip extends StatelessWidget {
         ),
         child: Text(label,
             style: TextStyle(
-                fontSize: 13.5, fontWeight: FontWeight.w700, color: selected ? p.gold : p.muted)),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                color: selected ? p.gold : p.muted)),
       ),
     );
   }
@@ -263,7 +277,8 @@ Widget _chatCard(
                       margin: const EdgeInsetsDirectional.only(start: 8),
                       constraints: const BoxConstraints(minWidth: 22),
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: p.gold, borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(
+                          color: p.gold, borderRadius: BorderRadius.circular(12)),
                       child: Text(unread > 99 ? '99+' : '$unread',
                           textAlign: TextAlign.center,
                           style: TextStyle(
@@ -281,8 +296,10 @@ Widget _chatCard(
   );
 }
 
-TextStyle _nameStyle(BP p) =>
-    TextStyle(fontWeight: FontWeight.w600, fontSize: 16.5, color: p.dark ? Colors.white : const Color(0xFF17212B));
+TextStyle _nameStyle(BP p) => TextStyle(
+    fontWeight: FontWeight.w600,
+    fontSize: 16.5,
+    color: p.dark ? Colors.white : const Color(0xFF17212B));
 
 class _GroupTile extends StatelessWidget {
   final QueryDocumentSnapshot<Json> chat;
@@ -305,17 +322,23 @@ class _GroupTile extends StatelessWidget {
       chatId: chat.id,
       unread: unread ? 1 : 0,
       leading: Avatar(size: 56, url: d['photo'] as String?, name: name, seed: chat.id),
-      nameRow: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: _nameStyle(p)),
+      nameRow: Text(name,
+          maxLines: 1, overflow: TextOverflow.ellipsis, style: _nameStyle(p)),
       sub: Text((last?['text'] as String?) ?? 'لا توجد رسائل بعد',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 13.5, color: p.muted, fontWeight: unread ? FontWeight.bold : null)),
+          style: TextStyle(
+              fontSize: 13.5, color: p.muted, fontWeight: unread ? FontWeight.bold : null)),
       time: at == 0 ? '' : formatChatTime(at),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id))),
+      onTap: () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id))),
     );
   }
 }
 
+// =======================================================
+// 🚀 المحادثة الفردية (مُحسنة جداً للأداء)
+// =======================================================
 class _ChatTile extends StatelessWidget {
   final QueryDocumentSnapshot<Json> chat;
   final String me;
@@ -324,28 +347,35 @@ class _ChatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = BP.of(context);
     final svc = context.read<ChatService>();
     final data = chat.data();
+    
     final other = ((data['participants'] as List?) ?? [])
         .cast<String>()
         .firstWhere((x) => x != me, orElse: () => '');
+        
     if (other.isEmpty) return const SizedBox.shrink();
+    
     final updated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+    final typing = data['typing_$other'] == true;
 
+    // استخدام StreamBuilder واحد فقط لعدد الرسائل غير المقروءة (إذا كانت الدالة موجودة بكودك)
     return StreamBuilder<int>(
       stream: svc.unreadCount(chat.id, me),
       builder: (context, un) {
         final unread = un.data ?? 0;
         if (unreadOnly && unread == 0) return const SizedBox.shrink();
-        return StreamBuilder<Json?>(
-          stream: svc.userStream(other),
+
+        // استخدام FutureBuilder للمستخدم (أخف وأسرع بكثير من Stream لأن بيانات المستخدم لا تتحدث كل ثانية)
+        return FutureBuilder<Json?>(
+          future: FirebaseFirestore.instance.collection('users').doc(other).get().then((v) => v.data()),
           builder: (context, s) {
-            final p = BP.of(context);
             final loading = s.connectionState == ConnectionState.waiting;
             final u = s.data;
             final gone = !loading && (u == null || u.isEmpty);
             final name = gone ? 'مستخدم محذوف' : ((u?['displayName'] as String?) ?? '...');
-            final typing = data['typing_$other'] == true;
+
             return _chatCard(
               context,
               chatId: chat.id,
@@ -371,36 +401,7 @@ class _ChatTile extends StatelessWidget {
                     child: Icon(Icons.verified, size: 16, color: p.gold),
                   ),
               ]),
-              sub: StreamBuilder<Msg?>(
-                stream: svc.lastMessage(chat.id),
-                builder: (_, ms) {
-                  if (typing && !gone) {
-                    return Text('يكتب الآن...', style: TextStyle(fontSize: 13.5, color: p.gold));
-                  }
-                  final m = ms.data;
-                  if (m == null) {
-                    return Text('لا توجد رسائل بعد', style: TextStyle(fontSize: 13.5, color: p.muted));
-                  }
-                  final mine = m.senderId == me;
-                  return Row(children: [
-                    if (mine)
-                      Padding(
-                        padding: const EdgeInsetsDirectional.only(end: 4),
-                        child: Icon(m.read ? Icons.done_all : Icons.done,
-                            size: 15, color: m.read ? p.gold : p.muted),
-                      ),
-                    Expanded(
-                      child: Text(m.preview,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 13.5,
-                              color: p.muted,
-                              fontWeight: (!mine && !m.read) ? FontWeight.bold : null)),
-                    ),
-                  ]);
-                },
-              ),
+              sub: _buildSubtitle(context, svc, typing, gone, me, data, p),
               time: updated == 0 ? '' : formatChatTime(updated),
               onTap: () => Navigator.push(
                 context,
@@ -411,5 +412,36 @@ class _ChatTile extends StatelessWidget {
         );
       },
     );
+  }
+
+  // دالة مساعدة لبناء نص الرسالة الأخيرة بدون ما نفتح Stream جديد لكل محادثة
+  Widget _buildSubtitle(BuildContext context, ChatService svc, bool typing, bool gone, String me, Json data, BP p) {
+    if (typing && !gone) {
+      return Text('يكتب الآن...', style: TextStyle(fontSize: 13.5, color: p.gold));
+    }
+    
+    // نقرأ آخر رسالة من دوكومنت المحادثة مباشرة (بدون اتصال جديد)
+    final last = data['lastMsg'] as Map?;
+    final lastText = (last?['text'] as String?) ?? 'لا توجد رسائل بعد';
+    final isMine = last?['senderId'] == me;
+    final isRead = last?['read'] == true; // تأكد إن الـ Backend يحدث هذا الحقل
+
+    return Row(children: [
+      if (isMine)
+        Padding(
+          padding: const EdgeInsetsDirectional.only(end: 4),
+          child: Icon(isRead ? Icons.done_all : Icons.done,
+              size: 15, color: isRead ? p.gold : p.muted),
+        ),
+      Expanded(
+        child: Text(lastText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 13.5,
+                color: p.muted,
+                fontWeight: (!isMine && (data['unreadCounts']?[me] ?? 0) > 0) ? FontWeight.bold : null)),
+      ),
+    ]);
   }
 }
