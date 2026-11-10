@@ -1,2 +1,9 @@
 app/
 .github/
+lib/
+assets/
+tool/
+signing/
+pubspec.yaml
+analysis_options.yaml
+setup.sh

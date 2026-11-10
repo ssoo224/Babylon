@@ -1,8 +1,26 @@
 name: Build APK
+
 on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'إجبار كل المستخدمين على التحديث'
+        type: boolean
+        default: true
+      notes:
+        description: 'ملاحظات الإصدار (تظهر بصفحة التحديث)'
+        type: string
+        default: ''
   push:
     branches: [main]
-  workflow_dispatch:
+    paths-ignore:
+      - 'version.json'
+      - '.well-known/**'
+      - 'README.md'
+
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,6 +33,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
       - name: Generate android project
         run: |
           flutter create --org com.babylon --project-name chat --platforms=android .
@@ -45,19 +64,55 @@ jobs:
           # اسم التطبيق
           sed -i 's/android:label="[^"]*"/android:label="Babylon Chat"/' $MF
           # الصلاحيات (نفس تطبيقك الأصلي)
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>\n    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>\n    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>' $MF
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>\n    <uses-permission android:name="android.permission.VIBRATE"/>\n    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>\n    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>' $MF
           # أيقونة ولون الإشعارات
           mkdir -p android/app/src/main/res/drawable android/app/src/main/res/values
           cp assets/badge-96.png android/app/src/main/res/drawable/ic_stat_notify.png
           printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="notif_gold">#C9961F</color>\n</resources>\n' > android/app/src/main/res/values/notif_colors.xml
           sed -i 's#</application>#    <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_notify" />\n        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/notif_gold" />\n    </application>#' $MF
+      - name: Signing key (نفس مفتاح تطبيقك الأصلي)
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+        run: |
+          if [ -z "$KEYSTORE_PASS" ]; then echo "::error::ضيف سر (Secret) اسمه KEYSTORE_PASS بإعدادات المستودع"; exit 1; fi
+          if [ ! -f signing/release.jks.enc ]; then echo "::error::ملف signing/release.jks.enc مفقود. استرجعه من تاريخ المستودع (شوف الشرح)"; exit 1; fi
+          openssl enc -d -aes-256-cbc -pbkdf2 -pass env:KEYSTORE_PASS -in signing/release.jks.enc -out "$RUNNER_TEMP/release.jks"
+          keytool -list -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASS" | head -6
+
+      - name: Generate assetlinks.json (so links open the app directly)
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+        run: |
+          FP=$(keytool -list -v -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASS" 2>/dev/null | grep -m1 "SHA256:" | sed 's/.*SHA256:[[:space:]]*//' | tr -d '[:space:]')
+          if [ -z "$FP" ]; then echo "::warning::ما قدرت أقرأ بصمة التوقيع"; exit 0; fi
+          echo "Signing SHA-256: $FP"
+          mkdir -p .well-known
+          python3 - "$FP" <<'PY'
+          import json, sys
+          data = [{"relation": ["delegate_permission/common.handle_all_urls"],
+                   "target": {"namespace": "android_app", "package_name": "com.babylon.chat",
+                              "sha256_cert_fingerprints": [sys.argv[1]]}}]
+          with open(".well-known/assetlinks.json", "w", encoding="utf-8") as f:
+              json.dump(data, f, indent=2)
+              f.write("\n")
+          PY
+
+      - name: Patch release signing
+        run: python3 tool/patch_android.py
+
       - run: flutter pub get
       - name: App launcher icon
         run: dart run flutter_launcher_icons
+
       - name: Build APK
+        env:
+          KS_FILE: ${{ runner.temp }}/release.jks
+          KS_PASS: ${{ secrets.KEYSTORE_PASS }}
+          RUN: ${{ github.run_number }}
         run: |
           set -o pipefail
-          flutter build apk --release 2>&1 | tee build.log
+          flutter build apk --release --build-number="$RUN" --build-name="1.0.$RUN" 2>&1 | tee build.log
+
       - name: Show build errors
         if: failure()
         run: |
@@ -68,7 +123,67 @@ jobs:
         with:
           name: build-log
           path: build.log
+
+      - name: Collect APK
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk babylon-chat.apk
+          ls -la babylon-chat.apk
+          APKSIGNER=$(ls $ANDROID_HOME/build-tools/*/apksigner 2>/dev/null | tail -1)
+          if [ -n "$APKSIGNER" ]; then "$APKSIGNER" verify --print-certs babylon-chat.apk | head -4 || true; fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: babylon-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: babylon-chat.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Babylon Chat 1.0.${{ github.run_number }}
+          files: babylon-chat.apk
+
+      - name: Update version.json (forced update)
+        env:
+          BUILD: ${{ github.run_number }}
+          FORCE: ${{ github.event_name != 'workflow_dispatch' || inputs.force }}
+          INPUT_NOTES: ${{ inputs.notes }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          b = int(os.environ["BUILD"])
+          force = os.environ.get("FORCE", "true") == "true"
+          notes = (os.environ.get("INPUT_NOTES") or "").strip()
+          if not notes:
+              notes = ((os.environ.get("COMMIT_MSG") or "").strip().splitlines() or [""])[0].strip()
+          try:
+              v = json.load(open("version.json", encoding="utf-8"))
+          except Exception:
+              v = {}
+          v["latest"] = max(b, int(v.get("latest") or 0))
+          if force:
+              v["minVersion"] = max(b, int(v.get("minVersion") or 0))
+          v.setdefault("minVersion", 1)
+          u = str(v.get("url") or "")
+          if not u or "github.com" in u:
+              v["url"] = "/api/apk"
+          if notes:
+              v["notes"] = notes
+          v.setdefault("notes", "يوجد تحديث جديد، حدّث التطبيق للمتابعة.")
+          with open("version.json", "w", encoding="utf-8") as f:
+              json.dump(v, f, ensure_ascii=False, indent=2)
+              f.write("\n")
+          PY
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add version.json
+          git add .well-known/assetlinks.json || true
+          if git diff --cached --quiet; then echo "version.json unchanged"; exit 0; fi
+          git commit -m "Release v1.0.${BUILD}: version.json"
+          for i in 1 2 3; do
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then exit 0; fi
+            sleep 3
+          done
+          echo "::error::ما قدرت أحدّث version.json"
+          exit 1

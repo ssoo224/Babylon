@@ -10,6 +10,8 @@ import 'core/theme.dart';
 import 'firebase_options.dart';
 import 'screens/auth_screen.dart';
 import 'screens/gate_screens.dart';
+import 'screens/update_screen.dart';
+import 'services/update_service.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
 import 'services/chat_service.dart';
@@ -30,6 +32,7 @@ Future<void> main() async {
       ChangeNotifierProvider.value(value: prefs),
       ChangeNotifierProvider(create: (_) => AuthService()),
       Provider(create: (_) => ChatService()),
+      ChangeNotifierProvider(create: (_) => UpdateController(), lazy: false),
     ],
     child: const BabylonApp(),
   ));
@@ -65,6 +68,8 @@ class _Root extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
+    // تحديث إجباري: يمنع فتح التطبيق قبل أي شي (حتى قبل تسجيل الدخول)
+    if (context.watch<UpdateController>().forced) return const UpdateScreen(forced: true);
     switch (auth.gate) {
       case Gate.loading:
         return Scaffold(

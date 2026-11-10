@@ -15,6 +15,8 @@ import 'profile_screen.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
 import 'stories.dart';
+import 'update_screen.dart';
+import '../services/update_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -44,6 +46,16 @@ class _HomeScreenState extends State<HomeScreen> {
         WidgetsBinding.instance.addPostFrameCallback(
             (_) => context.read<AppPrefs>().applyMap(Map<String, dynamic>.from(c)));
       }
+    }
+    final up = context.watch<UpdateController>();
+    if (up.optional && !up.promptShown) {
+      up.promptShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).push(MaterialPageRoute(
+              fullscreenDialog: true, builder: (_) => const UpdateScreen(forced: false)));
+        }
+      });
     }
     final pages = const [_ChatsTab(), SettingsScreen(), ProfileScreen()];
     return Scaffold(
