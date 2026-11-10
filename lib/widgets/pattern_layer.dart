@@ -43,3 +43,33 @@ class PatternLayer extends StatelessWidget {
     );
   }
 }
+
+/// شبكة نقوش الغلاف: 6 أعمدة × صفوف 46 (pf-cover .pattern-layer)
+class CoverPattern extends StatelessWidget {
+  final ChatTheme theme;
+  const CoverPattern({super.key, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: LayoutBuilder(builder: (context, c) {
+        final w = c.maxWidth.isFinite ? c.maxWidth : 400.0;
+        final h = c.maxHeight.isFinite ? c.maxHeight : 300.0;
+        final rows = (h / 46).ceil() + 1;
+        final n = theme.symbols.length;
+        final cell = w / 6;
+        return ClipRect(
+          child: Stack(children: [
+            for (var r = 0; r < rows; r++)
+              for (var k = 0; k < 6; k++)
+                Positioned(
+                  left: k * cell + (cell - 22) / 2,
+                  top: r * 46.0 + 12,
+                  child: BIcon(theme.symbols[(r * 2 + k * 5) % n], size: 22, color: Colors.white.withOpacity(.2)),
+                ),
+          ]),
+        );
+      }),
+    );
+  }
+}

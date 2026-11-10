@@ -466,6 +466,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final count = ((meta['participants'] as List?) ?? []).length;
     final typing = !isG && meta['typing_${widget.otherId}'] == true;
     return AppBar(
+      toolbarHeight: 60,
       titleSpacing: 0,
       title: InkWell(
         onTap: () => Navigator.push(
@@ -479,7 +480,7 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(name, style: const TextStyle(fontSize: 16), overflow: TextOverflow.ellipsis),
+              Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
               Text(isG ? '$count أعضاء' : (typing ? 'يكتب الآن...' : statusOf(other)),
                   style: TextStyle(fontSize: 12, color: typing ? pal.gold : pal.muted)),
             ]),

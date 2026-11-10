@@ -7,8 +7,10 @@ import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../services/push_service.dart';
+import '../services/update_service.dart';
 import '../widgets/avatar.dart';
 import '../widgets/bicon.dart';
+import '../widgets/bottom_nav.dart';
 import 'chat_screen.dart';
 import 'group_screens.dart';
 import 'profile_screen.dart';
@@ -16,7 +18,6 @@ import 'search_screen.dart';
 import 'settings_screen.dart';
 import 'stories.dart';
 import 'update_screen.dart';
-import '../services/update_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,8 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _prefsSynced = true;
       final c = me['chatPrefs'];
       if (c is Map) {
-        WidgetsBinding.instance.addPostFrameCallback(
-            (_) => context.read<AppPrefs>().applyMap(Map<String, dynamic>.from(c)));
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => context.read<AppPrefs>().applyMap(Map<String, dynamic>.from(c)));
       }
     }
     final up = context.watch<UpdateController>();
@@ -52,23 +53,15 @@ class _HomeScreenState extends State<HomeScreen> {
       up.promptShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          Navigator.of(context).push(MaterialPageRoute(
-              fullscreenDialog: true, builder: (_) => const UpdateScreen(forced: false)));
+          Navigator.of(context).push(
+              MaterialPageRoute(fullscreenDialog: true, builder: (_) => const UpdateScreen(forced: false)));
         }
       });
     }
     final pages = const [_ChatsTab(), SettingsScreen(), ProfileScreen()];
     return Scaffold(
-      body: pages[_tab],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: const [
-          NavigationDestination(icon: BIcon('chat'), label: 'المحادثات'),
-          NavigationDestination(icon: BIcon('sliders'), label: 'الإعدادات'),
-          NavigationDestination(icon: BIcon('user'), label: 'الملف الشخصي'),
-        ],
-      ),
+      body: IndexedStack(index: _tab, children: pages),
+      bottomNavigationBar: BBottomNav(index: _tab, onTap: (i) => setState(() => _tab = i)),
     );
   }
 }
@@ -87,22 +80,22 @@ class _ChatsTabState extends State<_ChatsTab> {
     final auth = context.watch<AuthService>();
     final prefs = context.watch<AppPrefs>();
     final svc = context.read<ChatService>();
+    final p = BP.of(context);
     final me = auth.uid;
     return Scaffold(
-      backgroundColor: BP.of(context).chatListBg,
+      backgroundColor: p.chatListBg,
       appBar: AppBar(
         title: const Text('Babylon'),
         actions: [
           IconButton(
             tooltip: 'مجموعة جديدة',
             icon: const Icon(Icons.group_add_outlined),
-            onPressed: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const GroupCreateScreen())),
+            onPressed: () =>
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const GroupCreateScreen())),
           ),
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const SearchScreen())),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
           ),
         ],
       ),
@@ -129,9 +122,10 @@ class _ChatsTabState extends State<_ChatsTab> {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
               child: Row(children: [
-                ChoiceChip(label: const Text('الكل'), selected: !_unreadOnly, onSelected: (_) => setState(() => _unreadOnly = false)),
+                _FilterChip(label: 'الكل', selected: !_unreadOnly, onTap: () => setState(() => _unreadOnly = false)),
                 const SizedBox(width: 8),
-                ChoiceChip(label: const Text('غير المقروءة'), selected: _unreadOnly, onSelected: (_) => setState(() => _unreadOnly = true)),
+                _FilterChip(
+                    label: 'غير المقروءة', selected: _unreadOnly, onTap: () => setState(() => _unreadOnly = true)),
               ]),
             ),
             Expanded(
@@ -146,6 +140,7 @@ class _ChatsTabState extends State<_ChatsTab> {
                       ),
                     )
                   : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 12),
                       itemCount: chats.length,
                       itemBuilder: (_, i) => chats[i].data()['type'] == 'group'
                           ? _GroupTile(chat: chats[i], me: me, unreadOnly: _unreadOnly)
@@ -159,6 +154,33 @@ class _ChatsTabState extends State<_ChatsTab> {
   }
 }
 
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FilterChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = BP.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? p.gold.withOpacity(.16) : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: selected ? p.gold.withOpacity(.5) : p.border),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 13.5, fontWeight: FontWeight.w700, color: selected ? p.gold : p.muted)),
+      ),
+    );
+  }
+}
+
 void _chatMenu(BuildContext context, String chatId) {
   final prefs = context.read<AppPrefs>();
   showModalBottomSheet(
@@ -167,7 +189,7 @@ void _chatMenu(BuildContext context, String chatId) {
     builder: (_) => SafeArea(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(
-          leading: Icon(prefs.isPinned(chatId) ? Icons.push_pin : Icons.push_pin_outlined),
+          leading: BIcon('pin', color: BP.of(context).gold),
           title: Text(prefs.isPinned(chatId) ? 'إلغاء التثبيت' : 'تثبيت المحادثة'),
           onTap: () {
             Navigator.pop(context);
@@ -175,7 +197,7 @@ void _chatMenu(BuildContext context, String chatId) {
           },
         ),
         ListTile(
-          leading: Icon(prefs.isMuted(chatId) ? Icons.notifications_off : Icons.notifications_off_outlined),
+          leading: BIcon(prefs.isMuted(chatId) ? 'bell' : 'bellOff', color: BP.of(context).gold),
           title: Text(prefs.isMuted(chatId) ? 'إلغاء الكتم' : 'كتم المحادثة'),
           onTap: () {
             Navigator.pop(context);
@@ -187,48 +209,80 @@ void _chatMenu(BuildContext context, String chatId) {
   );
 }
 
-Widget _tileShell(BuildContext context,
-    {required Widget leading,
-    required Widget title,
-    required Widget subtitle,
-    required String time,
-    required String chatId,
-    int unread = 0,
-    required VoidCallback onTap}) {
-  final pal = BP.of(context);
+/// بطاقة المحادثة (.chat-item): هامش 10، حشوة 12/14، زوايا 18، حد أبيض شفاف
+Widget _chatCard(
+  BuildContext context, {
+  required Widget leading,
+  required Widget nameRow,
+  required Widget sub,
+  required String time,
+  required String chatId,
+  int unread = 0,
+  required VoidCallback onTap,
+}) {
+  final p = BP.of(context);
   final prefs = context.watch<AppPrefs>();
   return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    child: ListTile(
-      tileColor: pal.surface,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    child: Material(
+      color: p.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: pal.dark ? const Color(0x0AFFFFFF) : pal.border),
+        side: BorderSide(color: p.dark ? const Color(0x0AFFFFFF) : const Color(0xFFEDF0F5)),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      leading: leading,
-      title: title,
-      subtitle: subtitle,
-      trailing: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text(time, style: TextStyle(fontSize: 12, color: pal.muted)),
-        const SizedBox(height: 4),
-        Row(mainAxisSize: MainAxisSize.min, children: [
-          if (unread > 0)
-            Container(
-              margin: const EdgeInsetsDirectional.only(end: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(color: pal.gold, borderRadius: BorderRadius.circular(12)),
-              child: Text(unread > 99 ? '99+' : '$unread', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: pal.dark ? pal.bg : Colors.white)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: () => _chatMenu(context, chatId),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(children: [
+            leading,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: nameRow),
+                  if (prefs.isPinned(chatId) && unread == 0)
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 6),
+                      child: BIcon('pin', size: 16, color: p.gold),
+                    ),
+                  Text(time, style: TextStyle(fontSize: 12, color: p.muted)),
+                ]),
+                const SizedBox(height: 3),
+                Row(children: [
+                  Expanded(child: sub),
+                  if (prefs.isMuted(chatId))
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(start: 6),
+                      child: BIcon('bellOff', size: 15, color: p.muted),
+                    ),
+                  if (unread > 0)
+                    Container(
+                      margin: const EdgeInsetsDirectional.only(start: 8),
+                      constraints: const BoxConstraints(minWidth: 22),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(color: p.gold, borderRadius: BorderRadius.circular(12)),
+                      child: Text(unread > 99 ? '99+' : '$unread',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              color: p.dark ? p.bg : Colors.white)),
+                    ),
+                ]),
+              ]),
             ),
-          if (prefs.isMuted(chatId)) Icon(Icons.notifications_off, size: 15, color: pal.muted),
-          if (prefs.isPinned(chatId)) Icon(Icons.push_pin, size: 15, color: pal.gold),
-        ]),
-      ]),
-      onTap: onTap,
-      onLongPress: () => _chatMenu(context, chatId),
+          ]),
+        ),
+      ),
     ),
   );
 }
+
+TextStyle _nameStyle(BP p) =>
+    TextStyle(fontWeight: FontWeight.w600, fontSize: 16.5, color: p.dark ? Colors.white : const Color(0xFF17212B));
 
 class _GroupTile extends StatelessWidget {
   final QueryDocumentSnapshot<Json> chat;
@@ -238,6 +292,7 @@ class _GroupTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = BP.of(context);
     final d = chat.data();
     final name = (d['name'] as String?) ?? 'مجموعة';
     final last = d['lastMsg'] as Map?;
@@ -245,22 +300,18 @@ class _GroupTile extends StatelessWidget {
     final readAt = ((d['readAt'] as Map?)?[me] as num?)?.toInt() ?? 0;
     final unread = last != null && last['senderId'] != me && at > readAt;
     if (unreadOnly && !unread) return const SizedBox.shrink();
-    return _tileShell(
+    return _chatCard(
       context,
       chatId: chat.id,
       unread: unread ? 1 : 0,
-      leading: Avatar(size: 56, url: d['photo'] as String?, name: name),
-      title: Text(name,
+      leading: Avatar(size: 56, url: d['photo'] as String?, name: name, seed: chat.id),
+      nameRow: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: _nameStyle(p)),
+      sub: Text((last?['text'] as String?) ?? 'لا توجد رسائل بعد',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16.5)),
-      subtitle: Text((last?['text'] as String?) ?? 'لا توجد رسائل بعد',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontWeight: unread ? FontWeight.bold : null)),
+          style: TextStyle(fontSize: 13.5, color: p.muted, fontWeight: unread ? FontWeight.bold : null)),
       time: at == 0 ? '' : formatChatTime(at),
-      onTap: () => Navigator.push(
-          context, MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id))),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id))),
     );
   }
 }
@@ -287,59 +338,77 @@ class _ChatTile extends StatelessWidget {
         final unread = un.data ?? 0;
         if (unreadOnly && unread == 0) return const SizedBox.shrink();
         return StreamBuilder<Json?>(
-      stream: svc.userStream(other),
-      builder: (context, s) {
-        final u = s.data ?? {};
-        final name = (u['displayName'] as String?) ?? '...';
-        final typing = data['typing_$other'] == true;
-        final pal = BP.of(context);
-        return _tileShell(
-          context,
-          chatId: chat.id,
-          unread: unread,
-          leading: Avatar(size: 56, url: avatarOf(u), name: name, online: isOnline(u)),
-          title: Row(children: [
-            Flexible(
-                child: Text(name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16.5))),
-            if (u['isVerified'] == true)
-              Padding(
-                padding: const EdgeInsetsDirectional.only(start: 4),
-                child: Icon(Icons.verified, size: 16, color: pal.gold),
+          stream: svc.userStream(other),
+          builder: (context, s) {
+            final p = BP.of(context);
+            final loading = s.connectionState == ConnectionState.waiting;
+            final u = s.data;
+            final gone = !loading && (u == null || u.isEmpty);
+            final name = gone ? 'مستخدم محذوف' : ((u?['displayName'] as String?) ?? '...');
+            final typing = data['typing_$other'] == true;
+            return _chatCard(
+              context,
+              chatId: chat.id,
+              unread: unread,
+              leading: Avatar(
+                size: 56,
+                url: gone ? null : avatarOf(u),
+                name: name,
+                seed: other,
+                deleted: gone,
+                online: gone ? null : isOnline(u ?? {}),
               ),
-          ]),
-          subtitle: StreamBuilder<Msg?>(
-            stream: svc.lastMessage(chat.id),
-            builder: (_, ms) {
-              if (typing) return Text('يكتب الآن...', style: TextStyle(color: pal.gold));
-              final m = ms.data;
-              if (m == null) return const Text('لا توجد رسائل بعد');
-              final mine = m.senderId == me;
-              return Row(children: [
-                if (mine)
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 4),
-                    child: Icon(m.read ? Icons.done_all : Icons.done, size: 14),
-                  ),
-                Expanded(
-                  child: Text(m.preview,
+              nameRow: Row(children: [
+                Flexible(
+                  child: Text(name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontWeight: (!mine && !m.read) ? FontWeight.bold : null)),
+                      style: gone ? _nameStyle(p).copyWith(color: p.muted) : _nameStyle(p)),
                 ),
-              ]);
-            },
-          ),
-          time: updated == 0 ? '' : formatChatTime(updated),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id, otherId: other)),
-          ),
+                if (u?['isVerified'] == true)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 4),
+                    child: Icon(Icons.verified, size: 16, color: p.gold),
+                  ),
+              ]),
+              sub: StreamBuilder<Msg?>(
+                stream: svc.lastMessage(chat.id),
+                builder: (_, ms) {
+                  if (typing && !gone) {
+                    return Text('يكتب الآن...', style: TextStyle(fontSize: 13.5, color: p.gold));
+                  }
+                  final m = ms.data;
+                  if (m == null) {
+                    return Text('لا توجد رسائل بعد', style: TextStyle(fontSize: 13.5, color: p.muted));
+                  }
+                  final mine = m.senderId == me;
+                  return Row(children: [
+                    if (mine)
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(end: 4),
+                        child: Icon(m.read ? Icons.done_all : Icons.done,
+                            size: 15, color: m.read ? p.gold : p.muted),
+                      ),
+                    Expanded(
+                      child: Text(m.preview,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 13.5,
+                              color: p.muted,
+                              fontWeight: (!mine && !m.read) ? FontWeight.bold : null)),
+                    ),
+                  ]);
+                },
+              ),
+              time: updated == 0 ? '' : formatChatTime(updated),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id, otherId: other)),
+              ),
+            );
+          },
         );
-      },
-    );
       },
     );
   }

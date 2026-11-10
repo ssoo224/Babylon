@@ -11,6 +11,7 @@ import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../widgets/avatar.dart';
 import '../widgets/profile_header.dart';
+import 'edit_profile_screen.dart';
 
 const _shareLink = 'https://babyllon.vercel.app';
 
@@ -29,13 +30,7 @@ class SettingsScreen extends StatelessWidget {
       backgroundColor: p.chatListBg,
       appBar: AppBar(title: const Text('الإعدادات')),
       body: ListView(padding: const EdgeInsets.only(bottom: 24), children: [
-        InfoCard(children: [
-          ListTile(
-            leading: Avatar(url: me['avatarUrl'] as String?, name: name, size: 48),
-            title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('@${me['username'] ?? ''}', textDirection: TextDirection.ltr),
-          ),
-        ]),
+        _SettingsHero(me: me, name: name, uid: auth.user?.uid),
         _label(p, 'التخصيص'),
         InfoCard(children: [
           SwitchListTile(
@@ -556,6 +551,73 @@ class BlockedScreen extends StatelessWidget {
                 .toList(),
           );
         },
+      ),
+    );
+  }
+}
+
+
+/// بطاقة الهيرو (sx-hero): تدرج ذهبي/أزرق، أفاتار بحلقة ذهبية، اسم، يوزر، نبذة، زر تعديل
+class _SettingsHero extends StatelessWidget {
+  final Map<String, dynamic> me;
+  final String name;
+  final String? uid;
+  const _SettingsHero({required this.me, required this.name, this.uid});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = BP.of(context);
+    final bio = (me['bio'] as String?) ?? '';
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 8, 14, 16),
+      decoration: BoxDecoration(color: p.surface, borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 22, 16, 18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [Color(0x2ED4AF37), Color(0x1A2AABEE), Color(0x00000000)],
+            stops: [0, .6, 1],
+          ),
+        ),
+        child: Column(children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: const Color(0x8CD4AF37), spreadRadius: 3, blurRadius: 0),
+                const BoxShadow(color: Color(0x59000000), blurRadius: 24, offset: Offset(0, 8)),
+              ],
+            ),
+            child: Avatar(url: me['avatarUrl'] as String?, name: name, size: 92, seed: uid),
+          ),
+          const SizedBox(height: 12),
+          Text(name,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: p.dark ? Colors.white : p.text)),
+          const SizedBox(height: 2),
+          Text('@${me['username'] ?? ''}',
+              textDirection: TextDirection.ltr, style: TextStyle(fontSize: 14, color: p.gold)),
+          if (bio.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(bio, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: p.muted)),
+          ],
+          const SizedBox(height: 14),
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+              decoration: BoxDecoration(
+                color: p.gold.withOpacity(.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: p.gold.withOpacity(.5)),
+              ),
+              child: Text('تعديل الملف الشخصي',
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: p.gold)),
+            ),
+          ),
+        ]),
       ),
     );
   }

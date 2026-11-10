@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// ألوان مأخوذة حرفياً من CSS تطبيق الويب الأصلي (data-app-theme)
@@ -51,20 +52,20 @@ class BP {
 
   static const lightP = BP(
     dark: false,
-    bg: Color(0xFFF4F7FB),
+    bg: Color(0xFFF5F7FB),
     surface: Color(0xFFFFFFFF),
     card: Color(0xFFFFFFFF),
-    hover: Color(0xFFEAF0F7),
-    border: Color(0xFFDCE4EE),
+    hover: Color(0xFFEDF2F8),
+    border: Color(0xFFE1E7EF),
     gold: Color(0xFF9B7410),
     text: Color(0xFF17212B),
-    muted: Color(0xFF68798D),
+    muted: Color(0xFF708094),
     error: Color(0xFFC0392B),
     bubbleMine: Color(0xFFD8F7D2),
     bubbleOther: Color(0xFFFFFFFF),
     bubbleMineText: Color(0xFF17212B),
     bubbleOtherText: Color(0xFF17212B),
-    chatListBg: Color(0xFFEEF1F6),
+    chatListBg: Color(0xFFF5F7FB),
     navActive: Color(0xFF1E6FD9),
     authFrom: Color(0xFFFFFFFF),
     authTo: Color(0xFFEDF2F8),
@@ -160,7 +161,8 @@ ThemeData buildTheme(Brightness b) {
         foregroundColor: p.muted,
       ),
     ),
-    textTheme: Typography.material2021().white.apply(
+    // خط الأصل: Noto Sans Arabic (نفس خط تطبيق الويب)
+    textTheme: GoogleFonts.notoSansArabicTextTheme(Typography.material2021().white).apply(
           bodyColor: p.text,
           displayColor: p.text,
         ),

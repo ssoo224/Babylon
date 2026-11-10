@@ -21,7 +21,7 @@ class OtherProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: p.chatListBg,
       extendBodyBehindAppBar: true,
-      appBar: AppBar(backgroundColor: Colors.transparent, foregroundColor: Colors.white),
+      appBar: AppBar(backgroundColor: Colors.transparent, foregroundColor: Colors.white, scrolledUnderElevation: 0),
       body: StreamBuilder<Json?>(
         stream: svc.userStream(uid),
         builder: (context, s) {
@@ -40,6 +40,7 @@ class OtherProfileScreen extends StatelessWidget {
               online: isOnline(u),
               verified: u['isVerified'] == true,
               coverKey: (u['cover'] as String?) ?? 'babylon',
+              seed: uid,
               onAvatarTap: () {
                 final img = imageFromUrl(av);
                 if (img == null) return;
@@ -55,63 +56,52 @@ class OtherProfileScreen extends StatelessWidget {
                 );
               },
             ),
-            Transform.translate(
-              offset: const Offset(0, -46),
-              child: Column(children: [
-                StreamBuilder<Set<String>>(
-                  stream: svc.blocks(me),
-                  builder: (context, bs) {
-                    final blocked = bs.data?.contains(uid) ?? false;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 9),
-                      child: Row(children: [
-                        QuickAction(
-                          icon: Icons.chat_bubble_outline,
-                          label: 'مراسلة',
-                          onTap: () async {
-                            final id = await svc.ensureChat(me, uid);
-                            if (context.mounted) {
-                              Navigator.push(context,
-                                  MaterialPageRoute(builder: (_) => ChatScreen(chatId: id, otherId: uid)));
-                            }
-                          },
-                        ),
-                        QuickAction(
-                          icon: prefs.isMuted(chatId) ? Icons.notifications_off : Icons.notifications_none,
-                          label: prefs.isMuted(chatId) ? 'إلغاء الكتم' : 'كتم',
-                          onTap: () => prefs.toggleMute(chatId),
-                        ),
-                        QuickAction(
-                          icon: Icons.block,
-                          label: blocked ? 'إلغاء الحظر' : 'حظر',
-                          color: p.error,
-                          onTap: () => blocked ? svc.unblock(me, uid) : svc.block(me, uid),
-                        ),
-                      ]),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                InfoCard(children: [
-                  ListTile(
-                    leading: Icon(Icons.alternate_email, color: p.gold),
-                    title: const Text('اسم المستخدم'),
-                    subtitle: Text('@${u['username'] ?? ''}', textDirection: TextDirection.ltr),
-                  ),
-                  if ((u['bio'] as String?)?.isNotEmpty == true)
-                    ListTile(
-                      leading: Icon(Icons.info_outline, color: p.gold),
-                      title: const Text('النبذة'),
-                      subtitle: Text(u['bio']),
+            StreamBuilder<Set<String>>(
+              stream: svc.blocks(me),
+              builder: (context, bs) {
+                final blocked = bs.data?.contains(uid) ?? false;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(children: [
+                    PfButton(
+                      label: 'مراسلة',
+                      icon: Icons.chat_bubble_outline,
+                      primary: true,
+                      onTap: () async {
+                        final id = await svc.ensureChat(me, uid);
+                        if (context.mounted) {
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => ChatScreen(chatId: id, otherId: uid)));
+                        }
+                      },
                     ),
-                  if ((u['province'] as String?)?.isNotEmpty == true)
-                    ListTile(leading: Icon(Icons.location_on_outlined, color: p.gold), title: const Text('المحافظة'), subtitle: Text(u['province'])),
-                  if (joinedLabel(u).isNotEmpty)
-                    ListTile(leading: Icon(Icons.calendar_today_outlined, color: p.gold), title: const Text('تاريخ الانضمام'), subtitle: Text(joinedLabel(u))),
-                ]),
-                PinnedStoriesSection(uid: uid, owner: u, mine: false),
-              ]),
+                    PfButton(
+                      label: blocked ? 'إلغاء الحظر' : 'حظر',
+                      icon: Icons.block,
+                      danger: true,
+                      onTap: () => blocked ? svc.unblock(me, uid) : svc.block(me, uid),
+                    ),
+                  ]),
+                );
+              },
             ),
+            const SizedBox(height: 10),
+            InfoCard(children: [
+              if ((u['bio'] as String?)?.isNotEmpty == true)
+                PfRow(biconName: 'text', value: u['bio'], label: 'النبذة التعريفية'),
+              PfRow(
+                  biconName: 'at',
+                  value: '@${u['username'] ?? ''}',
+                  label: 'اسم المستخدم',
+                  ltr: true,
+                  last: (u['province'] as String?)?.isNotEmpty != true && joinedLabel(u).isEmpty),
+              if ((u['province'] as String?)?.isNotEmpty == true)
+                PfRow(biconName: 'pin', value: u['province'], label: 'المحافظة', last: joinedLabel(u).isEmpty),
+              if (joinedLabel(u).isNotEmpty)
+                PfRow(biconName: 'calendar', value: joinedLabel(u), label: 'تاريخ الانضمام', last: true),
+            ]),
+            PinnedStoriesSection(uid: uid, owner: u, mine: false),
+            const SizedBox(height: 24),
           ]);
         },
       ),

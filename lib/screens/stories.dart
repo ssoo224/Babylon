@@ -41,7 +41,7 @@ class StoriesBar extends StatelessWidget {
               _Item(
                 label: 'قصتي',
                 child: Stack(children: [
-                  Avatar(url: auth.me?['avatarUrl'], name: auth.displayName, size: 56, storyRing: byUser.containsKey(me)),
+                  Avatar(url: auth.me?['avatarUrl'], name: auth.displayName, size: 56, seed: me, storyRing: byUser.containsKey(me)),
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -69,7 +69,7 @@ class StoriesBar extends StatelessWidget {
                     final u = us.data ?? {};
                     return _Item(
                       label: (u['displayName'] as String?) ?? '',
-                      child: Avatar(url: avatarOf(u), name: u['displayName'] ?? '?', size: 56, storyRing: true),
+                      child: Avatar(url: avatarOf(u), name: u['displayName'] ?? '?', size: 56, seed: uid, storyRing: true),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => StoryViewer(stories: byUser[uid]!, owner: {...u, 'id': uid}, mine: false)),

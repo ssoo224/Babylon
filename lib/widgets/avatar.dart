@@ -2,13 +2,29 @@ import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 
-/// مثل .telegram-avatar: خلفية ذهبية وحرف داكن
+/// نفس toneOf في الأصل: FNV hash للمعرّف => gold أو blue
+bool toneIsBlue(String id) {
+  if (id.isEmpty) return false;
+  var h = 2166136261;
+  for (final c in id.codeUnits) {
+    h = ((h ^ c) * 16777619) & 0xFFFFFFFF;
+  }
+  h ^= h >> 15;
+  h = (h * 2246822507) & 0xFFFFFFFF;
+  h ^= h >> 13;
+  return ((h >> 7) & 1) == 1;
+}
+
+/// أفاتار بنفس تصميم الأصل: تدرج ذهبي/أزرق مع حرف أبيض، حلقة قصة متدرجة
 class Avatar extends StatelessWidget {
   final String? url;
   final String name;
   final double size;
   final bool? online;
   final bool storyRing;
+  final bool storySeen;
+  final String? seed;
+  final bool deleted;
   const Avatar({
     super.key,
     this.url,
@@ -16,28 +32,67 @@ class Avatar extends StatelessWidget {
     this.size = 48,
     this.online,
     this.storyRing = false,
+    this.storySeen = false,
+    this.seed,
+    this.deleted = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final p = BP.of(context);
-    final img = imageFromUrl(url);
-    Widget a = CircleAvatar(
-      radius: size / 2,
-      backgroundColor: p.gold,
-      backgroundImage: img,
-      child: img == null
-          ? Text(name.isEmpty ? '?' : name.characters.first.toUpperCase(),
-              style: TextStyle(
-                  fontSize: size * .4, fontWeight: FontWeight.bold, color: p.dark ? p.bg : Colors.white))
-          : null,
+    final img = deleted ? null : imageFromUrl(url);
+    final blue = toneIsBlue(seed ?? name);
+    final colors = deleted
+        ? const [Color(0xFF64748B), Color(0xFF475569)]
+        : (blue
+            ? const [Color(0xFF59CDF8), Color(0xFF1F63D8)]
+            : const [Color(0xFFF2D268), Color(0xFFB8861B)]);
+    Widget a = Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: img == null
+            ? LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors)
+            : null,
+        image: img != null ? DecorationImage(image: img, fit: BoxFit.cover) : null,
+        boxShadow: img == null
+            ? [BoxShadow(color: colors.last.withOpacity(.28), blurRadius: 10, offset: const Offset(0, 3))]
+            : null,
+      ),
+      child: img != null
+          ? null
+          : (deleted
+              ? Icon(Icons.person_off_outlined, color: Colors.white, size: size * .5)
+              : Text(
+                  name.trim().isEmpty ? '?' : name.trim().characters.first.toUpperCase(),
+                  style: TextStyle(fontSize: size * .4, fontWeight: FontWeight.w700, color: Colors.white),
+                )),
     );
     if (storyRing) {
       a = Container(
         padding: const EdgeInsets.all(2.5),
         decoration: BoxDecoration(
-            shape: BoxShape.circle, border: Border.all(color: p.gold, width: 2)),
-        child: a,
+          shape: BoxShape.circle,
+          color: storySeen ? const Color(0xFF4B5A6B) : null,
+          gradient: storySeen
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF8F6810), Color(0xFFF8E7A0), Color(0xFFC29D30),
+                    Color(0xFFFFF1A8), Color(0xFFC69A20), Color(0xFFF5DC7A)
+                  ],
+                  stops: [0, .18, .38, .52, .72, 1],
+                ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(shape: BoxShape.circle, color: p.chatListBg),
+          child: a,
+        ),
       );
     }
     if (online == true) {

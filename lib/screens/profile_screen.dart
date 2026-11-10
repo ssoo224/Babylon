@@ -151,6 +151,12 @@ class ProfileScreen extends StatelessWidget {
     final cur = (me['avatarUrl'] as String?) ?? '';
     final province = (me['province'] as String?) ?? '';
     final joined = joinedLabel(me);
+    final bio = (me['bio'] as String?) ?? '';
+    void copyUser() {
+      Clipboard.setData(ClipboardData(text: '@${me['username'] ?? ''}'));
+      toast(context, 'تم نسخ اليوزر');
+    }
+
     return Scaffold(
       backgroundColor: p.chatListBg,
       body: ListView(padding: EdgeInsets.zero, children: [
@@ -162,7 +168,7 @@ class ProfileScreen extends StatelessWidget {
           online: true,
           verified: me['isVerified'] == true,
           coverKey: (me['cover'] as String?) ?? 'babylon',
-          onCoverTap: () => showCoverPicker(context, (me['cover'] as String?) ?? 'babylon', (k) => auth.updateProfile({'cover': k})),
+          seed: auth.user?.uid,
           onAvatarTap: () {
             final imgs = [if (cur.isNotEmpty) cur, ...history];
             if (imgs.isEmpty) {
@@ -172,85 +178,79 @@ class ProfileScreen extends StatelessWidget {
             }
           },
         ),
-        Transform.translate(
-          offset: const Offset(0, -46),
-          child: Column(children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 9),
-              child: Row(children: [
-                QuickAction(icon: Icons.camera_alt_outlined, label: 'الصورة', onTap: () => _pickAvatar(context)),
-                QuickAction(
-                    icon: Icons.edit_outlined,
-                    label: 'تعديل',
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()))),
-                QuickAction(
-                    icon: Icons.copy,
-                    label: 'نسخ اليوزر',
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: '@${me['username'] ?? ''}'));
-                      toast(context, 'تم نسخ اليوزر');
-                    }),
-              ]),
-            ),
-            const SizedBox(height: 8),
-            InfoCard(children: [
-              ListTile(
-                leading: Icon(Icons.alternate_email, color: p.gold),
-                title: const Text('اسم المستخدم'),
-                subtitle: Text('@${me['username'] ?? ''}', textDirection: TextDirection.ltr),
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: '@${me['username'] ?? ''}'));
-                  toast(context, 'تم نسخ اليوزر');
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.info_outline, color: p.gold),
-                title: const Text('النبذة'),
-                subtitle: Text((me['bio'] as String?)?.isNotEmpty == true ? me['bio'] : 'أضف نبذة عنك'),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
-              ),
-              if (province.isNotEmpty)
-                ListTile(leading: Icon(Icons.location_on_outlined, color: p.gold), title: const Text('المحافظة'), subtitle: Text(province)),
-              if (joined.isNotEmpty)
-                ListTile(leading: Icon(Icons.calendar_today_outlined, color: p.gold), title: const Text('تاريخ الانضمام'), subtitle: Text(joined)),
-              ListTile(
-                leading: Icon(Icons.mail_outline, color: p.gold),
-                title: const Text('البريد'),
-                subtitle: Text('${me['email'] ?? ''}', textDirection: TextDirection.ltr),
-              ),
-            ]),
-            if (auth.user != null) PinnedStoriesSection(uid: auth.uid, owner: me, mine: true),
-            if (history.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Text('صور سابقة', style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
-                ),
-              ),
-              SizedBox(
-                height: 74,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  children: history
-                      .map((u) => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: GestureDetector(
-                              onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => AvatarGallery(images: [if (cur.isNotEmpty) cur, ...history], mine: true))),
-                              child: Avatar(url: u, name: name, size: 64),
-                            ),
-                          ))
-                      .toList(),
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9),
+          child: Row(children: [
+            QuickAction(
+                biconName: 'palette',
+                label: 'الأغلفة',
+                onTap: () => showCoverPicker(
+                    context, (me['cover'] as String?) ?? 'babylon', (k) => auth.updateProfile({'cover': k}))),
+            QuickAction(biconName: 'camera', label: 'الصورة', onTap: () => _pickAvatar(context)),
+            QuickAction(
+                biconName: 'pencil',
+                label: 'تعديل',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()))),
           ]),
         ),
+        const SizedBox(height: 10),
+        InfoCard(children: [
+          PfRow(
+            biconName: 'text',
+            value: bio.isNotEmpty ? bio : 'أضف نبذة تعريفية',
+            label: 'النبذة التعريفية',
+            muted: bio.isEmpty,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+          ),
+          PfRow(
+              biconName: 'at',
+              value: '@${me['username'] ?? ''}',
+              label: 'اسم المستخدم (اضغط للنسخ)',
+              ltr: true,
+              onTap: copyUser),
+          PfRow(
+              biconName: 'pin',
+              value: province.isNotEmpty ? province : 'غير محدد',
+              label: 'المحافظة',
+              muted: province.isEmpty),
+          if (joined.isNotEmpty) PfRow(biconName: 'calendar', value: joined, label: 'تاريخ الانضمام'),
+          PfRow(
+              biconName: 'mail',
+              value: '${me['email'] ?? ''}',
+              label: 'البريد الإلكتروني (ظاهر لك فقط)',
+              ltr: true,
+              last: true),
+        ]),
+        if (auth.user != null) PinnedStoriesSection(uid: auth.uid, owner: me, mine: true),
+        if (history.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text('صور سابقة', style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          SizedBox(
+            height: 74,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              children: history
+                  .map((u) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => AvatarGallery(images: [if (cur.isNotEmpty) cur, ...history], mine: true))),
+                          child: Avatar(url: u, name: name, size: 64),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+        ],
+        const SizedBox(height: 24),
       ]),
     );
   }
