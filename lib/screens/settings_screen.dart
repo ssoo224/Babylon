@@ -250,7 +250,7 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
           ),
-          const GiftGrid(kind: 'pepe', uid: ''),
+          GiftGrid(kind: 'pepe', uid: auth.uid),
         ],
 
         if (history.isNotEmpty) ...[
