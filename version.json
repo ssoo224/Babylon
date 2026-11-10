@@ -1,6 +1,6 @@
 {
-  "minVersion": 95,
-  "latest": 95,
+  "minVersion": 96,
+  "latest": 96,
   "url": "/api/apk",
-  "notes": "Update gift_widgets.dart"
+  "notes": "Create tgs_gift.dart"
 }
