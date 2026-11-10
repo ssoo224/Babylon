@@ -11,15 +11,15 @@ import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
-import '../services/gift_service.dart'; // 🌟 جديد
+import '../services/gift_service.dart';
 import '../widgets/avatar.dart';
 import '../widgets/pattern_layer.dart';
 import '../widgets/profile_header.dart';
-import '../widgets/gift_widgets.dart'; // 🌟 جديد
+import '../widgets/gift_widgets.dart';
 import 'avatar_gallery.dart';
 import 'edit_profile_screen.dart';
 import 'stories.dart';
-import 'gift_store_screen.dart'; // 🌟 جديد
+import 'gift_store_screen.dart';
 
 const _shareLink = 'https://babyllon.vercel.app';
 
@@ -235,7 +235,7 @@ class ProfileScreen extends StatelessWidget {
         
         if (auth.user != null) PinnedStoriesSection(uid: auth.uid, owner: me, mine: true),
         
-        // 🌟 شبكة الهدايا في الملف الشخصي (تستدعي الويدجت الجديد)
+        // 🌟 شبكة الهدايا في الملف الشخصي
         if (auth.user != null) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
