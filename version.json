@@ -1,6 +1,6 @@
 {
-  "minVersion": 79,
-  "latest": 79,
+  "minVersion": 95,
+  "latest": 95,
   "url": "/api/apk",
-  "notes": "Remove import for profile_screen.dart"
+  "notes": "Update gift_widgets.dart"
 }
