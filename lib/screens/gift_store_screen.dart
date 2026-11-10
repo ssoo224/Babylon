@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme.dart';
-import '../widgets/tgs_gift.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/gift_service.dart';
+import '../widgets/tgs_gift.dart'; // 🌟 استدعاء ويدجت الأنميشن
 
 class GiftStoreScreen extends StatefulWidget {
   const GiftStoreScreen({super.key});
@@ -33,6 +33,22 @@ class _GiftStoreScreenState extends State<GiftStoreScreen> {
     }
   }
 
+  // 🌟 دالة ذكية لتحويل اسم الهدية إلى رابط تليجرام
+  String _getGiftUrl(String name, String id) {
+    String folderName = name;
+    
+    // تليجرام يستخدم أسماء محددة لمجلدات الهدايا الأساسية
+    if (id == 'pepe' || name.toLowerCase().contains('pepe')) {
+      folderName = 'Plush Pepe';
+    } else if (id == 'cat' || name.toLowerCase().contains('cat')) {
+      folderName = 'Scared Cat';
+    }
+    
+    // تشفير الاسم عشان المسافات (مثلاً Algorithm Cup تصير Algorithm%20Cup)
+    final encodedName = Uri.encodeComponent(folderName);
+    return 'https://cdn.changes.tg/gifts/models/$encodedName/original.tgs';
+  }
+
   Future<void> _buy(String kind, int price) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -50,7 +66,10 @@ class _GiftStoreScreenState extends State<GiftStoreScreen> {
     try {
       if (mounted) toast(context, 'جاري الشراء...');
       final number = await _giftSvc.buyGift(kind);
-      if (mounted) toast(context, 'مبروك! حصلت على الهدية رقم #$number');
+      if (mounted) {
+        toast(context, 'مبروك! حصلت على الهدية رقم #$number');
+        // ممكن هنا نضيف كود يفتح شاشة الترقية تلقائياً بعد الشراء
+      }
     } catch (e) {
       if (mounted) toast(context, e.toString().replaceAll('Exception: ', ''));
     }
@@ -66,17 +85,24 @@ class _GiftStoreScreenState extends State<GiftStoreScreen> {
       appBar: AppBar(
         title: const Text('متجر الهدايا'),
         actions: [
+          // عرض رصيد النجوم
           StreamBuilder<int>(
             stream: _giftSvc.getWallet(auth.uid),
             builder: (context, snap) {
               final stars = snap.data ?? 0;
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(children: [
-                  Icon(Icons.star, color: p.gold, size: 20),
-                  const SizedBox(width: 4),
-                  Text('$stars', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: p.gold)),
-                ]),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star, color: p.gold, size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$stars', 
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: p.gold)
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -92,7 +118,7 @@ class _GiftStoreScreenState extends State<GiftStoreScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 0.8,
+                    childAspectRatio: 0.75, // تعديل النسبة عشان الأنميشن ياخذ مساحته
                   ),
                   itemCount: _catalog.length,
                   itemBuilder: (context, index) {
@@ -110,36 +136,48 @@ class _GiftStoreScreenState extends State<GiftStoreScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            height: 80,
-                            width: 80,
-                            decoration: BoxDecoration(
-                              color: p.gold.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.card_giftcard, size: 40, color: p.gold),
+                          const SizedBox(height: 12),
+                          // 🌟 عرض الأنميشن بدلاً من الأيقونة الثابتة
+                          TgsGift(
+                            url: _getGiftUrl(name, kind),
+                            size: 90, // حجم الأنميشن داخل المربع
                           ),
                           const SizedBox(height: 12),
-                          Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          const SizedBox(height: 8),
+                          Text(
+                            name, 
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                          const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.star, color: p.gold, size: 16),
+                              Icon(Icons.star, color: p.gold, size: 14),
                               const SizedBox(width: 4),
-                              Text('$price', style: TextStyle(color: p.muted, fontWeight: FontWeight.bold)),
+                              Text('$price', style: TextStyle(color: p.muted, fontWeight: FontWeight.bold, fontSize: 13)),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: () => _buy(kind, price),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: p.gold,
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          const SizedBox(height: 10),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 38,
+                              child: ElevatedButton(
+                                onPressed: () => _buy(kind, price),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: p.gold,
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                child: const Text('شراء', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
                             ),
-                            child: const Text('شراء'),
                           ),
+                          const SizedBox(height: 16),
                         ],
                       ),
                     );
