@@ -6,6 +6,9 @@ import '../core/theme.dart';
 import '../services/auth_service.dart';
 import '../services/gift_service.dart';
 
+
+typedef Json = Map<String, dynamic>;
+
 class GiftGrid extends StatelessWidget {
   final String uid;
   final String kind; // pepe, cat, gift
