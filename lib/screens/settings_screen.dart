@@ -244,7 +244,7 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 Text('الهدايا', style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
                 GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftStoreScreen())),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GiftStoreScreen())),
                   child: Text('المتجر', style: TextStyle(color: p.gold, fontWeight: FontWeight.bold)),
                 ),
               ],
@@ -330,7 +330,7 @@ class SettingsScreen extends StatelessWidget {
             leading: _ic(Icons.card_giftcard, const Color(0xFFEC4899)),
             title: const Text('متجر الهدايا'),
             subtitle: const Text('اشترِ وأهدِ الهدايا'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftStoreScreen())),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GiftStoreScreen())),
           ),
         ]),
         _label(p, 'مشاركة التطبيق'),
