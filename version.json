@@ -1,6 +1,6 @@
 {
-  "minVersion": 74,
-  "latest": 74,
+  "minVersion": 79,
+  "latest": 79,
   "url": "/api/apk",
-  "notes": "Update home_screen.dart"
+  "notes": "Remove import for profile_screen.dart"
 }
