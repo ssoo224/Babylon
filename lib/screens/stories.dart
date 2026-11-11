@@ -32,36 +32,13 @@ class StoriesBar extends StatelessWidget {
           if (uid == me || partnerIds.contains(uid)) byUser.putIfAbsent(uid, () => []).add(s);
         }
         final others = byUser.keys.where((k) => k != me).toList();
+        if (others.isEmpty) return const SizedBox.shrink();
         return SizedBox(
-          height: 96,
+          height: 90,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             children: [
-              _Item(
-                label: 'قصتي',
-                child: Stack(children: [
-                  Avatar(url: auth.me?['avatarUrl'], name: auth.displayName, size: 56, seed: me, storyRing: byUser.containsKey(me)),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    child: CircleAvatar(
-                      radius: 10,
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      child: const Icon(Icons.add, size: 14, color: Colors.black),
-                    ),
-                  ),
-                ]),
-                onTap: () {
-                  if (byUser.containsKey(me)) {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => StoryViewer(stories: byUser[me]!, owner: auth.me ?? {}, mine: true)));
-                  } else {
-                    composeStory(context);
-                  }
-                },
-                onLongPress: () => composeStory(context),
-              ),
               for (final uid in others)
                 FutureBuilder<Json?>(
                   future: svc.getUser(uid),
@@ -69,7 +46,7 @@ class StoriesBar extends StatelessWidget {
                     final u = us.data ?? {};
                     return _Item(
                       label: (u['displayName'] as String?) ?? '',
-                      child: Avatar(url: avatarOf(u), name: u['displayName'] ?? '?', size: 56, seed: uid, storyRing: true),
+                      child: Avatar(url: avatarOf(u), name: u['displayName'] ?? '?', size: 52, seed: uid, storyRing: true),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => StoryViewer(stories: byUser[uid]!, owner: {...u, 'id': uid}, mine: false)),
@@ -79,6 +56,49 @@ class StoriesBar extends StatelessWidget {
                 ),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+/// أفاتار قصتي بالرأس (hdrAvatarBtn): حلقة ذهبية إذا عندي قصة، و+ إذا ما عندي
+class MyStoryAvatar extends StatelessWidget {
+  const MyStoryAvatar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    final svc = context.read<ChatService>();
+    final me = auth.uid;
+    return StreamBuilder<List<Json>>(
+      stream: svc.activeStories(),
+      builder: (context, snap) {
+        final mine = (snap.data ?? []).where((s) => s['userId'] == me).toList();
+        final has = mine.isNotEmpty;
+        return GestureDetector(
+          onTap: () {
+            if (has) {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => StoryViewer(stories: mine, owner: auth.me ?? {}, mine: true)));
+            } else {
+              composeStory(context);
+            }
+          },
+          onLongPress: () => composeStory(context),
+          child: Stack(clipBehavior: Clip.none, children: [
+            Avatar(url: auth.me?['avatarUrl'], name: auth.displayName, size: 38, seed: me, storyRing: has),
+            if (!has)
+              Positioned(
+                bottom: -2,
+                left: -2,
+                child: CircleAvatar(
+                  radius: 8,
+                  backgroundColor: BP.of(context).gold,
+                  child: const Icon(Icons.add, size: 12, color: Colors.black),
+                ),
+              ),
+          ]),
         );
       },
     );
@@ -192,9 +212,6 @@ class _Item extends StatelessWidget {
       );
 }
 
-// =========================================================
-// 🚀 عارض القصص (مُحسّن جداً باستخدام AnimationController)
-// =========================================================
 class StoryViewer extends StatefulWidget {
   final List<Json> stories;
   final Json owner;
@@ -204,16 +221,15 @@ class StoryViewer extends StatefulWidget {
   State<StoryViewer> createState() => _StoryViewerState();
 }
 
-class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStateMixin {
+class _StoryViewerState extends State<StoryViewer> {
   int _i = 0;
+  double _progress = 0;
+  Timer? _t;
   bool _paused = false;
   VideoPlayerController? _vc;
   final _reply = TextEditingController();
   final _replyFocus = FocusNode();
-  
-  // 🚀 استخدام AnimationController بدل Timer
-  late AnimationController _progressController;
-  static const _imgMs = Duration(seconds: 6);
+  static const _imgMs = 6000;
 
   Json get _s => widget.stories[_i];
   String get _ownerId => (_s['userId'] as String?) ?? (widget.owner['id'] as String? ?? '');
@@ -221,57 +237,41 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _replyFocus.addListener(() {
-      if (mounted) setState(() => _paused = _replyFocus.hasFocus);
-      _handlePause(_replyFocus.hasFocus);
-    });
-    
-    _progressController = AnimationController(vsync: this, duration: _imgMs);
-    _progressController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) _next();
-    });
-
+    _replyFocus.addListener(() => setState(() => _paused = _replyFocus.hasFocus));
     _start();
   }
 
   Future<void> _start() async {
-    _progressController.reset();
+    _t?.cancel();
     await _vc?.dispose();
     _vc = null;
-    
+    _progress = 0;
     final s = _s;
     if (!widget.mine && s['id'] != null) {
       final auth = context.read<AuthService>();
       context.read<ChatService>().markStoryViewed(s['id'], auth.uid, auth.displayName);
     }
-    
     final v = s['videoUrl'] as String?;
     if (v != null && v.isNotEmpty) {
       final c = VideoPlayerController.networkUrl(Uri.parse(v));
       _vc = c;
       await c.initialize();
       if (!mounted || _vc != c) return;
-      
-      // إذا كان فيديو، نربط الأنميشن بمدة الفيديو
-      _progressController.duration = c.value.duration;
       c.play();
       setState(() {});
-      if (!_paused) _progressController.forward(from: 0);
-    } else {
-      // إذا صورة، نستخدم 6 ثواني
-      _progressController.duration = _imgMs;
-      if (!_paused) _progressController.forward(from: 0);
     }
-  }
-
-  void _handlePause(bool isPaused) {
-    if (isPaused) {
-      _progressController.stop();
-      _vc?.pause();
-    } else {
-      _progressController.forward();
-      _vc?.play();
-    }
+    _t = Timer.periodic(const Duration(milliseconds: 50), (t) {
+      if (_paused) return;
+      final c = _vc;
+      if (c != null && c.value.isInitialized) {
+        final d = c.value.duration.inMilliseconds;
+        _progress = d == 0 ? 0 : c.value.position.inMilliseconds / d;
+      } else {
+        _progress += 50 / _imgMs;
+      }
+      setState(() {});
+      if (_progress >= 1) _next();
+    });
   }
 
   void _next() {
@@ -279,27 +279,34 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
       setState(() => _i++);
       _start();
     } else {
-      _progressController.stop();
+      _t?.cancel();
       if (mounted) Navigator.pop(context);
     }
   }
 
   void _prev() {
-    if (_i > 0) {
-      setState(() => _i--);
-      _start();
-    } else {
-      _progressController.forward(from: 0); // إعادة الحالية
-    }
+    if (_i > 0) setState(() => _i--);
+    _start();
   }
 
   @override
   void dispose() {
-    _progressController.dispose();
+    _t?.cancel();
     _vc?.dispose();
     _reply.dispose();
     _replyFocus.dispose();
     super.dispose();
+  }
+
+  void _pause(bool v) {
+    _paused = v;
+    final c = _vc;
+    if (c == null) return;
+    if (v) {
+      c.pause();
+    } else {
+      c.play();
+    }
   }
 
   Future<void> _sendReply(String text) async {
@@ -321,7 +328,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
   }
 
   void _viewers() {
-    _handlePause(true);
+    _pause(true);
     final svc = context.read<ChatService>();
     showModalBottomSheet(
       context: context,
@@ -353,11 +360,11 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
           );
         },
       ),
-    ).whenComplete(() => _handlePause(false));
+    ).whenComplete(() => _pause(false));
   }
 
   Future<void> _edit() async {
-    _handlePause(true);
+    _pause(true);
     final c = TextEditingController(text: (_s['caption'] as String?) ?? '');
     final v = await showDialog<String>(
       context: context,
@@ -374,7 +381,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
       await context.read<ChatService>().updateStory(_s['id'], {'caption': v});
       setState(() => _s['caption'] = v);
     }
-    _handlePause(false);
+    _pause(false);
   }
 
   Future<void> _togglePin() async {
@@ -385,7 +392,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
   }
 
   Future<void> _delete() async {
-    _handlePause(true);
+    _pause(true);
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -401,7 +408,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
       await context.read<ChatService>().deleteStory(_s['id']);
       if (mounted) Navigator.pop(context);
     } else {
-      _handlePause(false);
+      _pause(false);
     }
   }
 
@@ -410,7 +417,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
     final s = _s;
     final img = imageFromUrl(s['imageUrl'] as String?);
     final isVideo = ((s['videoUrl'] as String?) ?? '').isNotEmpty;
-    
+    final p = BP.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       resizeToAvoidBottomInset: true,
@@ -424,8 +431,8 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
           d.localPosition.dx > w / 2 ? _prev() : _next();
         },
         onDoubleTap: widget.mine ? null : _heart,
-        onLongPressStart: (_) => _handlePause(true),
-        onLongPressEnd: (_) => _handlePause(false),
+        onLongPressStart: (_) => _pause(true),
+        onLongPressEnd: (_) => _pause(false),
         onVerticalDragEnd: (d) {
           if ((d.primaryVelocity ?? 0) > 500) Navigator.pop(context);
         },
@@ -434,10 +441,8 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
             Center(child: AspectRatio(aspectRatio: _vc!.value.aspectRatio, child: VideoPlayer(_vc!)))
           else if (img != null)
             Image(image: img, fit: BoxFit.contain),
-            
           SafeArea(
             child: Column(children: [
-              // شريط التقدم (مبني على الأنميشن كنترولر)
               Padding(
                 padding: const EdgeInsets.all(8),
                 child: Row(
@@ -446,18 +451,11 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
                     (k) => Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 2),
-                        child: AnimatedBuilder(
-                          animation: _progressController,
-                          builder: (context, child) {
-                            // إذا كنا في قصة سابقة نعرض 1، التالية 0، الحالية حسب التقدم
-                            final value = k < _i ? 1.0 : (k == _i ? _progressController.value : 0.0);
-                            return LinearProgressIndicator(
-                              value: value,
-                              minHeight: 3,
-                              backgroundColor: Colors.white24,
-                              color: Colors.white,
-                            );
-                          },
+                        child: LinearProgressIndicator(
+                          value: k < _i ? 1 : (k == _i ? _progress.clamp(0, 1) : 0),
+                          minHeight: 3,
+                          backgroundColor: Colors.white24,
+                          color: Colors.white,
                         ),
                       ),
                     ),

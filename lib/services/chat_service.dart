@@ -128,7 +128,6 @@ class ChatService {
       'createdAt': DateTime.now().millisecondsSinceEpoch,
       ...payload,
     };
-    
     if (replyTo != null) {
       data['replyTo'] = replyTo.text.isNotEmpty
           ? replyTo.text
@@ -136,32 +135,15 @@ class ChatService {
       data['replyToId'] = replyTo.id;
       data['replyToSenderId'] = replyTo.senderId;
     }
-    
     await _chats.doc(chatId).collection('messages').add(data);
-    
-    // بناء نص المعاينة (preview) للرسالة الأخيرة
     final preview = (payload['text'] as String?) ??
-        (payload['audioUrl'] != null ? '♬ بصمة صوتية' : 
-         (payload['imageUrl'] != null ? '▧ صورة' : 
-          (payload['videoUrl'] != null ? '▶ فيديو' : 'رسالة جديدة')));
-          
-    final lastMsgMap = {
-      'text': preview, 
-      'senderId': me, 
-      'at': data['createdAt'],
-      'read': false, // الرسالة جديدة، لم تقرأ بعد
-    };
-
-    // 🔥 التعديل الأهم: تحديث lastMsg سواء كانت مجموعة أو محادثة فردية
-    final extraData = <String, dynamic>{
-      'lastMsg': lastMsgMap,
-    };
-    
-    if (group) {
-      extraData['readAt'] = {me: data['createdAt']};
-    }
-
-    await _touch(chatId, me, extra: extraData);
+        (payload['audioUrl'] != null ? '♬ بصمة صوتية' : '▧ صورة');
+    await _touch(chatId, me, extra: group
+        ? {
+            'lastMsg': {'text': preview, 'senderId': me, 'at': data['createdAt']},
+            'readAt': {me: data['createdAt']},
+          }
+        : const {});
   }
 
   /// حذف لدي فقط: deletedFor = [uid]
@@ -199,13 +181,9 @@ class ChatService {
       await _chats.doc(targetChatId).collection('messages').add(n);
       last = m.preview;
     }
-    
-    final lastMsgMap = {'text': last, 'senderId': me, 'at': now + msgs.length, 'read': false};
-    
     await _chats.doc(targetChatId).set({
       'updatedAt': now + msgs.length,
-      'lastMsg': lastMsgMap,
-      if (group) 'readAt': {me: now},
+      if (group) 'lastMsg': {'text': last, 'senderId': me, 'at': now},
     }, SetOptions(merge: true));
   }
 
@@ -240,7 +218,7 @@ class ChatService {
       'createdAt': now,
       'updatedAt': now,
       'readAt': readAt,
-      'lastMsg': {'system': true, 'text': text, 'senderId': me, 'at': now, 'read': true},
+      'lastMsg': {'system': true, 'text': text, 'senderId': me, 'at': now},
     });
     await ref.collection('messages').add({
       'system': true,
@@ -265,7 +243,7 @@ class ChatService {
       'participants': FieldValue.arrayUnion(ids),
       'updatedAt': now,
       for (final u in ids) 'readAt.$u': now,
-      'lastMsg': {'system': true, 'text': 'تمت إضافة أعضاء جدد', 'senderId': me, 'at': now, 'read': true},
+      'lastMsg': {'system': true, 'text': 'تمت إضافة أعضاء جدد', 'senderId': me, 'at': now},
     });
   }
 
@@ -304,24 +282,11 @@ class ChatService {
   Future<void> markRead(String chatId, String me, List<Msg> msgs) async {
     final un = msgs.where((m) => m.senderId != me && !m.read).toList();
     if (un.isEmpty) return;
-    
     final b = _db.batch();
-    
-    // 1. تحديث الرسائل نفسها لتصبح مقروءة
     for (final m in un) {
-      b.update(_chats.doc(chatId).collection('messages').doc(m.id), {'read': true});
+      b.update(_chats.doc(chatId).collection('messages').doc(m.id),
+          {'read': true});
     }
-    
-    // 2. 🔥 التعديل الأهم: تحديث دوكومنت الشات عشان السهم يصير أزرق/ذهبي عند المرسل
-    // نتأكد إن آخر رسالة كانت للطرف الثاني، ونعلمها كمقروءة
-    final chatSnap = await _chats.doc(chatId).get();
-    if (chatSnap.exists) {
-      final lastMsg = chatSnap.data()?['lastMsg'] as Map?;
-      if (lastMsg != null && lastMsg['senderId'] != me && lastMsg['read'] == false) {
-        b.update(_chats.doc(chatId), {'lastMsg.read': true});
-      }
-    }
-    
     await b.commit().catchError((_) {});
   }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../core/prefs.dart';
 import '../core/utils.dart';
 import '../services/chat_service.dart';
+import '../services/sticker_service.dart';
+import 'sticker_view.dart';
 import 'voice_player.dart';
 
 /// عدد الإيموجي إذا كانت الرسالة إيموجي فقط (حتى 3)، وإلا 0
@@ -101,8 +103,14 @@ class MessageBubble extends StatelessWidget {
         ? bigEmojiCount(msg.text)
         : 0;
 
+    final stk = msg.type == 'sticker' ? Sticker.fromMessage(msg.d['sticker']) : null;
     Widget content;
-    if (msg.audioUrl != null) {
+    if (stk != null) {
+      content = GestureDetector(
+        onTap: selecting ? onTap : null,
+        child: StickerView(st: stk, size: 150),
+      );
+    } else if (msg.audioUrl != null) {
       content = VoicePlayer(url: msg.audioUrl!, seconds: msg.duration);
     } else if (msg.videoUrl != null) {
       final poster = msg.posterUrl ?? '';
@@ -128,8 +136,6 @@ class MessageBubble extends StatelessWidget {
           ]),
         ),
       );
-    } else if (msg.type == 'sticker' && msg.imageUrl != null) {
-      content = Image(image: imageFromUrl(msg.imageUrl)!, width: 120);
     } else if (msg.imageUrl != null) {
       content = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         GestureDetector(
@@ -153,7 +159,7 @@ class MessageBubble extends StatelessWidget {
     }
 
     final bg = mine ? theme.mine.first : theme.other;
-    final bare = big > 0; // الإيموجي الكبير بدون فقاعة
+    final bare = big > 0 || stk != null; // الإيموجي الكبير والملصقات بدون فقاعة
     final sr = msg.storyReplyData;
 
     final bubble = Container(

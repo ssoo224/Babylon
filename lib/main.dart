@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'screens/auth_screen.dart';
 import 'screens/gate_screens.dart';
 import 'screens/update_screen.dart';
+import 'services/sticker_service.dart';
 import 'services/update_service.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
@@ -33,6 +34,7 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (_) => AuthService()),
       Provider(create: (_) => ChatService()),
       ChangeNotifierProvider(create: (_) => UpdateController(), lazy: false),
+      ChangeNotifierProvider(create: (_) => StickerService()),
     ],
     child: const BabylonApp(),
   ));

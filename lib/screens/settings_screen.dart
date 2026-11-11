@@ -2,8 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart' show DateFormat;
 import 'package:provider/provider.dart';
 import '../core/api.dart';
 import '../core/prefs.dart';
@@ -11,283 +9,15 @@ import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
-import '../services/gift_service.dart';
 import '../widgets/avatar.dart';
-import '../widgets/pattern_layer.dart';
 import '../widgets/profile_header.dart';
-import '../widgets/gift_widgets.dart';
-import 'avatar_gallery.dart';
+import '../core/dev.dart';
+import 'dev_panel_screen.dart';
 import 'edit_profile_screen.dart';
-import 'stories.dart';
-import 'gift_store_screen.dart';
+import 'sticker_screens.dart';
 
 const _shareLink = 'https://babyllon.vercel.app';
 
-String joinedLabel(Json u) {
-  final c = (u['createdAt'] as num?)?.toInt();
-  if (c == null) return '';
-  return DateFormat('d MMMM yyyy', 'ar').format(DateTime.fromMillisecondsSinceEpoch(c));
-}
-
-// =================== قسم القصص المثبتة ===================
-class PinnedStoriesSection extends StatelessWidget {
-  final String uid;
-  final Json owner;
-  final bool mine;
-  const PinnedStoriesSection({super.key, required this.uid, required this.owner, required this.mine});
-
-  @override
-  Widget build(BuildContext context) {
-    final p = BP.of(context);
-    return FutureBuilder<List<Json>>(
-      future: context.read<ChatService>().pinnedStories(uid),
-      builder: (context, s) {
-        final list = s.data ?? [];
-        if (list.isEmpty) return const SizedBox.shrink();
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-            child: Text('القصص المثبتة', style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
-          ),
-          SizedBox(
-            height: 110,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              children: list.map((st) {
-                final img = imageFromUrl(st['imageUrl'] as String?);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => StoryViewer(stories: [st], owner: owner, mine: mine)),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        width: 80,
-                        color: p.surface,
-                        child: img == null
-                            ? Icon(Icons.play_circle_outline, color: p.gold)
-                            : Image(image: img, fit: BoxFit.cover),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ]);
-      },
-    );
-  }
-}
-
-// =================== منتقي الغلاف ===================
-void showCoverPicker(BuildContext context, String current, void Function(String) onPick) {
-  final p = BP.of(context);
-  showModalBottomSheet(
-    context: context,
-    showDragHandle: true,
-    builder: (_) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('اختر غلاف الملف الشخصي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.5,
-            physics: const NeverScrollableScrollPhysics(),
-            children: chatThemeKeys.map((k) {
-              final t = chatThemeBase(k);
-              return GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                  onPick(k);
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    gradient: LinearGradient(colors: t.cover),
-                    border: Border.all(color: current == k ? p.gold : Colors.transparent, width: 3),
-                  ),
-                  child: Stack(children: [
-                    Positioned.fill(child: ClipRRect(borderRadius: BorderRadius.circular(12), child: PatternLayer(theme: t, cell: 44))),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Text(t.name, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ]),
-                ),
-              );
-            }).toList(),
-          ),
-        ]),
-      ),
-    ),
-  );
-}
-
-// =================== الملف الشخصي (Profile) ===================
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-
-  Future<void> _pickAvatar(BuildContext context) async {
-    final auth = context.read<AuthService>();
-    final x = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 75);
-    if (x == null) return;
-    final url = toDataUrl(await x.readAsBytes());
-    final history = List<String>.from((auth.me?['avatarHistory'] as List?) ?? []);
-    final old = (auth.me?['avatarUrl'] as String?) ?? '';
-    if (old.isNotEmpty) history.insert(0, old);
-    await auth.updateProfile({'avatarUrl': url, 'avatarHistory': history.take(5).toList()});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthService>();
-    final me = auth.me ?? {};
-    final p = BP.of(context);
-    final name = (me['displayName'] as String?) ?? '';
-    final history = ((me['avatarHistory'] as List?) ?? []).cast<String>();
-    final cur = (me['avatarUrl'] as String?) ?? '';
-    final province = (me['province'] as String?) ?? '';
-    final joined = joinedLabel(me);
-    final bio = (me['bio'] as String?) ?? '';
-
-    void copyUser() {
-      Clipboard.setData(ClipboardData(text: '@${me['username'] ?? ''}'));
-      toast(context, 'تم نسخ اليوزر');
-    }
-
-    return Scaffold(
-      backgroundColor: p.chatListBg,
-      body: ListView(padding: EdgeInsets.zero, children: [
-        ProfileHeader(
-          avatarUrl: cur,
-          name: name,
-          username: (me['username'] as String?) ?? '',
-          status: 'متصل الآن',
-          online: true,
-          verified: me['isVerified'] == true,
-          coverKey: (me['cover'] as String?) ?? 'babylon',
-          seed: auth.user?.uid,
-          onAvatarTap: () {
-            final imgs = [if (cur.isNotEmpty) cur, ...history];
-            if (imgs.isEmpty) {
-              _pickAvatar(context);
-            } else {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => AvatarGallery(images: imgs, mine: true)));
-            }
-          },
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 9),
-          child: Row(children: [
-            QuickAction(
-                biconName: 'palette',
-                label: 'الأغلفة',
-                onTap: () => showCoverPicker(
-                    context, (me['cover'] as String?) ?? 'babylon', (k) => auth.updateProfile({'cover': k}))),
-            QuickAction(biconName: 'camera', label: 'الصورة', onTap: () => _pickAvatar(context)),
-            QuickAction(
-                biconName: 'pencil',
-                label: 'تعديل',
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()))),
-          ]),
-        ),
-        const SizedBox(height: 10),
-        InfoCard(children: [
-          PfRow(
-            biconName: 'text',
-            value: bio.isNotEmpty ? bio : 'أضف نبذة تعريفية',
-            label: 'النبذة التعريفية',
-            muted: bio.isEmpty,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
-          ),
-          PfRow(
-              biconName: 'at',
-              value: '@${me['username'] ?? ''}',
-              label: 'اسم المستخدم (اضغط للنسخ)',
-              ltr: true,
-              onTap: copyUser),
-          PfRow(
-              biconName: 'pin',
-              value: province.isNotEmpty ? province : 'غير محدد',
-              label: 'المحافظة',
-              muted: province.isEmpty),
-          if (joined.isNotEmpty) PfRow(biconName: 'calendar', value: joined, label: 'تاريخ الانضمام'),
-          PfRow(
-              biconName: 'mail',
-              value: '${me['email'] ?? ''}',
-              label: 'البريد الإلكتروني (ظاهر لك فقط)',
-              ltr: true,
-              last: true),
-        ]),
-        
-        if (auth.user != null) PinnedStoriesSection(uid: auth.uid, owner: me, mine: true),
-        
-        // 🌟 شبكة الهدايا في الملف الشخصي
-        if (auth.user != null) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('الهدايا', style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
-                GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GiftStoreScreen())),
-                  child: Text('المتجر', style: TextStyle(color: p.gold, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-          ),
-          GiftGrid(kind: 'pepe', uid: auth.uid),
-        ],
-
-        if (history.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: Text('صور سابقة', style: TextStyle(color: p.muted, fontWeight: FontWeight.w600)),
-            ),
-          ),
-          SizedBox(
-            height: 74,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              children: history
-                  .map((u) => Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: GestureDetector(
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => AvatarGallery(images: [if (cur.isNotEmpty) cur, ...history], mine: true))),
-                          child: Avatar(url: u, name: name, size: 64),
-                        ),
-                      ))
-                  .toList(),
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
-      ]),
-    );
-  }
-}
-
-// =================== الإعدادات (Settings) ===================
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -317,20 +47,29 @@ class SettingsScreen extends StatelessWidget {
               const ChatSettingsPage()),
           _item(context, Icons.notifications_outlined, const Color(0xFFEF4444),
               'الإشعارات والأصوات', const NotifSettingsPage()),
+          _item(context, Icons.emoji_emotions_outlined, const Color(0xFF14B8A6), 'الملصقات',
+              const StickerManagerScreen()),
         ]),
+        if (isDevUser(auth.user)) ...[
+          _label(p, 'المطوّر'),
+          InfoCard(children: [
+            _item(context, Icons.admin_panel_settings_outlined, const Color(0xFFE4C45B), 'لوحة المطوّر',
+                const DevPanelScreen()),
+          ]),
+        ],
         _label(p, 'الهدايا والنجوم'),
         InfoCard(children: [
           ListTile(
             leading: _ic(Icons.star_outline, const Color(0xFFEAB308)),
             title: const Text('نجوم بابيلون'),
-            subtitle: const Text('سجل النجوم والمحفظة'),
+            subtitle: const Text('قريباً في النسخة الجديدة'),
             onTap: () => toast(context, 'قريباً'),
           ),
           ListTile(
             leading: _ic(Icons.card_giftcard, const Color(0xFFEC4899)),
             title: const Text('متجر الهدايا'),
-            subtitle: const Text('اشترِ وأهدِ الهدايا'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GiftStoreScreen())),
+            subtitle: const Text('قريباً في النسخة الجديدة'),
+            onTap: () => toast(context, 'قريباً'),
           ),
         ]),
         _label(p, 'مشاركة التطبيق'),
@@ -829,7 +568,8 @@ class BlockedScreen extends StatelessWidget {
   }
 }
 
-// =================== بطاقة الهيرو في الإعدادات ===================
+
+/// بطاقة الهيرو (sx-hero): تدرج ذهبي/أزرق، أفاتار بحلقة ذهبية، اسم، يوزر، نبذة، زر تعديل
 class _SettingsHero extends StatelessWidget {
   final Map<String, dynamic> me;
   final String name;
