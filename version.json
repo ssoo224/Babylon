@@ -1,6 +1,6 @@
 {
-  "minVersion": 96,
-  "latest": 96,
+  "minVersion": 100,
+  "latest": 100,
   "url": "/api/apk",
-  "notes": "Create tgs_gift.dart"
+  "notes": "رسالة التحديث"
 }
