@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import '../core/api.dart';
 import '../core/cloudinary.dart';
+import '../widgets/media_picker.dart';
 import '../core/prefs.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
@@ -23,6 +24,7 @@ import '../widgets/sticker_panel.dart';
 import '../widgets/sticker_view.dart';
 import '../widgets/voice_player.dart';
 import 'forward_screen.dart';
+import 'gift_screens.dart';
 import 'group_screens.dart';
 import 'other_profile_screen.dart';
 import 'video_screen.dart';
@@ -169,9 +171,14 @@ class _ChatScreenState extends State<ChatScreen> {
     await _sendPayload({'type': 'sticker', 'text': '${st.e} ملصق', 'sticker': st.toMessage()}, '${st.e} ملصق');
   }
 
+  /// كاميرا
   Future<void> _sendImage(ImageSource src) async {
     final x = await _picker.pickImage(source: src, maxWidth: 1600, maxHeight: 1600, imageQuality: 78);
     if (x == null) return;
+    await _sendImageFile(x);
+  }
+
+  Future<void> _sendImageFile(XFile x) async {
     setState(() => _uploading = true);
     try {
       var url = await Cloudinary.upload(File(x.path), video: false);
@@ -182,10 +189,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Future<void> _sendVideo() async {
-    final x = await _picker.pickVideo(source: ImageSource.gallery, maxDuration: const Duration(minutes: 3));
-    if (x == null) return;
-    final f = File(x.path);
+  Future<void> _sendVideoFile(File f) async {
     if (await f.length() > 100 * 1024 * 1024) {
       if (mounted) toast(context, 'الفيديو أكبر من 100MB');
       return;
@@ -200,6 +204,20 @@ class _ChatScreenState extends State<ChatScreen> {
       await _sendPayload({'videoUrl': url, 'posterUrl': Cloudinary.posterOf(url)}, '▶ فيديو');
     } finally {
       if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  /// معرض بابيلون الداخلي (صور وفيديو، تحديد متعدد)
+  Future<void> _pickGallery() async {
+    final files = await showMediaPicker(context, allowVideo: true, max: 10);
+    if (files == null || files.isEmpty) return;
+    for (final x in files) {
+      final ext = x.path.toLowerCase().split('.').last;
+      if (const ['mp4', 'mov', 'webm', 'mkv', '3gp', 'avi', 'm4v'].contains(ext)) {
+        await _sendVideoFile(File(x.path));
+      } else {
+        await _sendImageFile(x);
+      }
     }
   }
 
@@ -778,14 +796,16 @@ class _ChatScreenState extends State<ChatScreen> {
         PopupMenuButton<String>(
           icon: const Icon(Icons.attach_file),
           onSelected: (v) {
-            if (v == 'gallery') _sendImage(ImageSource.gallery);
+            if (v == 'gallery') _pickGallery();
             if (v == 'camera') _sendImage(ImageSource.camera);
-            if (v == 'video') _sendVideo();
+            if (v == 'gift' && widget.otherId != null) {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => SendGiftScreen(otherId: widget.otherId)));
+            }
           },
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'gallery', child: Text('معرض الصور')),
-            PopupMenuItem(value: 'camera', child: Text('الكاميرا')),
-            PopupMenuItem(value: 'video', child: Text('فيديو')),
+          itemBuilder: (_) => [
+            const PopupMenuItem(value: 'gallery', child: Text('معرض الصور')),
+            const PopupMenuItem(value: 'camera', child: Text('الكاميرا')),
+            if (!widget.isGroup) const PopupMenuItem(value: 'gift', child: Text('إهداء هدية 🎁')),
           ],
         ),
         IconButton(

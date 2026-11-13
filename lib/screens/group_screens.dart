@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../core/media.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
@@ -107,7 +108,7 @@ class _GroupCreateScreenState extends State<GroupCreateScreen> {
   bool _busy = false;
 
   Future<void> _pickPhoto() async {
-    final x = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 75);
+    final x = await pickImageInApp(context);
     if (x == null) return;
     final bytes = await x.readAsBytes();
     setState(() => _photo = toDataUrl(bytes));
@@ -182,8 +183,8 @@ class GroupInfoScreen extends StatelessWidget {
                 onTap: !iAmOwner
                     ? null
                     : () async {
-                        final x = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 75);
-                        if (x != null) svc.setGroupPhoto(chatId, toDataUrl(await x.readAsBytes()));
+                        final x = await pickImageInApp(context);
+                        if (x != null) svc.setGroupPhoto(chatId, toDataUrl(await compressImage(x, 512, 75)));
                       },
                 child: Avatar(url: meta['photo'] as String?, name: (meta['name'] as String?) ?? '👥', size: 96),
               ),

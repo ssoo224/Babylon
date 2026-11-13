@@ -14,6 +14,7 @@ import '../widgets/profile_header.dart';
 import '../core/dev.dart';
 import 'dev_panel_screen.dart';
 import 'edit_profile_screen.dart';
+import 'gift_screens.dart';
 import 'sticker_screens.dart';
 
 const _shareLink = 'https://babyllon.vercel.app';
@@ -59,18 +60,8 @@ class SettingsScreen extends StatelessWidget {
         ],
         _label(p, 'الهدايا والنجوم'),
         InfoCard(children: [
-          ListTile(
-            leading: _ic(Icons.star_outline, const Color(0xFFEAB308)),
-            title: const Text('نجوم بابيلون'),
-            subtitle: const Text('قريباً في النسخة الجديدة'),
-            onTap: () => toast(context, 'قريباً'),
-          ),
-          ListTile(
-            leading: _ic(Icons.card_giftcard, const Color(0xFFEC4899)),
-            title: const Text('متجر الهدايا'),
-            subtitle: const Text('قريباً في النسخة الجديدة'),
-            onTap: () => toast(context, 'قريباً'),
-          ),
+          _item(context, Icons.star_outline, const Color(0xFFEAB308), 'نجوم بابيلون', const StarsScreen()),
+          _item(context, Icons.card_giftcard, const Color(0xFFEC4899), 'متجر الهدايا', const GiftStoreScreen()),
         ]),
         _label(p, 'مشاركة التطبيق'),
         InfoCard(children: [

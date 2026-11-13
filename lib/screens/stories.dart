@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../core/cloudinary.dart';
+import '../core/media.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
@@ -121,9 +122,9 @@ Future<void> composeStory(BuildContext context) async {
   if (kind == null || !context.mounted) return;
   XFile? x;
   if (kind == 'image') {
-    x = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1080, maxHeight: 1920, imageQuality: 72);
+    x = await pickImageInApp(context);
   } else {
-    x = await picker.pickVideo(source: ImageSource.gallery, maxDuration: const Duration(seconds: 30));
+    x = await pickVideoInApp(context, maxSeconds: 30);
   }
   if (x == null || !context.mounted) return;
   final file = File(x.path);

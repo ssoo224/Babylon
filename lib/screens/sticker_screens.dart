@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import '../core/cloudinary.dart';
 import '../core/dev.dart';
+import '../core/media.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
@@ -78,7 +79,7 @@ Future<String?> pickStickerEmoji(BuildContext context) => showModalBottomSheet<S
 
 /// يجهّز صورة ثابتة: PNG بضلع 512 (شرط الخادم) ثم يرفعها على Cloudinary
 Future<String?> pickAndUploadStaticSticker(BuildContext context) async {
-  final x = await ImagePicker().pickImage(source: ImageSource.gallery);
+  final x = await pickImageInApp(context);
   if (x == null) return null;
   if (context.mounted) toast(context, 'جاري تجهيز الملصق...');
   try {

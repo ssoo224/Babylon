@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../widgets/profile_header.dart';
 import 'chat_screen.dart';
+import 'gift_screens.dart';
 import 'profile_screen.dart';
 
 class OtherProfileScreen extends StatelessWidget {
@@ -100,6 +101,7 @@ class OtherProfileScreen extends StatelessWidget {
               if (joinedLabel(u).isNotEmpty)
                 PfRow(biconName: 'calendar', value: joinedLabel(u), label: 'تاريخ الانضمام', last: true),
             ]),
+            GiftsGrid(uid: uid, mine: false),
             PinnedStoriesSection(uid: uid, owner: u, mine: false),
             const SizedBox(height: 24),
           ]);

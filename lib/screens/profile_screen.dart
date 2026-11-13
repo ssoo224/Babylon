@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:provider/provider.dart';
+import '../core/media.dart';
 import '../core/prefs.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
@@ -13,6 +14,7 @@ import '../widgets/pattern_layer.dart';
 import '../widgets/profile_header.dart';
 import 'avatar_gallery.dart';
 import 'edit_profile_screen.dart';
+import 'gift_screens.dart';
 import 'stories.dart';
 
 /// قسم القصص المثبتة (تبقى بالملف بعد انتهاء المدة)
@@ -132,9 +134,9 @@ class ProfileScreen extends StatelessWidget {
 
   Future<void> _pickAvatar(BuildContext context) async {
     final auth = context.read<AuthService>();
-    final x = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 75);
+    final x = await pickImageInApp(context);
     if (x == null) return;
-    final url = toDataUrl(await x.readAsBytes());
+    final url = toDataUrl(await compressImage(x, 512, 75));
     final history = List<String>.from((auth.me?['avatarHistory'] as List?) ?? []);
     final old = (auth.me?['avatarUrl'] as String?) ?? '';
     if (old.isNotEmpty) history.insert(0, old);
@@ -221,6 +223,7 @@ class ProfileScreen extends StatelessWidget {
               ltr: true,
               last: true),
         ]),
+        if (auth.user != null) GiftsGrid(uid: auth.uid, mine: true),
         if (auth.user != null) PinnedStoriesSection(uid: auth.uid, owner: me, mine: true),
         if (history.isNotEmpty) ...[
           Padding(

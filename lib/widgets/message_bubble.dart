@@ -4,6 +4,10 @@ import '../core/utils.dart';
 import '../services/chat_service.dart';
 import '../services/sticker_service.dart';
 import 'sticker_view.dart';
+import 'gift_art.dart';
+import '../screens/gift_screens.dart';
+import '../services/gift_service.dart';
+import 'package:provider/provider.dart';
 import 'voice_player.dart';
 
 /// عدد الإيموجي إذا كانت الرسالة إيموجي فقط (حتى 3)، وإلا 0
@@ -105,7 +109,32 @@ class MessageBubble extends StatelessWidget {
 
     final stk = msg.type == 'sticker' ? Sticker.fromMessage(msg.d['sticker']) : null;
     Widget content;
-    if (stk != null) {
+    if (msg.type == 'gift') {
+      final gs = context.read<GiftService>();
+      final K = gs.kindOf(msg.d['k'] as String?);
+      final gno = (msg.d['number'] as num?)?.toInt() ?? 0;
+      final up = msg.d['upgraded'] == true;
+      final gi = GiftItem(
+        k: K.key,
+        number: gno,
+        upgraded: up,
+        model: (msg.d['model'] as num?)?.toInt() ?? 0,
+        bg: (msg.d['bg'] as num?)?.toInt() ?? 0,
+        sym: (msg.d['sym'] as num?)?.toInt() ?? 0,
+      );
+      content = GestureDetector(
+        onTap: selecting
+            ? onTap
+            : () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => GiftPageScreen(kind: K, number: gno, owner: msg.d['to'] as String?))),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          GiftArt(kind: K, gift: gi, size: 170, ribbon: true),
+          const SizedBox(height: 6),
+          Text('🎁 ${mine ? 'أرسلت' : 'استلمت'} هدية ${K.name}',
+              style: TextStyle(color: fg, fontSize: 13.5, fontWeight: FontWeight.w700)),
+        ]),
+      );
+    } else if (stk != null) {
       content = GestureDetector(
         onTap: selecting ? onTap : null,
         child: StickerView(st: stk, size: 150),
