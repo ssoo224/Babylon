@@ -1,6 +1,6 @@
 {
-  "minVersion": 100,
-  "latest": 100,
+  "minVersion": 102,
+  "latest": 102,
   "url": "/api/apk",
-  "notes": "رسالة التحديث"
+  "notes": "Disable lint checks in build.gradle.kts"
 }
