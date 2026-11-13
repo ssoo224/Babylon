@@ -1,6 +1,6 @@
 {
-  "minVersion": 102,
-  "latest": 102,
+  "minVersion": 103,
+  "latest": 103,
   "url": "/api/apk",
-  "notes": "Disable lint checks in build.gradle.kts"
+  "notes": "Replace PopupMenuButton with IconButton for attachments"
 }
