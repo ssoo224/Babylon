@@ -793,21 +793,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ]);
     } else {
       row = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.attach_file),
-          onSelected: (v) {
-            if (v == 'gallery') _pickGallery();
-            if (v == 'camera') _sendImage(ImageSource.camera);
-            if (v == 'gift' && widget.otherId != null) {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => SendGiftScreen(otherId: widget.otherId)));
-            }
-          },
-          itemBuilder: (_) => [
-            const PopupMenuItem(value: 'gallery', child: Text('معرض الصور')),
-            const PopupMenuItem(value: 'camera', child: Text('الكاميرا')),
-            if (!widget.isGroup) const PopupMenuItem(value: 'gift', child: Text('إهداء هدية 🎁')),
-          ],
-        ),
+        IconButton(icon: const Icon(Icons.attach_file), onPressed: _pickGallery),
         IconButton(
           icon: Icon(_emojiOpen ? Icons.keyboard : Icons.emoji_emotions_outlined),
           onPressed: () {
