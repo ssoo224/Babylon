@@ -38,7 +38,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // مزامنة ثيم المحادثة/الخط/الزوايا من السحابة مرة واحدة (users.chatPrefs)
     final me = context.watch<AuthService>().me;
     if (!_prefsSynced && me != null) {
       _prefsSynced = true;
@@ -82,105 +81,181 @@ class _ChatsTabState extends State<_ChatsTab> {
     final svc = context.read<ChatService>();
     final p = BP.of(context);
     final me = auth.uid;
+    final goSearch = () =>
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen()));
+
     return Scaffold(
       backgroundColor: p.chatListBg,
-      appBar: AppBar(
-        leadingWidth: 64,
-        leading: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          child: MyStoryAvatar(),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: GestureDetector(
+          onTap: goSearch,
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: const LinearGradient(
+                  begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFF2D268), Color(0xFFC29D30)]),
+              boxShadow: const [BoxShadow(color: Color(0x40C29D30), blurRadius: 16, offset: Offset(0, 6))],
+            ),
+            child: const Center(child: BIcon('pencil', size: 24, color: Color(0xFF17212B))),
+          ),
         ),
-        title: const Text('Babylon'),
-        actions: [
-          IconButton(
-            tooltip: 'مجموعة جديدة',
-            icon: const Icon(Icons.group_add_outlined),
-            onPressed: () =>
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const GroupCreateScreen())),
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
-          ),
-        ],
       ),
-      body: StreamBuilder<List<QueryDocumentSnapshot<Json>>>(
-        stream: svc.chatsStream(me),
-        builder: (context, snap) {
-          if (snap.hasError) return const Center(child: Text('تعذر تحميل المحادثات'));
-          if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-          final chats = snap.data!.toList()
-            ..sort((a, b) {
-              final pa = prefs.isPinned(a.id) ? 1 : 0, pb = prefs.isPinned(b.id) ? 1 : 0;
-              if (pa != pb) return pb - pa;
-              return ((b.data()['updatedAt'] ?? 0) as num).compareTo((a.data()['updatedAt'] ?? 0) as num);
-            });
-          final partnerIds = chats
-              .where((d) => d.data()['type'] != 'group')
-              .map((d) => ((d.data()['participants'] as List?) ?? [])
-                  .cast<String>()
-                  .firstWhere((x) => x != me, orElse: () => ''))
-              .where((x) => x.isNotEmpty)
-              .toList();
-          return Column(children: [
-            StoriesBar(partnerIds: partnerIds),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-              child: Row(children: [
-                _FilterChip(label: 'الكل', selected: !_unreadOnly, onTap: () => setState(() => _unreadOnly = false)),
-                const SizedBox(width: 8),
-                _FilterChip(
-                    label: 'غير المقروءة', selected: _unreadOnly, onTap: () => setState(() => _unreadOnly = true)),
-              ]),
-            ),
-            Expanded(
-              child: chats.isEmpty
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Text(
-                          'لا توجد محادثات في بابيلون بعد\nاضغط على البحث وابحث عن مستخدم بيوزر صالح',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      itemCount: chats.length,
-                      itemBuilder: (_, i) => chats[i].data()['type'] == 'group'
-                          ? _GroupTile(chat: chats[i], me: me, unreadOnly: _unreadOnly)
-                          : _ChatTile(chat: chats[i], me: me, unreadOnly: _unreadOnly),
+      body: SafeArea(
+        bottom: false,
+        child: StreamBuilder<List<QueryDocumentSnapshot<Json>>>(
+          stream: svc.chatsStream(me),
+          builder: (context, snap) {
+            final chats = (snap.data ?? []).toList()
+              ..sort((a, b) {
+                final pa = prefs.isPinned(a.id) ? 1 : 0, pb = prefs.isPinned(b.id) ? 1 : 0;
+                if (pa != pb) return pb - pa;
+                return ((b.data()['updatedAt'] ?? 0) as num).compareTo((a.data()['updatedAt'] ?? 0) as num);
+              });
+            final partnerIds = chats
+                .where((d) => d.data()['type'] != 'group')
+                .map((d) => ((d.data()['participants'] as List?) ?? [])
+                    .cast<String>()
+                    .firstWhere((x) => x != me, orElse: () => ''))
+                .where((x) => x.isNotEmpty)
+                .toList();
+            return Column(children: [
+              // ---------- الرأس ----------
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 8, 4),
+                child: Row(children: [
+                  const MyStoryAvatar(),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Babylon',
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: .4,
+                            color: p.dark ? Colors.white : p.text)),
+                  ),
+                  IconButton(
+                    tooltip: 'مجموعة جديدة',
+                    icon: Icon(Icons.group_add_outlined, color: p.muted),
+                    onPressed: () =>
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const GroupCreateScreen())),
+                  ),
+                ]),
+              ),
+              // ---------- البحث ----------
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                child: GestureDetector(
+                  onTap: goSearch,
+                  child: Container(
+                    height: 42,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: p.dark ? const Color(0xFF17212B) : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: p.dark ? const Color(0x0FFFFFFF) : p.border),
                     ),
-            ),
-          ]);
-        },
+                    child: Row(children: [
+                      Icon(Icons.search, size: 20, color: p.muted),
+                      const SizedBox(width: 10),
+                      Text('ابحث عن مستخدم بيوزره', style: TextStyle(fontSize: 14, color: p.muted)),
+                    ]),
+                  ),
+                ),
+              ),
+              StoriesBar(partnerIds: partnerIds),
+              // ---------- التبويبات ----------
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+                child: Row(children: [
+                  _Tab(label: 'الكل', selected: !_unreadOnly, onTap: () => setState(() => _unreadOnly = false)),
+                  const SizedBox(width: 22),
+                  _Tab(label: 'غير المقروءة', selected: _unreadOnly, onTap: () => setState(() => _unreadOnly = true)),
+                ]),
+              ),
+              Divider(height: 1, thickness: .6, color: p.dark ? const Color(0x14FFFFFF) : p.border),
+              // ---------- القائمة ----------
+              Expanded(
+                child: !snap.hasData
+                    ? const Center(child: CircularProgressIndicator())
+                    : chats.isEmpty
+                        ? _Empty(onSearch: goSearch)
+                        : ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 90),
+                            itemCount: chats.length,
+                            itemBuilder: (_, i) => chats[i].data()['type'] == 'group'
+                                ? _GroupTile(chat: chats[i], me: me, unreadOnly: _unreadOnly)
+                                : _ChatTile(chat: chats[i], me: me, unreadOnly: _unreadOnly),
+                          ),
+              ),
+            ]);
+          },
+        ),
       ),
     );
   }
 }
 
-class _FilterChip extends StatelessWidget {
+class _Tab extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
+  const _Tab({required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final p = BP.of(context);
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(2, 8, 2, 10),
         decoration: BoxDecoration(
-          color: selected ? p.gold.withOpacity(.16) : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: selected ? p.gold.withOpacity(.5) : p.border),
+          border: Border(bottom: BorderSide(color: selected ? p.gold : Colors.transparent, width: 2.2)),
         ),
         child: Text(label,
             style: TextStyle(
-                fontSize: 13.5, fontWeight: FontWeight.w700, color: selected ? p.gold : p.muted)),
+                fontSize: 14.5, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, color: selected ? p.gold : p.muted)),
+      ),
+    );
+  }
+}
+
+class _Empty extends StatelessWidget {
+  final VoidCallback onSearch;
+  const _Empty({required this.onSearch});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = BP.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 84,
+            height: 84,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: p.gold.withOpacity(.1)),
+            child: Center(child: BIcon('chat', size: 38, color: p.gold)),
+          ),
+          const SizedBox(height: 18),
+          const Text('لا توجد محادثات بعد', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          Text('ابحث عن صديق بيوزره وابدأ أول محادثة', textAlign: TextAlign.center, style: TextStyle(color: p.muted)),
+          const SizedBox(height: 18),
+          OutlinedButton(
+            onPressed: onSearch,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: p.gold,
+              side: BorderSide(color: p.gold.withOpacity(.5)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              minimumSize: const Size(160, 44),
+            ),
+            child: const Text('بحث عن مستخدم'),
+          ),
+        ]),
       ),
     );
   }
@@ -214,8 +289,8 @@ void _chatMenu(BuildContext context, String chatId) {
   );
 }
 
-/// بطاقة المحادثة (.chat-item): هامش 10، حشوة 12/14، زوايا 18، حد أبيض شفاف
-Widget _chatCard(
+/// صف محادثة مسطّح: أفاتار 54، اسم + وقت، معاينة + شارة، فاصل رفيع يبدأ بعد الأفاتار
+Widget _chatRow(
   BuildContext context, {
   required Widget leading,
   required Widget nameRow,
@@ -227,20 +302,15 @@ Widget _chatCard(
 }) {
   final p = BP.of(context);
   final prefs = context.watch<AppPrefs>();
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-    child: Material(
-      color: p.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: p.dark ? const Color(0x0AFFFFFF) : const Color(0xFFEDF0F5)),
-      ),
-      clipBehavior: Clip.antiAlias,
+  final muted = prefs.isMuted(chatId);
+  return Column(mainAxisSize: MainAxisSize.min, children: [
+    Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         onLongPress: () => _chatMenu(context, chatId),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
           child: Row(children: [
             leading,
             const SizedBox(width: 14),
@@ -249,32 +319,26 @@ Widget _chatCard(
                 Row(children: [
                   Expanded(child: nameRow),
                   if (prefs.isPinned(chatId) && unread == 0)
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(end: 6),
-                      child: BIcon('pin', size: 16, color: p.gold),
-                    ),
-                  Text(time, style: TextStyle(fontSize: 12, color: p.muted)),
+                    Padding(padding: const EdgeInsetsDirectional.only(end: 6), child: BIcon('pin', size: 14, color: p.muted)),
+                  Text(time,
+                      style: TextStyle(
+                          fontSize: 12, color: unread > 0 && !muted ? p.gold : p.muted, fontWeight: unread > 0 ? FontWeight.w600 : null)),
                 ]),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Row(children: [
                   Expanded(child: sub),
-                  if (prefs.isMuted(chatId))
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(start: 6),
-                      child: BIcon('bellOff', size: 15, color: p.muted),
-                    ),
+                  if (muted)
+                    Padding(padding: const EdgeInsetsDirectional.only(start: 6), child: BIcon('bellOff', size: 14, color: p.muted)),
                   if (unread > 0)
                     Container(
                       margin: const EdgeInsetsDirectional.only(start: 8),
-                      constraints: const BoxConstraints(minWidth: 22),
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: p.gold, borderRadius: BorderRadius.circular(12)),
+                      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          color: muted ? p.muted.withOpacity(.5) : p.gold, borderRadius: BorderRadius.circular(10)),
                       child: Text(unread > 99 ? '99+' : '$unread',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w800,
-                              color: p.dark ? p.bg : Colors.white)),
+                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: p.dark ? p.bg : Colors.white)),
                     ),
                 ]),
               ]),
@@ -283,11 +347,15 @@ Widget _chatCard(
         ),
       ),
     ),
-  );
+    Padding(
+      padding: const EdgeInsetsDirectional.only(start: 84),
+      child: Divider(height: .6, thickness: .6, color: p.dark ? const Color(0x0FFFFFFF) : p.border),
+    ),
+  ]);
 }
 
 TextStyle _nameStyle(BP p) =>
-    TextStyle(fontWeight: FontWeight.w600, fontSize: 16.5, color: p.dark ? Colors.white : const Color(0xFF17212B));
+    TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: p.dark ? const Color(0xFFF1F5F9) : const Color(0xFF17212B));
 
 class _GroupTile extends StatelessWidget {
   final QueryDocumentSnapshot<Json> chat;
@@ -305,16 +373,20 @@ class _GroupTile extends StatelessWidget {
     final readAt = ((d['readAt'] as Map?)?[me] as num?)?.toInt() ?? 0;
     final unread = last != null && last['senderId'] != me && at > readAt;
     if (unreadOnly && !unread) return const SizedBox.shrink();
-    return _chatCard(
+    return _chatRow(
       context,
       chatId: chat.id,
       unread: unread ? 1 : 0,
-      leading: Avatar(size: 56, url: d['photo'] as String?, name: name, seed: chat.id),
-      nameRow: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: _nameStyle(p)),
+      leading: Avatar(size: 54, url: d['photo'] as String?, name: name, seed: chat.id),
+      nameRow: Row(children: [
+        Icon(Icons.group, size: 16, color: p.muted),
+        const SizedBox(width: 5),
+        Flexible(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: _nameStyle(p))),
+      ]),
       sub: Text((last?['text'] as String?) ?? 'لا توجد رسائل بعد',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 13.5, color: p.muted, fontWeight: unread ? FontWeight.bold : null)),
+          style: TextStyle(fontSize: 14, color: unread ? (p.dark ? Colors.white70 : p.text) : p.muted, fontWeight: unread ? FontWeight.w500 : null)),
       time: at == 0 ? '' : formatChatTime(at),
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(chatId: chat.id))),
     );
@@ -351,12 +423,12 @@ class _ChatTile extends StatelessWidget {
             final gone = !loading && (u == null || u.isEmpty);
             final name = gone ? 'مستخدم محذوف' : ((u?['displayName'] as String?) ?? '...');
             final typing = data['typing_$other'] == true;
-            return _chatCard(
+            return _chatRow(
               context,
               chatId: chat.id,
               unread: unread,
               leading: Avatar(
-                size: 56,
+                size: 54,
                 url: gone ? null : avatarOf(u),
                 name: name,
                 seed: other,
@@ -373,35 +445,35 @@ class _ChatTile extends StatelessWidget {
                 if (u?['isVerified'] == true)
                   Padding(
                     padding: const EdgeInsetsDirectional.only(start: 4),
-                    child: Icon(Icons.verified, size: 16, color: p.gold),
+                    child: Icon(Icons.verified, size: 15, color: p.gold),
                   ),
               ]),
               sub: StreamBuilder<Msg?>(
                 stream: svc.lastMessage(chat.id),
                 builder: (_, ms) {
                   if (typing && !gone) {
-                    return Text('يكتب الآن...', style: TextStyle(fontSize: 13.5, color: p.gold));
+                    return Text('يكتب الآن...', style: TextStyle(fontSize: 14, color: p.gold));
                   }
                   final m = ms.data;
                   if (m == null) {
-                    return Text('لا توجد رسائل بعد', style: TextStyle(fontSize: 13.5, color: p.muted));
+                    return Text('لا توجد رسائل بعد', style: TextStyle(fontSize: 14, color: p.muted));
                   }
                   final mine = m.senderId == me;
+                  final strong = !mine && !m.read;
                   return Row(children: [
                     if (mine)
                       Padding(
                         padding: const EdgeInsetsDirectional.only(end: 4),
-                        child: Icon(m.read ? Icons.done_all : Icons.done,
-                            size: 15, color: m.read ? p.gold : p.muted),
+                        child: Icon(m.read ? Icons.done_all : Icons.done, size: 15, color: m.read ? p.gold : p.muted),
                       ),
                     Expanded(
                       child: Text(m.preview,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontSize: 13.5,
-                              color: p.muted,
-                              fontWeight: (!mine && !m.read) ? FontWeight.bold : null)),
+                              fontSize: 14,
+                              color: strong ? (p.dark ? Colors.white70 : p.text) : p.muted,
+                              fontWeight: strong ? FontWeight.w500 : null)),
                     ),
                   ]);
                 },

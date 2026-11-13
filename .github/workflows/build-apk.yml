@@ -100,11 +100,6 @@ jobs:
       - name: Patch release signing
         run: python3 tool/patch_android.py
 
-      - name: Disable lint
-        run: |
-          sed -i '0,/^android {/s//android {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }/' android/app/build.gradle.kts
-          grep -n -A4 "lint {" android/app/build.gradle.kts
-
       - run: flutter pub get
       - name: App launcher icon
         run: dart run flutter_launcher_icons

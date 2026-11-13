@@ -58,7 +58,7 @@ class Avatar extends StatelessWidget {
             : null,
         image: img != null ? DecorationImage(image: img, fit: BoxFit.cover) : null,
         boxShadow: img == null
-            ? [BoxShadow(color: colors.last.withOpacity(.28), blurRadius: 10, offset: const Offset(0, 3))]
+            ? [BoxShadow(color: colors.last.withOpacity(.14), blurRadius: 6, offset: const Offset(0, 2))]
             : null,
       ),
       child: img != null

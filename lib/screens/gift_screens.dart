@@ -821,26 +821,131 @@ class _SendGiftScreenState extends State<SendGiftScreen> {
       );
     }
     final list = _mine;
-    return Scaffold(
-      backgroundColor: p.chatListBg,
-      appBar: AppBar(title: const Text('اختر هدية للإرسال')),
-      body: list == null
-          ? const Center(child: CircularProgressIndicator())
-          : list.isEmpty
-              ? Center(child: Padding(padding: const EdgeInsets.all(30), child: Text('ما عندك هدايا للإهداء. اشترِ من المتجر أول.', textAlign: TextAlign.center, style: TextStyle(color: p.muted))))
-              : GridView.builder(
-                  padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10),
-                  itemCount: list.length,
-                  itemBuilder: (_, i) {
-                    final g = list[i];
-                    return GestureDetector(
-                      onTap: _busy || widget.otherId == null ? null : () => _send(g, widget.otherId!),
-                      child: GiftArt(kind: gifts.kindOf(g.k), gift: g, ribbon: true, size: 110),
-                    );
-                  },
+    final to = widget.otherId!;
+    Widget mineTab = list == null
+        ? const Center(child: CircularProgressIndicator())
+        : list.isEmpty
+            ? Center(
+                child: Padding(
+                    padding: const EdgeInsets.all(30),
+                    child: Text('ما عندك هدايا جاهزة للإهداء.\nاشترِ هدية جديدة من تبويب «المتجر».',
+                        textAlign: TextAlign.center, style: TextStyle(color: p.muted, height: 1.7))))
+            : GridView.builder(
+                padding: const EdgeInsets.all(12),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10),
+                itemCount: list.length,
+                itemBuilder: (_, i) {
+                  final g = list[i];
+                  return GestureDetector(
+                    onTap: _busy ? null : () => _send(g, to),
+                    child: GiftArt(kind: gifts.kindOf(g.k), gift: g, ribbon: true, size: 110),
+                  );
+                },
+              );
+    final kinds = gifts.allKinds;
+    Widget storeTab = !gifts.ready
+        ? const Center(child: CircularProgressIndicator())
+        : GridView.builder(
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: .82),
+            itemCount: kinds.length,
+            itemBuilder: (_, i) {
+              final k = kinds[i];
+              return GestureDetector(
+                onTap: _busy ? null : () => _buyAndSend(k),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: p.surface,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: p.dark ? const Color(0x14FFFFFF) : p.border),
+                  ),
+                  child: Column(children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: LayoutBuilder(builder: (_, c) => GiftArt(kind: k, size: c.maxWidth < c.maxHeight ? c.maxWidth : c.maxHeight)),
+                      ),
+                    ),
+                    Text(k.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+                    const SizedBox(height: 4),
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                      decoration: BoxDecoration(color: p.gold, borderRadius: BorderRadius.circular(14)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.star_rounded, size: 15, color: Color(0xFF17212B)),
+                        const SizedBox(width: 3),
+                        Text(fmtN(k.price), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF17212B))),
+                      ]),
+                    ),
+                  ]),
                 ),
+              );
+            },
+          );
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: p.chatListBg,
+        appBar: AppBar(
+          title: FutureBuilder<Json?>(
+            future: context.read<ChatService>().getUser(to),
+            builder: (_, s) => Text('إهداء هدية إلى ${(s.data?['displayName'] as String?) ?? ''}'),
+          ),
+          bottom: TabBar(
+            indicatorColor: p.gold,
+            labelColor: p.gold,
+            unselectedLabelColor: p.muted,
+            tabs: const [Tab(text: 'من هداياك'), Tab(text: 'من المتجر')],
+          ),
+        ),
+        body: Stack(children: [
+          TabBarView(children: [mineTab, storeTab]),
+          if (_busy) const Positioned(top: 0, left: 0, right: 0, child: LinearProgressIndicator(minHeight: 2)),
+        ]),
+      ),
     );
+  }
+
+  /// شراء هدية جديدة من المتجر وإرسالها مباشرة للمستلم
+  Future<void> _buyAndSend(GiftKind K) async {
+    final auth = context.read<AuthService>();
+    final gifts = context.read<GiftService>();
+    final to = widget.otherId!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('شراء وإرسال ${K.name}'),
+        content: Text('سيتم خصم ${fmtN(K.price)} ⭐ من رصيدك وإرسال الهدية مباشرة للمستلم.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('شراء وإرسال')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _busy = true);
+    try {
+      final r = await gifts.buy(K, auth.user!);
+      final n = (r['number'] as num?)?.toInt();
+      if (n == null) throw GiftError('bad', 'تعذر إكمال العملية');
+      await gifts.transfer(K, GiftItem(k: K.key, number: n, at: DateTime.now().millisecondsSinceEpoch), to, auth.uid);
+      if (mounted) {
+        toast(context, '🎁 انشترت وانرسلت');
+        Navigator.pop(context);
+      }
+    } on GiftError catch (e) {
+      if (mounted) {
+        toast(context, e.message);
+        setState(() => _busy = false);
+      }
+    } catch (_) {
+      if (mounted) {
+        toast(context, 'تعذر الإرسال');
+        setState(() => _busy = false);
+      }
+    }
   }
 }
 

@@ -24,7 +24,6 @@ import '../widgets/sticker_panel.dart';
 import '../widgets/sticker_view.dart';
 import '../widgets/voice_player.dart';
 import 'forward_screen.dart';
-import 'gift_screens.dart';
 import 'group_screens.dart';
 import 'other_profile_screen.dart';
 import 'video_screen.dart';
@@ -793,7 +792,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ]);
     } else {
       row = Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        IconButton(icon: const Icon(Icons.attach_file), onPressed: _pickGallery),
+        IconButton(icon: const Icon(Icons.attach_file), tooltip: 'إرفاق', onPressed: _pickGallery),
         IconButton(
           icon: Icon(_emojiOpen ? Icons.keyboard : Icons.emoji_emotions_outlined),
           onPressed: () {

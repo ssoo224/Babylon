@@ -77,6 +77,12 @@ class OtherProfileScreen extends StatelessWidget {
                       },
                     ),
                     PfButton(
+                      label: 'إهداء هدية',
+                      icon: Icons.card_giftcard,
+                      onTap: () => Navigator.push(
+                          context, MaterialPageRoute(builder: (_) => SendGiftScreen(otherId: uid))),
+                    ),
+                    PfButton(
                       label: blocked ? 'إلغاء الحظر' : 'حظر',
                       icon: Icons.block,
                       danger: true,
