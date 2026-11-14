@@ -21,6 +21,12 @@ if kts.exists():
         }
     }
 
+    // فحص Lint ينهار داخلياً مع بعض الحزم، نعطّله لنسخة الإصدار
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
 '''
     m = re.search(r'^[ \t]*buildTypes\s*\{', g, re.M)
     if not m:
@@ -40,6 +46,11 @@ elif grv.exists():
             keyAlias "babylon"
             keyPassword System.getenv("KS_PASS")
         }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
     }
 
 '''
