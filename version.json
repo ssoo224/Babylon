@@ -1,6 +1,6 @@
 {
-  "minVersion": 105,
-  "latest": 105,
+  "minVersion": 106,
+  "latest": 106,
   "url": "/api/apk",
-  "notes": "إصلاح بناء الإصدار"
+  "notes": "الاشعارات"
 }
