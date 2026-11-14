@@ -17,12 +17,15 @@ import 'services/update_service.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
 import 'services/chat_service.dart';
+import 'services/notification_service.dart';
 import 'services/push_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
+  await NotificationService.init();
+  FirebaseMessaging.onMessage.listen((m) => NotificationService.handleMessage(m, background: false));
   await initializeDateFormatting('ar');
   final theme = ThemeController();
   await theme.load();
@@ -49,6 +52,7 @@ class BabylonApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeController>();
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Babylon Chat',
       debugShowCheckedModeBanner: false,
       locale: const Locale('ar'),

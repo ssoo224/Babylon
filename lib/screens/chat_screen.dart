@@ -14,6 +14,7 @@ import '../core/prefs.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../services/chat_service.dart';
 import '../widgets/avatar.dart';
 import '../widgets/emoji_panel.dart';
@@ -82,6 +83,8 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _svc = context.read<ChatService>();
     _auth = context.read<AuthService>();
+    NotificationService.activeChatId = widget.chatId;
+    NotificationService.clearChat(widget.chatId);
     _scroll.addListener(() {
       if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 200 && mounted) {
         setState(() => _limit += 50);
@@ -96,6 +99,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    if (NotificationService.activeChatId == widget.chatId) NotificationService.activeChatId = null;
     _typingTimer?.cancel();
     _recTimer?.cancel();
     if (!widget.isGroup) _svc.setTyping(widget.chatId, _auth.uid, false);

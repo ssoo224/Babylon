@@ -1,9 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-@pragma('vm:entry-point')
-Future<void> firebaseBackgroundHandler(RemoteMessage m) async {}
-
 /// يحفظ توكن FCM في users/{uid} بنفس حقول نسخة الويب (fcmToken + fcmTokens)
 class PushService {
   static Future<void> init(String uid) async {

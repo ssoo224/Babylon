@@ -6,6 +6,7 @@ import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
+import '../services/notification_service.dart';
 import '../services/push_service.dart';
 import '../services/update_service.dart';
 import '../widgets/avatar.dart';
@@ -34,6 +35,28 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     final uid = context.read<AuthService>().uid;
     PushService.init(uid).catchError((_) {});
+    NotificationService.onOpenChat = _openFromNotification;
+    // ضغطة إشعار والتطبيق كان مغلقاً
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final d = NotificationService.pendingOpen;
+      if (d != null) _openFromNotification(d);
+    });
+  }
+
+  @override
+  void dispose() {
+    if (NotificationService.onOpenChat == _openFromNotification) NotificationService.onOpenChat = null;
+    super.dispose();
+  }
+
+  void _openFromNotification(Map<String, dynamic> d) {
+    NotificationService.pendingOpen = null;
+    final chatId = d['chatId'] as String?;
+    if (chatId == null || !mounted) return;
+    final sender = d['senderId'] as String?;
+    final me = context.read<AuthService>().uid;
+    final other = (sender != null && sender.isNotEmpty && chatId == pairChatId(me, sender)) ? sender : null;
+    navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => ChatScreen(chatId: chatId, otherId: other)));
   }
 
   @override
