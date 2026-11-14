@@ -1,6 +1,6 @@
 {
-  "minVersion": 103,
-  "latest": 103,
+  "minVersion": 105,
+  "latest": 105,
   "url": "/api/apk",
-  "notes": "Replace PopupMenuButton with IconButton for attachments"
+  "notes": "إصلاح بناء الإصدار"
 }
