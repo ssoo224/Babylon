@@ -29,6 +29,7 @@ class SettingsScreen extends StatelessWidget {
     final p = BP.of(context);
     final me = auth.me ?? {};
     final name = (me['displayName'] as String?) ?? '';
+    final isDark = theme.mode == ThemeMode.dark;
 
     return Scaffold(
       backgroundColor: p.chatListBg,
@@ -37,12 +38,12 @@ class SettingsScreen extends StatelessWidget {
         _SettingsHero(me: me, name: name, uid: auth.user?.uid),
         _label(p, 'التخصيص'),
         InfoCard(children: [
-          SwitchListTile(
-            secondary: _ic(Icons.dark_mode_outlined, const Color(0xFF6366F1)),
-            title: const Text('مظهر التطبيق'),
-            subtitle: Text(theme.mode == ThemeMode.dark ? 'ليلي' : 'الوضع النهاري مفعّل'),
-            value: theme.mode == ThemeMode.dark,
-            onChanged: (v) => theme.set(v ? ThemeMode.dark : ThemeMode.light),
+          _ThemeToggleTile(
+            isDark: isDark,
+            onChanged: (v) {
+              HapticFeedback.lightImpact();
+              theme.set(v ? ThemeMode.dark : ThemeMode.light);
+            },
           ),
           _item(context, Icons.palette_outlined, const Color(0xFFF59E0B), 'المظهر والمحادثات',
               const ChatSettingsPage()),
@@ -131,6 +132,146 @@ class SettingsScreen extends StatelessWidget {
           ),
         ]),
       ]),
+    );
+  }
+}
+
+class _ThemeToggleTile extends StatelessWidget {
+  final bool isDark;
+  final ValueChanged<bool> onChanged;
+  const _ThemeToggleTile({required this.isDark, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = BP.of(context);
+    return Semantics(
+      toggled: isDark,
+      label: 'مظهر التطبيق',
+      child: ListTile(
+        onTap: () => onChanged(!isDark),
+        leading: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF6366F1) : const Color(0xFFF59E0B),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Icon(
+              isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+              key: ValueKey(isDark),
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
+        title: const Text('مظهر التطبيق'),
+        subtitle: Text(
+          isDark ? 'الوضع الليلي مفعّل' : 'الوضع النهاري مفعّل',
+          style: TextStyle(fontSize: 12.5, color: p.muted),
+        ),
+        trailing: _PillSwitch(
+          value: isDark,
+          onChanged: onChanged,
+          showThemeIcons: true,
+        ),
+      ),
+    );
+  }
+}
+
+class _PillSwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final bool showThemeIcons;
+  const _PillSwitch({
+    required this.value,
+    required this.onChanged,
+    this.showThemeIcons = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = BP.of(context);
+    final activeTrack = showThemeIcons ? const Color(0xFF6366F1) : p.navActive;
+    final inactiveTrack = p.dark ? const Color(0xFF2D3A4D) : const Color(0xFFD5DCE4);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        width: 52,
+        height: 30,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: value ? activeTrack : inactiveTrack,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: value ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1.5),
+                ),
+              ],
+            ),
+            child: showThemeIcons
+                ? Icon(
+                    value ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                    size: 14,
+                    color: value ? const Color(0xFF6366F1) : const Color(0xFFF59E0B),
+                  )
+                : null,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SwitchTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _SwitchTile({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = BP.of(context);
+    return ListTile(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onChanged(!value);
+      },
+      title: Text(title),
+      subtitle: Text(subtitle, style: TextStyle(fontSize: 12.5, color: p.muted)),
+      trailing: _PillSwitch(
+        value: value,
+        onChanged: (v) {
+          HapticFeedback.lightImpact();
+          onChanged(v);
+        },
+      ),
     );
   }
 }
@@ -247,7 +388,8 @@ class ChatSettingsPage extends StatelessWidget {
                         width: 40,
                         height: 12,
                         decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: t.mine.length > 1 ? t.mine : [t.mine.first, t.mine.first]),
+                            gradient: LinearGradient(
+                                colors: t.mine.length > 1 ? t.mine : [t.mine.first, t.mine.first]),
                             borderRadius: BorderRadius.circular(6))),
                     const SizedBox(height: 5),
                     Container(
@@ -299,9 +441,9 @@ class NotifSettingsPage extends StatelessWidget {
       body: ListView(children: [
         _label(p, 'إشعارات الرسائل'),
         InfoCard(children: [
-          SwitchListTile(
-            title: const Text('إشعارات الجهاز'),
-            subtitle: const Text('استقبال تنبيهات الجهاز عند السماح بها.'),
+          _SwitchTile(
+            title: 'إشعارات الجهاز',
+            subtitle: 'استقبال تنبيهات الجهاز عند السماح بها.',
             value: prefs.msgNotif,
             onChanged: (v) async {
               prefs.setNotif(messages: v);
@@ -311,9 +453,9 @@ class NotifSettingsPage extends StatelessWidget {
         ]),
         _label(p, 'الأصوات'),
         InfoCard(children: [
-          SwitchListTile(
-            title: const Text('صوت الرسائل الجديدة'),
-            subtitle: const Text('تشغيل صوت قصير عند وصول رسالة جديدة داخل التطبيق.'),
+          _SwitchTile(
+            title: 'صوت الرسائل الجديدة',
+            subtitle: 'تشغيل صوت قصير عند وصول رسالة جديدة داخل التطبيق.',
             value: prefs.sound,
             onChanged: (v) => prefs.setNotif(snd: v),
           ),
@@ -463,15 +605,15 @@ class PrivacyPage extends StatelessWidget {
       body: ListView(children: [
         _label(p, 'من يستطيع رؤية معلوماتي'),
         InfoCard(children: [
-          SwitchListTile(
-            title: const Text('إخفاء آخر ظهور'),
-            subtitle: const Text('إظهار أو إخفاء وقت آخر تواجدك'),
+          _SwitchTile(
+            title: 'إخفاء آخر ظهور',
+            subtitle: 'إظهار أو إخفاء وقت آخر تواجدك',
             value: me['hideLastSeen'] == true,
             onChanged: (v) => auth.updateProfile({'hideLastSeen': v}),
           ),
-          SwitchListTile(
-            title: const Text('إخفاء صورة الملف الشخصي'),
-            subtitle: const Text('إظهار أو إخفاء صورتك للآخرين'),
+          _SwitchTile(
+            title: 'إخفاء صورة الملف الشخصي',
+            subtitle: 'إظهار أو إخفاء صورتك للآخرين',
             value: me['hideAvatar'] == true,
             onChanged: (v) => auth.updateProfile({'hideAvatar': v}),
           ),
@@ -559,7 +701,6 @@ class BlockedScreen extends StatelessWidget {
   }
 }
 
-
 /// بطاقة الهيرو (sx-hero): تدرج ذهبي/أزرق، أفاتار بحلقة ذهبية، اسم، يوزر، نبذة، زر تعديل
 class _SettingsHero extends StatelessWidget {
   final Map<String, dynamic> me;
@@ -590,7 +731,7 @@ class _SettingsHero extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: const Color(0x8CD4AF37), spreadRadius: 3, blurRadius: 0),
+                const BoxShadow(color: Color(0x8CD4AF37), spreadRadius: 3, blurRadius: 0),
                 const BoxShadow(color: Color(0x59000000), blurRadius: 24, offset: Offset(0, 8)),
               ],
             ),
