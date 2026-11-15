@@ -234,7 +234,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final p = BP.of(context);
     final auth = context.watch<AuthService>();
     final me = auth.me ?? {};
-    final coverTheme = chatThemeBase(_cover);
+    final coverTheme = chatThemeFor(_cover, p.dark);
     final dividerCol = p.dark ? const Color(0x12FFFFFF) : p.border;
     final cleanUser = _user.text.trim().replaceFirst('@', '').toLowerCase();
     final oldUser = ((me['username'] as String?) ?? '').toLowerCase();
