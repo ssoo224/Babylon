@@ -1,6 +1,6 @@
 {
-  "minVersion": 106,
-  "latest": 106,
+  "minVersion": 107,
+  "latest": 107,
   "url": "/api/apk",
-  "notes": "الاشعارات"
+  "notes": "Update home_screen.dart"
 }
