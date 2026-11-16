@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/api.dart';
 import '../core/governorates.dart';
 import '../core/media.dart';
+import '../core/prefs.dart';
 import '../core/theme.dart';
 import '../core/utils.dart';
 import '../services/auth_service.dart';
@@ -234,7 +235,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final p = BP.of(context);
     final auth = context.watch<AuthService>();
     final me = auth.me ?? {};
-    final coverTheme = chatThemeFor(_cover, p.dark);
+    final coverTheme = chatThemeBase(_cover);
     final dividerCol = p.dark ? const Color(0x12FFFFFF) : p.border;
     final cleanUser = _user.text.trim().replaceFirst('@', '').toLowerCase();
     final oldUser = ((me['username'] as String?) ?? '').toLowerCase();
