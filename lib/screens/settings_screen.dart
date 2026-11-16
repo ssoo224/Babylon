@@ -17,8 +17,6 @@ import 'edit_profile_screen.dart';
 import 'gift_screens.dart';
 import 'sticker_screens.dart';
 
-const _shareLink = 'https://babyllon.vercel.app';
-
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -63,18 +61,6 @@ class SettingsScreen extends StatelessWidget {
         InfoCard(children: [
           _item(context, Icons.star_outline, const Color(0xFFEAB308), 'نجوم بابيلون', const StarsScreen()),
           _item(context, Icons.card_giftcard, const Color(0xFFEC4899), 'متجر الهدايا', const GiftStoreScreen()),
-        ]),
-        _label(p, 'مشاركة التطبيق'),
-        InfoCard(children: [
-          ListTile(
-            leading: _ic(Icons.share_outlined, const Color(0xFF0EA5E9)),
-            title: const Text('مشاركة رابط التحميل'),
-            subtitle: const Text('رابط يفتح صفحة تحميل التطبيق في أي متصفح'),
-            onTap: () {
-              Clipboard.setData(const ClipboardData(text: _shareLink));
-              toast(context, 'تم نسخ الرابط');
-            },
-          ),
         ]),
         _label(p, 'الأمان'),
         InfoCard(children: [
