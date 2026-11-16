@@ -1,6 +1,6 @@
 {
-  "minVersion": 112,
-  "latest": 112,
+  "minVersion": 113,
+  "latest": 113,
   "url": "/api/apk",
-  "notes": "Update edit_profile_screen.dart"
+  "notes": "Remove app sharing from settings"
 }
