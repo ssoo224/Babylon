@@ -1,6 +1,6 @@
 {
-  "minVersion": 107,
-  "latest": 107,
+  "minVersion": 112,
+  "latest": 112,
   "url": "/api/apk",
-  "notes": "Update home_screen.dart"
+  "notes": "Update edit_profile_screen.dart"
 }
